@@ -1,6 +1,4 @@
-import { IConfig } from "../utils/config";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { IntegerFromString } from "@pagopa/ts-commons/lib/numbers";
 import { DateFromTimestamp } from "@pagopa/ts-commons/lib/dates";
 
 const aBlacklistedFiscalCode = "AAAAAA00A00H501I" as FiscalCode;

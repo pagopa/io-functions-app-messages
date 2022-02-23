@@ -1,58 +1,56 @@
-# IO Functions template
+# IO Functions for IO App
 
-Template per l'utilizzo di Azure Functions (e Durable Functions) all'interno del
-progetto IO.
+This project implements the APIs to enable the functionalities implemented in
+the IO app. The APIs are called by the app backend.
+The implementation is based on the Azure Functions v2 runtime.
 
-Una volta clonato il repo assicurarsi di:
+## Architecture
 
-- editare i metadati del repository nel file `package.json`
+The project is structured as follows:
 
-- specificare un nome per il
-  [TaskHub](https://docs.microsoft.com/it-it/azure/azure-functions/durable/durable-functions-task-hubs)
-  in host.json in modo da evitare di condividere lo stesso per function diverse
-  che usano lo stesso storage
 
-- effettuare il [tuning dei parametri per le durable
-  function](https://docs.microsoft.com/it-it/azure/azure-functions/durable/durable-functions-bindings#host-json)
+## Contributing
 
-- impostare a `false` il parametro `FUNCTIONS_V2_COMPATIBILITY_MODE` nel file
-  `local.settings.json` nel caso di upgrade a `azure-functions@3.x`
+### Setup
 
-- modificare l' endpoint di healthcheck all' interno del file `deploy-pipelines.yml` in base al `basePath` configurato.
+Install the [Azure Functions Core Tools](https://github.com/Azure/azure-functions-core-tools).
 
-- fare una PR sul progetto [gitops](https://github.com/pagopa/gitops) per deployare le pipelines. (un esempio [qui](https://github.com/pagopa/gitops/pull/11) )
+Install the dependencies:
 
-- fare una PR sul progetto [io-infrastructure-live-new](https://github.com/pagopa/io-infrastructure-live-new) per fare il stetup degli ambienti di prod e staging della nuova function. (un esempio [qui](https://github.com/pagopa/io-infrastructure-live-new/pull/465) )
-
-## Sviluppo in locale con Docker
-
-```shell
-cp env.example .env
-yarn install
-yarn build
-docker-compose up -d --build
-docker-compose logs -f functions
-open http://localhost/some/path/test
 ```
-## Sviluppo in locale con Docker
-
-```shell
-cp env.example .env
-yarn install
-yarn build
-docker-compose up -d --build
-docker-compose logs -f functions
-open http://localhost/some/path/test
+$ yarn install
 ```
 
-## Deploy
+Create a file `local.settings.json` in your cloned repo, with the
+following contents:
 
-Il deploy avviene tramite una [pipeline](./.devops/deploy-pipelines.yml)
-(workflow) configurata su [Azure DevOps](https://dev.azure.com/pagopa-io/).
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "WEBSITE_NODE_DEFAULT_VERSION": "10.14.1",
+    "AzureWebJobsStorage": "<JOBS_STORAGE_CONNECTION_STRING>",
+    "APPINSIGHTS_INSTRUMENTATIONKEY": "<APPINSIGHTS_KEY>",
+    "MESSAGE_CONTAINER_NAME": "message-content",
+    "COSMOSDB_NAME": "<COSMOSDB_DB_NAME>",
+    "COSMOSDB_KEY": "<COSMOSDB_KEY>",
+    "COSMOSDB_URI": "<COSMOSDB_URI>",
+    "WEBHOOK_CHANNEL_URL": "<WEBHOOK_URL>",
+    "QueueStorageConnection": "<QUEUES_STORAGE_CONNECTION_STRING>",
+    "AssetsStorageConnection": "<ASSETS_STORAGE_CONNECTION_STRING>",
+    "STATUS_ENDPOINT_URL": "<APP_BACKEND_INFO_ENDPOINT>",
+    "STATUS_REFRESH_INTERVAL_MS": "<STATUS_REFRESH_INTERVAL_MS>",
+    "SUBSCRIPTIONS_FEED_TABLE": "SubscriptionsFeedByDay"
+  },
+  "ConnectionStrings": {}
+}
+```
 
-## Esempi di function
+### Starting the functions runtime
 
-Sono presenti alcune function di esempio che permettono di testare la corretta
-esecuzione del runtime delle durable functions. Le funzioni attivate 
-da [trigger HTTP](./HttpTriggerFunction) utilizzano il pacchetto
-[io-functions-express](https://github.com/teamdigitale/io-functions-express).
+```
+$ yarn start
+```
+
+The server should reload automatically when the code changes.

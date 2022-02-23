@@ -1,20 +1,19 @@
 {
   "compilerOptions": {
-    "target": "es6",
-    "rootDir": ".",
-    "outDir": "dist",
     "module": "commonjs",
-    "moduleResolution": "node",
-    "strict": true,
-    "sourceMap": false,
-    "resolveJsonModule": true,
-    "skipLibCheck": true
-  },
+    "target": "es6",
+    "outDir": "dist",
+    "rootDir": ".",
+    "sourceMap": true,
+    "strict": false,
+    "resolveJsonModule": true
+  }, 
   "exclude": [
-    "__mocks__",
-    "dist",
     "node_modules",
-    "**/__tests__/*",
+    "dist",
+    "__mocks__",
+    "docker",
+    "**/__tests__",
     "Dangerfile.ts"
   ]
 }

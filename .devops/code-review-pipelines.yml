@@ -40,12 +40,19 @@ stages:
   - stage: Static_analysis
     dependsOn: []
     jobs:
+
       - job: lint     
         steps:
         - template: templates/node-job-setup/template.yaml@pagopaCommons
         - script: |
             yarn lint
           displayName: 'Lint'
+
+      - job: validate_api_specification     
+        steps:
+        - script: |
+            npx oval validate -p openapi/index.yaml
+          displayName: 'Validate API specification'
 
       - job: danger
         condition: 

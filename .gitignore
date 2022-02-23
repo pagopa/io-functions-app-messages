@@ -5,6 +5,8 @@ csx
 edge
 Publish
 
+.DS_Store
+
 *.user
 *.suo
 *.cscfg
@@ -24,6 +26,8 @@ local.settings.json
 
 node_modules
 dist
+
+azure-functions-core-tools
 
 # Local python packages
 .python_packages/
@@ -45,16 +49,8 @@ __pycache__/
 coverage
 
 yarn-error.log
+generated/**/*
 
-generated
-*.zip
-
-*.js
-!jest.config.js
-!.release-it.js
-
-# ESLint files
+# eslint section
 !.eslintrc.js
 .eslintcache
-
-azure-functions-core-tools

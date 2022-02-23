@@ -3,14 +3,14 @@ version: "3.2"
 services:
 
   functions:
-    image: functions-template:v2.0.0
+    image: functions-app:v2.0.0
     build:
       context: ./
       dockerfile: docker/functions/Dockerfile
+    # environment:
+    #   - languageWorkers__node__arguments=--inspect=0.0.0.0:5858
     env_file: 
       - .env
-    environment:
-      - languageWorkers__node__arguments=--inspect=0.0.0.0:5858
     working_dir: /usr/src/app
     ports:
       - "7071:7071"
@@ -30,7 +30,7 @@ services:
       - "traefik.http.middlewares.testHeader.headers.customrequestheaders.x-user-id=unused"
       - "traefik.http.middlewares.testHeader.headers.customrequestheaders.x-user-groups=${REQ_USER_GROUPS}"
       - "traefik.http.middlewares.testHeader.headers.customrequestheaders.x-subscription-id=${REQ_SERVICE_ID}"
-      - "traefik.http.middlewares.testHeader.headers.customrequestheaders.x-user-email=${SERVICE_EMAIL}"
+      - "traefik.http.middlewares.testHeader.headers.customrequestheaders.x-user-email=unused@example.com"
       - "traefik.http.middlewares.testHeader.headers.customrequestheaders.x-user-note=unused"
       - "traefik.http.middlewares.testHeader.headers.customrequestheaders.x-functions-key=unused"
 
@@ -70,6 +70,18 @@ services:
       dockerfile: docker/cosmosdb/Dockerfile
     ports:
       - ${COSMOSDB_PORT}:3000
+    networks:
+      - io-fn
+
+  fixtures:
+    image: fixtures
+    env_file:
+      - .env
+    build:
+      context: ./
+      dockerfile: docker/fixtures/Dockerfile
+    depends_on:
+      - cosmosdb
     networks:
       - io-fn
 

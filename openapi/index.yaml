@@ -1,49 +1,1513 @@
-swagger: "2.0"
+swagger: '2.0'
 info:
-  version: 1.1.0
-  title: IO Function API
+  version: 3.11.0
+  title: IO API for App
   contact:
-    name: IO team
+    name: Digital Transformation Team
     url: https://forum.italia.it/c/progetto-io
   x-logo:
     url: https://io.italia.it/assets/img/io-logo-blue.svg
   description: >
-    Documentation of the IO Function API here.
+    # Warning
+
+    **This is an experimental API that is (most probably) going to change as we
+    evolve the IO platform.**
+
+    # Introduction
+
+    This is the documentation of the IO API for App.
 host: api.cd.italia.it
-basePath: "/template"
+basePath: /api/v1
 schemes:
   - https
+security:
+  - SubscriptionKey: []
 paths:
-  "/echo/{input}":
-    parameters:
-      - name: input
-        in: path
-        type: string
-        required: true
-        description: test input.
+  /messages/{fiscal_code}:
     get:
-      operationId: echo
-      summary: Echo API
-      description: Some API description here.
+      operationId: getMessagesByUser
+      summary: GetMessages
+      description: >-
+        Returns the messages for the user identified by the provided fiscal
+        code.
+
+        Messages will be returned in inverse acceptance order (from last to
+        first).
+
+        The "next" field, when present, contains an URL pointing to the next
+        page of results.
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - $ref: '#/parameters/PageSize'
+        - $ref: '#/parameters/MaximumId'
+        - $ref: '#/parameters/MinimumId'
+        - $ref: '#/parameters/EnrichResultData'
       responses:
-        "200":
+        '200':
           description: Found.
           schema:
-            "$ref": "#/definitions/Input"
+            $ref: '#/definitions/PaginatedPublicMessagesCollection'
           examples:
             application/json:
-              id: "10000AAAA"
-              output: "hello world !"
-        "401":
+              items:
+                - id: 01BX9NSMKVXXS5PSP2FATZMYYY
+                  fiscal_code: PUPFHK4TD3MWL20W
+                  time_to_live: 3600
+                  sender_service_id: 01BX9NSMKVXXS5PSP2FATZMZZZ
+                  created_at: '2018-05-21T07:36:41.209Z'
+                - id: 01BX9NSMKVXXS5PSP2FATZM123
+                  fiscal_code: PKTINH4QDQUV696L
+                  time_to_live: 3600
+                  sender_service_id: 01BX9NSMKVXXS5PSP2FATZMWWW
+                  created_at: '2018-05-21T07:36:41.209Z'
+              next: 01BX9NSMKVXXS5PSP2FATZMWWW
+              prev: 01BX9NSMKVXXS5PSP2FATZMWWW
+        '401':
           description: Unauthorized
-        "404":
-          description: Not found.
-      parameters: []
+        '404':
+          description: No message found.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
+        '500':
+          description: Internal Server error
+  /messages/{fiscal_code}/{id}:
+    get:
+      operationId: getMessage
+      summary: GetMessage
+      description: |-
+        The previously created message with the provided message ID is
+        returned.
+      tags:
+        - public
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: The ID of the message.
+      responses:
+        '200':
+          description: Message found.
+          schema:
+            $ref: '#/definitions/MessageResponseWithContent'
+          examples:
+            application/json:
+              message:
+                id: 01BX9NSMKAAAS5PSP2FATZM6BQ
+                fiscal_code: QXJNTX9RCRVD6V4O
+                time_to_live: 3600
+                content:
+                  subject: message subject, aliquip sint nulla in estinut
+                  markdown: >-
+                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Maecenas et mollis felis.
+
+                    Vivamus orci nisl, commodo ut sodales ut, eleifend a libero.
+                    Donec dapibus, turpis in mattis tempor,
+
+                    risus nunc malesuada ex, non aliquet metus nunc a lacus.
+                    Aenean in arcu vitae nisl porta
+
+                    fermentum nec non nibh. Phasellus tortor tellus, semper in
+                    metus eget, eleifend
+
+                    laoreet nibh. Aenean feugiat lectus ut nisl eleifend
+                    gravida.
+                sender_service_id: 01BX9NSMKVXXS5PSP2FATZM6QX
+              notification:
+                email: QUEUED
+        '401':
+          description: Unauthorized
+        '404':
+          description: No message found for the provided ID.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
+  /services:
+    get:
+      operationId: getVisibleServices
+      summary: GetVisibleServices.
+      description: >-
+        Returns all the services that have the 'is_visibile' field value set to
+        true.
+      tags:
+        - restricted
+      responses:
+        '200':
+          description: Found.
+          schema:
+            $ref: '#/definitions/PaginatedServiceTupleCollection'
+        '401':
+          description: Unauthorized
+        '429':
+          description: Too many requests
+  /services/{service_id}:
+    get:
+      operationId: getService
+      summary: GetService
+      description: A previously created service with the provided service ID is returned.
+      tags:
+        - restricted
+      parameters:
+        - name: service_id
+          in: path
+          type: string
+          required: true
+          description: The ID of an existing Service.
+      responses:
+        '200':
+          description: Service found.
+          schema:
+            $ref: '#/definitions/ServicePublic'
+          examples:
+            application/json:
+              department_name: dept
+              organization_name: org
+              service_id: 2b3e728c1a5d1efa035c
+              service_name: service
+              version: 1
+        '401':
+          description: Unauthorized
+        '404':
+          description: No service found for the provided ID.
+        '429':
+          description: Too many requests
+  /profiles/{fiscal_code}:
+    get:
+      operationId: getProfile
+      summary: GetProfile
+      description: Retrieve a user profile
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+      responses:
+        '200':
+          description: Profile created
+          schema:
+            $ref: '#/definitions/ExtendedProfile'
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '404':
+          description: No message found.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
+    post:
+      operationId: createProfile
+      summary: CreateProfile
+      description: Create a new user profile
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/NewProfile'
+      responses:
+        '200':
+          description: Profile created
+          schema:
+            $ref: '#/definitions/ExtendedProfile'
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '409':
+          description: Conflict
+        '429':
+          description: Too many requests
+    put:
+      operationId: updateProfile
+      summary: UpdateProfile
+      description: Update a user profile
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/Profile'
+      responses:
+        '200':
+          description: Profile updated
+          schema:
+            $ref: '#/definitions/ExtendedProfile'
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '409':
+          description: Conflict
+        '429':
+          description: Too many requests
+  /profiles/{fiscal_code}/services/{service_id}/preferences:
+    get:
+      operationId: getServicePreferences
+      summary: getServicePreferences
+      description: Retrieve the User's preferences for a given Service Id
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - $ref: '#/parameters/ServiceId'
+      responses:
+        '200':
+          description: The User's Service Preference
+          schema:
+            $ref: '#/definitions/ServicePreference'
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Profile or Service not found
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '409':
+          description: >-
+            Conflict. Either the provided preference setting version is not
+            consistent with the current version stored in the Profile
+
+            or the Profile is not in the correct preference mode.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
+    post:
+      operationId: upsertServicePreferences
+      summary: getServicePreferences
+      description: Either insert or update User's preferences for a given Service Id
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - $ref: '#/parameters/ServiceId'
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/ServicePreference'
+      responses:
+        '200':
+          description: User's Service Preference Upserted
+          schema:
+            $ref: '#/definitions/ServicePreference'
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Profile or Service not found
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '409':
+          description: >-
+            Conflict. Either the provided preference setting version is not
+            consistent with the current version stored in the Profile
+
+            or the Profile is not in the correct preference mode.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
+  /email-validation-process/{fiscal_code}:
+    post:
+      operationId: startEmailValidationProcess
+      summary: StartEmailValidationProcess
+      description: |-
+        Start the email validation process that create the validation token
+        and send the validation email
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+      responses:
+        '202':
+          description: Request accepted
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '429':
+          description: Too many requests
+        '500':
+          description: Server Error
+          schema:
+            $ref: '#/definitions/ProblemJson'
+  /user-data-processing/{fiscal_code}:
+    post:
+      operationId: upsertUserDataProcessing
+      summary: UpsertUserDataProcessing
+      description: Upsert a user data processing
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - in: body
+          name: body
+          schema:
+            $ref: '#/definitions/UserDataProcessingChoiceRequest'
+          description: The request wrapper of a user data processing choice.
+      responses:
+        '200':
+          description: UserDataProcessing created
+          schema:
+            $ref: '#/definitions/UserDataProcessing'
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '409':
+          description: Conflict
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
+        '500':
+          description: Server Error
+          schema:
+            $ref: '#/definitions/ProblemJson'
+  /user-data-processing/{fiscal_code}/{choice}:
+    get:
+      operationId: getUserDataProcessing
+      summary: GetUserDataProcessing
+      description: Retrieve user data processing
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - $ref: '#/parameters/UserDataProcessingChoiceParam'
+      responses:
+        '200':
+          description: User data processing retrieved
+          schema:
+            $ref: '#/definitions/UserDataProcessing'
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '404':
+          description: No message found.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
+    delete:
+      operationId: abortUserDataProcessing
+      summary: AbortUserDataProcessing
+      description: Ask for a request to abort, if present
+      tags:
+        - restricted
+      parameters:
+        - $ref: '#/parameters/FiscalCode'
+        - $ref: '#/parameters/UserDataProcessingChoiceParam'
+      responses:
+        '202':
+          description: The abort request has been recorded
+        '400':
+          description: Invalid request.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+        '409':
+          description: Conflict
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
+        '500':
+          description: Server Error
+          schema:
+            $ref: '#/definitions/ProblemJson'
+consumes:
+  - application/json
+produces:
+  - application/json
+securityDefinitions:
+  SubscriptionKey:
+    type: apiKey
+    name: X-Functions-Key
+    in: header
+    description: The API key obtained through the developer portal.
+parameters:
+  FiscalCode:
+    name: fiscal_code
+    in: path
+    type: string
+    maxLength: 16
+    minLength: 16
+    required: true
+    description: The fiscal code of the user, all upper case.
+    pattern: >-
+      [A-Z]{6}[0-9LMNPQRSTUV]{2}[ABCDEHLMPRST][0-9LMNPQRSTUV]{2}[A-Z][0-9LMNPQRSTUV]{3}[A-Z]
+    x-example: SPNDNL80R13C555X
+  ServiceId:
+    name: service_id
+    in: path
+    type: string
+    required: true
+    description: The ID of an existing Service.
+  PaginationRequest:
+    name: cursor
+    in: query
+    type: string
+    minimum: 1
+    description: An opaque identifier that points to the next item in the collection.
+    x-example: 01BX9NSMKVXXS5PSP2FATZM123
+  PageSize:
+    type: integer
+    name: page_size
+    in: query
+    minimum: 1
+    maximum: 100
+    description: How many items a page should include.
+  MaximumId:
+    type: string
+    name: maximum_id
+    in: query
+    description: The maximum id to get messages until to.
+  MinimumId:
+    type: string
+    name: minimum_id
+    in: query
+    description: The minimum id to get messages from.
+  EnrichResultData:
+    type: boolean
+    name: enrich_result_data
+    in: query
+    description: Indicates whether result data should be enriched or not.
+  UserDataProcessingChoiceParam:
+    name: choice
+    in: path
+    type: string
+    enum:
+      - DOWNLOAD
+      - DELETE
+    description: A representation of a user data processing choice
+    required: true
+    x-example: DOWNLOAD
 definitions:
-  Input:
+  EUCovidCert:
+    type: object
+    description: Paylod with access token to retrieve a EU Covid Certificate
+    properties:
+      auth_code:
+        type: string
+    required:
+      - auth_code
+  LimitedProfile:
+    description: |-
+      Describes the citizen's profile, mostly interesting for preferences
+      attributes.
+    type: object
+    properties:
+      sender_allowed:
+        type: boolean
+        description: |-
+          True in case the service that made the request can send
+          messages to the user identified by this profile (false otherwise).
+      preferred_languages:
+        $ref: '#/definitions/PreferredLanguages'
+    required:
+      - sender_allowed
+  PrescriptionData:
+    type: object
+    description: Metadata needed to process medical prescriptions.
+    properties:
+      nre:
+        $ref: '#/definitions/PrescriptionNRE'
+      iup:
+        $ref: '#/definitions/PrescriptionIUP'
+      prescriber_fiscal_code:
+        $ref: '#/definitions/PrescriberFiscalCode'
+    required:
+      - nre
+  PrescriptionNRE:
+    description: >-
+      The field *Numero ricetta elettronica* identifies the medical prescription
+      at national level.
+    type: string
+    minLength: 15
+    maxLength: 15
+  PrescriptionIUP:
+    description: >-
+      The field *Identificativo Unico di Prescrizione* identifies the medical
+      prescription at regional level.
+    type: string
+    minLength: 1
+    maxLength: 16
+  PrescriberFiscalCode:
+    type: string
+    description: Fiscal code of the Doctor that made the prescription.
+    format: FiscalCode
+    x-import: '@pagopa/ts-commons/lib/strings'
+    example: TCNZRO80R13C555Y
+  NewMessageContent:
+    allOf:
+      - $ref: '#/definitions/MessageContentBase'
+      - type: object
+        properties:
+          payment_data:
+            $ref: '#/definitions/PaymentDataWithRequiredPayee'
+          due_date:
+            $ref: '#/definitions/Timestamp'
+          prescription_data:
+            $ref: '#/definitions/PrescriptionData'
+          eu_covid_cert:
+            $ref: '#/definitions/EUCovidCert'
+          legal_data:
+            $ref: '#/definitions/LegalData'
+  CIDR:
+    type: string
+    description: Describes a single IP or a range of IPs.
+    pattern: ^([0-9]{1,3}[.]){3}[0-9]{1,3}(/([0-9]|[1-2][0-9]|3[0-2]))?$
+  ServicePayload:
+    description: A payload used to create/update a service for a user.
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/VisibleServicePayload'
+      - $ref: '#/definitions/HiddenServicePayload'
+  ExtendedServicePayload:
+    allOf:
+      - $ref: '#/definitions/ServicePayload'
+      - type: object
+        properties:
+          service_metadata:
+            $ref: '#/definitions/ServiceMetadata'
+  CommonServicePayload:
+    description: Common properties for a ServicePayload
+    type: object
+    properties:
+      service_name:
+        $ref: '#/definitions/ServiceName'
+      department_name:
+        $ref: '#/definitions/DepartmentName'
+      organization_name:
+        $ref: '#/definitions/OrganizationName'
+      organization_fiscal_code:
+        $ref: '#/definitions/OrganizationFiscalCode'
+      authorized_cidrs:
+        description: >-
+          Allowed source IPs or CIDRs for this service.
+
+          When empty, every IP address it's authorized to call the IO API on
+          behalf of the service.
+        type: array
+        items:
+          $ref: '#/definitions/CIDR'
+      version:
+        type: integer
+      require_secure_channels:
+        type: boolean
+        default: false
+        description: When true, messages won't trigger email notifications (only push).
+    required:
+      - service_name
+      - department_name
+      - organization_name
+      - organization_fiscal_code
+      - authorized_cidrs
+  HiddenServicePayload:
+    description: A payload used to create/update a service that is hidden.
+    allOf:
+      - $ref: '#/definitions/CommonServicePayload'
+      - type: object
+        properties:
+          is_visible:
+            type: boolean
+            default: false
+            enum:
+              - false
+            description: It indicates that service is hidden
+          service_metadata:
+            description: >-
+              That service can't handle some ServiceMetadata fields (es.
+              category)
+            $ref: '#/definitions/CommonServiceMetadata'
+  VisibleServicePayload:
+    description: >-
+      A payload used to create/update a service that appears in the service
+      list.
+    allOf:
+      - $ref: '#/definitions/CommonServicePayload'
+      - type: object
+        properties:
+          is_visible:
+            type: boolean
+            enum:
+              - true
+            description: It indicates that service appears in the service list
+          service_metadata:
+            description: >-
+              That service can't handle some ServiceMetadata fields (es.
+              category)
+            $ref: '#/definitions/CommonServiceMetadata'
+        required:
+          - is_visible
+          - service_metadata
+  OrganizationName:
+    type: string
+    description: |-
+      The organization that runs the service. Will be added to the content
+      of sent messages to identify the sender.
+    minLength: 1
+  DepartmentName:
+    type: string
+    description: |-
+      The department inside the organization that runs the service. Will
+      be added to the content of sent messages.
+    minLength: 1
+  PaymentDataBase:
+    type: object
+    description: Metadata needed to process pagoPA payments.
+    properties:
+      amount:
+        description: >-
+          Amount of payment in euro cent. PagoPA accepts up to 9999999999 euro
+          cents.
+        type: integer
+        minimum: 1
+        maximum: 9999999999
+      notice_number:
+        description: >-
+          The field ["Numero
+          Avviso"](https://pagopa-specifichepagamenti.readthedocs.io/it/latest/_docs/Capitolo7.html#il-numero-avviso-e-larchivio-dei-pagamenti-in-attesa)
+          of pagoPa, needed to identify the payment. Format is `<aux digit
+          (1n)>[<application code> (2n)]<codice IUV (15|17n)>`. See [pagoPa
+          specs](https://www.agid.gov.it/sites/default/files/repository_files/specifiche_attuative_pagamenti_1_3_1_0.pdf)
+          for more info on this field and the IUV.
+        type: string
+        pattern: ^[0123][0-9]{17}$
+      invalid_after_due_date:
+        type: boolean
+        default: false
+    required:
+      - amount
+      - notice_number
+  ExtendedProfile:
+    description: |-
+      Describes the citizen's profile, mostly interesting for preferences
+      attributes.
+    type: object
+    properties:
+      email:
+        $ref: '#/definitions/EmailAddress'
+      service_preferences_settings:
+        $ref: '#/definitions/ServicePreferencesSettings'
+      blocked_inbox_or_channels:
+        $ref: '#/definitions/BlockedInboxOrChannels'
+      preferred_languages:
+        $ref: '#/definitions/PreferredLanguages'
+      is_inbox_enabled:
+        $ref: '#/definitions/IsInboxEnabled'
+      accepted_tos_version:
+        $ref: '#/definitions/AcceptedTosVersion'
+      is_webhook_enabled:
+        $ref: '#/definitions/IsWebhookEnabled'
+      is_email_enabled:
+        $ref: '#/definitions/IsEmailEnabled'
+      is_email_validated:
+        $ref: '#/definitions/IsEmailValidated'
+      is_test_profile:
+        $ref: '#/definitions/IsTestProfile'
+      version:
+        type: integer
+    required:
+      - is_email_enabled
+      - is_email_validated
+      - is_inbox_enabled
+      - is_webhook_enabled
+      - service_preferences_settings
+      - version
+  MessageResponseWithContent:
+    type: object
+    properties:
+      message:
+        $ref: '#/definitions/CreatedMessageWithContent'
+      notification:
+        $ref: '#/definitions/MessageResponseNotificationStatus'
+      status:
+        $ref: '#/definitions/MessageStatusValue'
+    required:
+      - message
+  NewMessage:
+    type: object
+    properties:
+      time_to_live:
+        $ref: '#/definitions/TimeToLiveSeconds'
+      content:
+        $ref: '#/definitions/MessageContent'
+      default_addresses:
+        type: object
+        description: |-
+          Default addresses for notifying the recipient of the message in case
+          no address for the related channel is set in his profile.
+        properties:
+          email:
+            $ref: '#/definitions/EmailAddress'
+      fiscal_code:
+        $ref: '#/definitions/FiscalCode'
+    required:
+      - content
+  NewProfile:
+    type: object
+    description: |-
+      Describes a new citizen's profile.
+      Used for profile creation.
+    properties:
+      email:
+        $ref: '#/definitions/EmailAddress'
+      is_email_validated:
+        $ref: '#/definitions/IsEmailValidated'
+      is_test_profile:
+        $ref: '#/definitions/IsTestProfile'
+    required:
+      - is_email_validated
+  EnrichedMessage:
     type: object
     properties:
       id:
         type: string
-      output:
+      fiscal_code:
+        $ref: '#/definitions/FiscalCode'
+      time_to_live:
+        $ref: '#/definitions/TimeToLiveSeconds'
+      created_at:
+        $ref: '#/definitions/Timestamp'
+      sender_service_id:
+        $ref: '#/definitions/ServiceId'
+      service_name:
         type: string
+      organization_name:
+        type: string
+      message_title:
+        type: string
+      category:
+        $ref: '#/definitions/MessageCategory'
+      has_attachments:
+        type: boolean
+        default: false
+    required:
+      - id
+      - fiscal_code
+      - created_at
+      - sender_service_id
+      - service_name
+      - organization_name
+      - message_title
+  PublicMessage:
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/EnrichedMessage'
+      - $ref: '#/definitions/CreatedMessageWithoutContent'
+  PublicMessagesCollection:
+    description: A collection of messages
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/PublicMessage'
+    required:
+      - items
+  PaginatedPublicMessagesCollection:
+    description: A paginated collection of messages
+    allOf:
+      - $ref: '#/definitions/PublicMessagesCollection'
+      - $ref: '#/definitions/PaginationResponse'
+  PaginatedServiceTupleCollection:
+    description: A paginated collection of services tuples
+    allOf:
+      - $ref: '#/definitions/ServiceTupleCollection'
+      - $ref: '#/definitions/PaginationResponse'
+  ProblemJson:
+    type: object
+    properties:
+      type:
+        type: string
+        format: uri
+        description: |-
+          An absolute URI that identifies the problem type. When dereferenced,
+          it SHOULD provide human-readable documentation for the problem type
+          (e.g., using HTML).
+        default: about:blank
+        example: https://example.com/problem/constraint-violation
+      title:
+        type: string
+        description: |-
+          A short, summary of the problem type. Written in english and readable
+          for engineers (usually not suited for non technical stakeholders and
+          not localized); example: Service Unavailable
+      status:
+        type: integer
+        format: int32
+        description: >-
+          The HTTP status code generated by the origin server for this
+          occurrence
+
+          of the problem.
+        minimum: 100
+        maximum: 600
+        exclusiveMaximum: true
+        example: 200
+      detail:
+        type: string
+        description: |-
+          A human readable explanation specific to this occurrence of the
+          problem.
+        example: There was an error processing the request
+      instance:
+        type: string
+        format: uri
+        description: >-
+          An absolute URI that identifies the specific occurrence of the
+          problem.
+
+          It may or may not yield further information if dereferenced.
+  Profile:
+    type: object
+    description: |-
+      Describes the citizen's profile.
+      Used for profile update.
+    properties:
+      email:
+        $ref: '#/definitions/EmailAddress'
+      service_preferences_settings:
+        $ref: '#/definitions/ServicePreferencesSettings'
+      blocked_inbox_or_channels:
+        $ref: '#/definitions/BlockedInboxOrChannels'
+      preferred_languages:
+        $ref: '#/definitions/PreferredLanguages'
+      is_inbox_enabled:
+        $ref: '#/definitions/IsInboxEnabled'
+      accepted_tos_version:
+        $ref: '#/definitions/AcceptedTosVersion'
+      is_webhook_enabled:
+        $ref: '#/definitions/IsWebhookEnabled'
+      is_email_enabled:
+        $ref: '#/definitions/IsEmailEnabled'
+      version:
+        type: integer
+    required:
+      - version
+  ServiceId:
+    type: string
+    description: |-
+      The ID of the Service. Equals the subscriptionId of a registered
+      API user.
+    minLength: 1
+  ServiceMetadata:
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/StandardServiceMetadata'
+      - $ref: '#/definitions/SpecialServiceMetadata'
+      - $ref: '#/definitions/CommonServiceMetadata'
+  ServiceScope:
+    type: string
+    x-extensible-enum:
+      - NATIONAL
+      - LOCAL
+  ServiceName:
+    type: string
+    description: The name of the service. Will be added to the content of sent messages.
+    minLength: 1
+  ServicePublic:
+    title: Service (public)
+    description: A Service associated to an user's subscription.
+    type: object
+    properties:
+      service_id:
+        $ref: '#/definitions/ServiceId'
+      service_name:
+        $ref: '#/definitions/ServiceName'
+      organization_name:
+        $ref: '#/definitions/OrganizationName'
+      department_name:
+        $ref: '#/definitions/DepartmentName'
+      organization_fiscal_code:
+        $ref: '#/definitions/OrganizationFiscalCode'
+      available_notification_channels:
+        description: All the notification channels available for a service.
+        type: array
+        items:
+          $ref: '#/definitions/NotificationChannel'
+      version:
+        type: integer
+      service_metadata:
+        $ref: '#/definitions/ServiceMetadata'
+    required:
+      - service_id
+      - service_name
+      - organization_name
+      - department_name
+      - organization_fiscal_code
+      - version
+  EmailAddress:
+    type: string
+    format: email
+    example: foobar@example.com
+  BlockedInboxOrChannel:
+    type: string
+    description: |-
+      All notification channels plus the message inbox.
+      These represent all the possible channels a user could block.
+    x-extensible-enum:
+      - EMAIL
+      - INBOX
+      - WEBHOOK
+    example: INBOX
+  BlockedInboxOrChannels:
+    type: object
+    additionalProperties:
+      type: array
+      items:
+        $ref: '#/definitions/BlockedInboxOrChannel'
+    description: |-
+      All the notification channels blocked by the user.
+      Each channel is related to a specific service (sender).
+  PreferredLanguage:
+    type: string
+    x-extensible-enum:
+      - it_IT
+      - en_GB
+      - es_ES
+      - de_DE
+      - fr_FR
+    example: it_IT
+  PreferredLanguages:
+    type: array
+    items:
+      $ref: '#/definitions/PreferredLanguage'
+    description: >-
+      Indicates the User's preferred written or spoken languages in order
+
+      of preference. Generally used for selecting a localized User interface.
+      Valid
+
+      values are concatenation of the ISO 639-1 two letter language code, an
+      underscore,
+
+      and the ISO 3166-1 2 letter country code; e.g., 'en_US' specifies the
+      language
+
+      English and country US.
+  IsInboxEnabled:
+    type: boolean
+    description: |-
+      True if the recipient of a message wants to store its content for
+      later retrieval.
+  IsEmailEnabled:
+    type: boolean
+    description: >-
+      True if the recipient of a message wants to forward the notifications to
+      his email address.
+  AcceptedTosVersion:
+    type: number
+    minimum: 1
+    description: Version of latest terms of service accepted by the user.
+  IsWebhookEnabled:
+    type: boolean
+    description: >-
+      True if the recipient of a message wants to forward the notifications to
+      the default webhook.
+  IsEmailValidated:
+    type: boolean
+    description: True if the user email has been validated.
+  FiscalCode:
+    type: string
+    description: User's fiscal code.
+    format: FiscalCode
+    x-import: '@pagopa/ts-commons/lib/strings'
+    example: SPNDNL80R13C555X
+  TimeToLiveSeconds:
+    type: integer
+    default: 3600
+    minimum: 3600
+    maximum: 604800
+    description: |-
+      This parameter specifies for how long (in seconds) the system will
+      try to deliver the message to the channels configured by the user.
+    example: 3600
+  Timestamp:
+    type: string
+    format: UTCISODateFromString
+    description: A date-time field in ISO-8601 format and UTC timezone.
+    x-import: '@pagopa/ts-commons/lib/dates'
+    example: '2018-10-13T00:00:00.000Z'
+  MessageContent:
+    allOf:
+      - $ref: '#/definitions/MessageContentBase'
+      - type: object
+        properties:
+          payment_data:
+            $ref: '#/definitions/PaymentData'
+          prescription_data:
+            $ref: '#/definitions/PrescriptionData'
+          legal_data:
+            $ref: '#/definitions/LegalData'
+          eu_covid_cert:
+            $ref: '#/definitions/EUCovidCert'
+          due_date:
+            $ref: '#/definitions/Timestamp'
+  MessageContentBase:
+    type: object
+    properties:
+      subject:
+        $ref: '#/definitions/MessageSubject'
+      markdown:
+        $ref: '#/definitions/MessageBodyMarkdown'
+    required:
+      - subject
+      - markdown
+  MessageSubject:
+    type: string
+    description: |-
+      The (optional) subject of the message - note that only some notification
+      channels support the display of a subject. When a subject is not provided,
+      one gets generated from the client attributes.
+    minLength: 10
+    maxLength: 120
+    example: Welcome new user !
+  MessageBodyMarkdown:
+    type: string
+    description: |-
+      The full version of the message, in plain text or Markdown format. The
+      content of this field will be delivered to channels that don't have any
+      limit in terms of content size (e.g. email, etc...).
+    minLength: 80
+    maxLength: 10000
+    example: |-
+      # This is a markdown header
+
+      to show how easily markdown can be converted to **HTML**
+
+      Remember: this has to be a long text.
+  PaymentData:
+    allOf:
+      - $ref: '#/definitions/PaymentDataBase'
+      - type: object
+        properties:
+          payee:
+            $ref: '#/definitions/Payee'
+  PaymentDataWithRequiredPayee:
+    allOf:
+      - $ref: '#/definitions/PaymentDataBase'
+      - type: object
+        properties:
+          payee:
+            $ref: '#/definitions/Payee'
+        required:
+          - payee
+  OrganizationFiscalCode:
+    type: string
+    description: Organization fiscal code.
+    format: OrganizationFiscalCode
+    x-import: '@pagopa/ts-commons/lib/strings'
+    example: '12345678901'
+  CreatedMessageWithoutContentCollection:
+    description: A collection of messages
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/CreatedMessageWithoutContent'
+    required:
+      - items
+  CreatedMessageWithoutContent:
+    type: object
+    properties:
+      id:
+        type: string
+      fiscal_code:
+        $ref: '#/definitions/FiscalCode'
+      time_to_live:
+        $ref: '#/definitions/TimeToLiveSeconds'
+      created_at:
+        $ref: '#/definitions/Timestamp'
+      sender_service_id:
+        $ref: '#/definitions/ServiceId'
+    required:
+      - id
+      - fiscal_code
+      - created_at
+      - sender_service_id
+  CreatedMessageWithContent:
+    type: object
+    properties:
+      id:
+        type: string
+      fiscal_code:
+        $ref: '#/definitions/FiscalCode'
+      time_to_live:
+        $ref: '#/definitions/TimeToLiveSeconds'
+      created_at:
+        $ref: '#/definitions/Timestamp'
+      content:
+        $ref: '#/definitions/NewMessageContent'
+      sender_service_id:
+        $ref: '#/definitions/ServiceId'
+    required:
+      - id
+      - fiscal_code
+      - created_at
+      - content
+      - sender_service_id
+  MessageResponseNotificationStatus:
+    type: object
+    properties:
+      email:
+        $ref: '#/definitions/NotificationChannelStatusValue'
+      webhook:
+        $ref: '#/definitions/NotificationChannelStatusValue'
+  MessageStatusValue:
+    type: string
+    description: >-
+      The processing status of a message.
+
+      "ACCEPTED": the message has been accepted and will be processed for
+      delivery;
+        we'll try to store its content in the user's inbox and notify him on his preferred channels
+      "THROTTLED": a temporary failure caused a retry during the message
+      processing;
+        any notification associated with this message will be delayed for a maximum of 7 days
+      "FAILED": a permanent failure caused the process to exit with an error, no
+      notification will be sent for this message
+
+      "PROCESSED": the message was succesfully processed and is now stored in
+      the user's inbox;
+        we'll try to send a notification for each of the selected channels
+      "REJECTED": either the recipient does not exist, or the sender has been
+      blocked
+    x-extensible-enum:
+      - ACCEPTED
+      - THROTTLED
+      - FAILED
+      - PROCESSED
+      - REJECTED
+    example: ACCEPTED
+  ServiceTupleCollection:
+    description: A collection of services tuples (service and version)
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          description: Service identifier and version used to return list of services.
+          type: object
+          properties:
+            service_id:
+              $ref: '#/definitions/ServiceId'
+            scope:
+              $ref: '#/definitions/ServiceScope'
+            version:
+              type: integer
+          required:
+            - service_id
+            - version
+    required:
+      - items
+  PaginationResponse:
+    type: object
+    description: Pagination response parameters.
+    properties:
+      prev:
+        type: string
+        description: Contains a value useful to get the previous page
+        example: first_id_of_the_page
+      next:
+        type: string
+        description: Contains a value useful to get the next page
+        example: last_id_of_the_page
+  NotificationChannel:
+    type: string
+    description: All notification channels.
+    x-extensible-enum:
+      - EMAIL
+      - WEBHOOK
+    example: EMAIL
+  NotificationChannelStatusValue:
+    type: string
+    description: >-
+      The status of a notification (one for each channel).
+
+      "SENT": the notification was succesfully sent to the channel (ie. email or
+      push notification)
+
+      "THROTTLED": a temporary failure caused a retry during the notification
+      processing;
+        the notification associated with this channel will be delayed for a maximum of 7 days or until the message expires
+      "EXPIRED": the message expired before the notification could be sent;
+        this means that the maximum message time to live was reached; no notification will be sent to this channel
+      "FAILED": a permanent failure caused the process to exit with an error, no
+      notification will be sent to this channel
+    x-extensible-enum:
+      - SENT
+      - THROTTLED
+      - EXPIRED
+      - FAILED
+    example: SENT
+  UserDataProcessing:
+    type: object
+    description: A representation of a single user data processing request
+    properties:
+      choice:
+        $ref: '#/definitions/UserDataProcessingChoice'
+      status:
+        $ref: '#/definitions/UserDataProcessingStatus'
+      created_at:
+        $ref: '#/definitions/Timestamp'
+      updated_at:
+        $ref: '#/definitions/Timestamp'
+      version:
+        type: integer
+    required:
+      - choice
+      - status
+      - version
+  UserDataProcessingStatus:
+    type: string
+    description: The status of a user data processing request
+    enum:
+      - PENDING
+      - WIP
+      - CLOSED
+      - FAILED
+      - ABORTED
+    example: PENDING
+  UserDataProcessingChoice:
+    type: string
+    description: User's choice to delete or download his own data.
+    enum:
+      - DOWNLOAD
+      - DELETE
+    example: DOWNLOAD
+  UserDataProcessingChoiceRequest:
+    type: object
+    description: A request wrapper for User data processing choice
+    properties:
+      choice:
+        $ref: '#/definitions/UserDataProcessingChoice'
+    required:
+      - choice
+  IsTestProfile:
+    type: boolean
+    description: True if the user's profile is only for test purpose.
+    default: false
+  ServicePreferencesSettings:
+    description: |-
+      Describes the citizen's profile, mostly interesting for preferences
+      attributes.
+    type: object
+    properties:
+      mode:
+        $ref: '#/definitions/ServicesPreferencesMode'
+    required:
+      - mode
+  ServicesPreferencesMode:
+    type: string
+    enum:
+      - LEGACY
+      - AUTO
+      - MANUAL
+  ServicePreference:
+    description: >-
+      Define a set of preferences of a Citizen for a given Service.
+
+      It's needed by Citizens to express how they want Services to get in touch
+      with them.
+    type: object
+    properties:
+      is_email_enabled:
+        type: boolean
+      is_inbox_enabled:
+        type: boolean
+      is_webhook_enabled:
+        type: boolean
+      settings_version:
+        type: integer
+        minimum: 0
+    required:
+      - is_email_enabled
+      - is_inbox_enabled
+      - is_webhook_enabled
+      - settings_version
+  MessageResponseWithoutContent:
+    type: object
+    properties:
+      message:
+        $ref: '#/definitions/CreatedMessageWithoutContent'
+      notification:
+        $ref: '#/definitions/MessageResponseNotificationStatus'
+      status:
+        $ref: '#/definitions/MessageStatusValue'
+    required:
+      - message
+  Payee:
+    type: object
+    description: Metadata needed to explicit payment's payee.
+    properties:
+      fiscal_code:
+        $ref: '#/definitions/OrganizationFiscalCode'
+    required:
+      - fiscal_code
+  StandardServiceMetadata:
+    allOf:
+      - $ref: '#/definitions/CommonServiceMetadata'
+      - type: object
+        properties:
+          category:
+            $ref: '#/definitions/StandardServiceCategory'
+        required:
+          - category
+  SpecialServiceMetadata:
+    allOf:
+      - $ref: '#/definitions/CommonServiceMetadata'
+      - type: object
+        properties:
+          category:
+            $ref: '#/definitions/SpecialServiceCategory'
+          custom_special_flow:
+            type: string
+            minLength: 1
+        required:
+          - category
+  CommonServiceMetadata:
+    type: object
+    description: A set of metadata properties related to this service.
+    properties:
+      description:
+        type: string
+        minLength: 1
+      web_url:
+        type: string
+        minLength: 1
+      app_ios:
+        type: string
+        minLength: 1
+      app_android:
+        type: string
+        minLength: 1
+      tos_url:
+        type: string
+        minLength: 1
+      privacy_url:
+        type: string
+        minLength: 1
+      address:
+        type: string
+        minLength: 1
+      phone:
+        type: string
+        minLength: 1
+      email:
+        type: string
+        minLength: 1
+      pec:
+        type: string
+        minLength: 1
+      cta:
+        type: string
+        minLength: 1
+      token_name:
+        type: string
+        minLength: 1
+      support_url:
+        type: string
+        minLength: 1
+      scope:
+        $ref: '#/definitions/ServiceScope'
+    required:
+      - scope
+  SpecialServiceCategory:
+    type: string
+    x-extensible-enum:
+      - SPECIAL
+  StandardServiceCategory:
+    type: string
+    x-extensible-enum:
+      - STANDARD
+  MessageCategory:
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/MessageCategoryPayment'
+      - $ref: '#/definitions/MessageCategoryBase'
+  LegalData:
+    type: object
+    properties:
+      sender_mail_from:
+        type: string
+        minLength: 1
+      has_attachment:
+        type: boolean
+        default: false
+      message_unique_id:
+        type: string
+        minLength: 1
+      original_message_url:
+        type: string
+        minLength: 1
+      pec_server_service_id:
+        $ref: '#/definitions/ServiceId'
+    required:
+      - sender_mail_from
+      - has_attachment
+      - message_unique_id
+  MessageCategoryBase:
+    type: object
+    properties:
+      tag:
+        type: string
+        enum:
+          - LEGAL_MESSAGE
+          - EU_COVID_CERT
+          - GENERIC
+    required:
+      - tag
+  MessageCategoryPayment:
+    type: object
+    properties:
+      tag:
+        type: string
+        enum:
+          - PAYMENT
+      rptId:
+        type: string
+    required:
+      - tag
+      - rptId

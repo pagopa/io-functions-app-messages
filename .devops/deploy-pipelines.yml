@@ -27,11 +27,11 @@ parameters:
     type: object
     default:
       app1:
-        appname: io-p-app-messages-fn-01
-        rg: io-p-app-messages-rg-01
+        appname: io-p-app-messages-fn-1
+        rg: io-p-app-messages-rg-1
       app2:
-        appname: io-p-app-messages-fn-02
-        rg: io-p-app-messages-rg-02
+        appname: io-p-app-messages-fn-2
+        rg: io-p-app-messages-rg-2
 
 # Only manual activations are intended
 trigger: none

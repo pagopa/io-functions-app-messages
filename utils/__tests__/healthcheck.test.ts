@@ -229,16 +229,14 @@ describe("checkApplicationHealth - multiple errors - ", () => {
     azureStorageMocks["createBlobService"].mockReturnValueOnce(blobServiceKO);
     azureStorageMocks["createQueueService"].mockReturnValueOnce(queueServiceKO);
 
-    expect.assertions(5);
+    expect.assertions(3);
 
     pipe(
       checkApplicationHealth(),
       TE.mapLeft(err => {
-        expect(err.length).toBe(4);
+        expect(err.length).toBe(2);
         expect(err[0]).toBe(`AzureStorage|error - createBlobService`);
         expect(err[1]).toBe(`AzureStorage|error - createQueueService`);
-        expect(err[2]).toBe(`Url|Only absolute URLs are supported`);
-        expect(err[3]).toBe(`Url|Only absolute URLs are supported`);
         done();
       }),
       TE.map(_ => {

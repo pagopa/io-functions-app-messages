@@ -8,7 +8,6 @@ import {
 import { NewProfile } from "@pagopa/io-functions-commons/dist/generated/definitions/NewProfile";
 import { Profile } from "@pagopa/io-functions-commons/dist/generated/definitions/Profile";
 import { ServicesPreferencesModeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/ServicesPreferencesMode";
-import { UserDataProcessing as UserDataProcessingApi } from "@pagopa/io-functions-commons/dist/generated/definitions/UserDataProcessing";
 import {
   UserDataProcessingChoice,
   UserDataProcessingChoiceEnum
@@ -25,8 +24,6 @@ import {
   UserDataProcessingId
 } from "@pagopa/io-functions-commons/dist/src/models/user_data_processing";
 import { CosmosResource } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { retrievedProfileToExtendedProfile } from "../utils/profiles";
-import { toUserDataProcessingApi } from "../utils/user_data_processings";
 
 export const aEmail = "email@example.com" as EmailString;
 export const aEmailChanged = "email.changed@example.com" as EmailString;
@@ -111,10 +108,6 @@ export const aRetrievedProfileWithEmail: RetrievedProfile = {
 
 export const aNewDate = new Date();
 
-export const aExtendedProfile = retrievedProfileToExtendedProfile(
-  aRetrievedProfile
-);
-
 export const aTokenId = "01DQ79RZ0EQ0S7RTA3SMCKRCCA";
 export const aValidator = "d6e57ed8d3c3eb4583d671c7";
 export const aValidatorHash =
@@ -171,11 +164,3 @@ export const aAbortedRetrievedUserDataProcessing: RetrievedUserDataProcessing = 
   ...aRetrievedUserDataProcessing,
   status: aAbortedUserDataProcessingStatus
 };
-
-export const aUserDataProcessingApi: UserDataProcessingApi = toUserDataProcessingApi(
-  aRetrievedUserDataProcessing
-);
-
-export const aWipUserDataProcessingApi: UserDataProcessingApi = toUserDataProcessingApi(
-  aWipRetrievedUserDataProcessing
-);

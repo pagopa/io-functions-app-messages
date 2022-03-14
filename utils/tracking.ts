@@ -9,10 +9,8 @@ export const createTracker = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => {
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   const trackEnrichmentFailure = (
-    kind: "SERVICE" | "CONTENT",
+    kind: "SERVICE" | "CONTENT" | "STATUS",
     fiscalCode: FiscalCode,
     messageId: string,
     serviceId?: ServiceId

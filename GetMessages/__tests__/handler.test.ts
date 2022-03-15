@@ -35,6 +35,7 @@ import {
   RetrievedMessageStatus
 } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
+import * as redis from "../../utils/redis_storage";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -142,6 +143,21 @@ const messageStatusModelMock = ({
   findLastVersionByModelId: mockFindLastMessageStatusVersion
 } as unknown) as MessageStatusModel;
 
+const setWithExpirationTaskMock = jest
+  .fn()
+  .mockImplementation(() => TE.of(true));
+jest
+  .spyOn(redis, "setWithExpirationTask")
+  .mockImplementation(setWithExpirationTaskMock);
+
+const getTaskMock = jest
+  .fn()
+  .mockImplementation(() => TE.of(O.some(JSON.stringify(aRetrievedService))));
+jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
+
+const aRedisClient = {} as any;
+const aServiceCacheTtl = 10 as NonNegativeInteger;
+
 // ---------------------
 // Tests
 // ---------------------
@@ -154,7 +170,9 @@ describe("GetMessagesHandler", () => {
       errorMessageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const result = await getMessagesHandler(
@@ -179,7 +197,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const result = await getMessagesHandler(
@@ -208,7 +228,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const result = await getMessagesHandler(
@@ -242,7 +264,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
     const pageSize = 2 as NonNegativeInteger;
 
@@ -281,7 +305,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -320,7 +346,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -364,7 +392,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -404,7 +434,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -451,7 +483,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -498,7 +532,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -555,7 +591,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -593,7 +631,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const pageSize = 2 as NonNegativeInteger;

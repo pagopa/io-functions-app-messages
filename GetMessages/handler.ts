@@ -49,6 +49,7 @@ import * as O from "fp-ts/lib/Option";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { Context } from "@azure/functions";
 import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import { RedisClient } from "redis";
 import {
   CreatedMessageWithoutContentWithStatus,
   enrichMessagesData,
@@ -108,7 +109,10 @@ export const GetMessagesHandler = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusModel,
   serviceModel: ServiceModel,
-  blobService: BlobService
+  blobService: BlobService,
+  redisClient: RedisClient,
+  serviceCacheTtl: NonNegativeInteger
+  // eslint-disable-next-line max-params
 ): IGetMessagesHandler => async (
   context,
   fiscalCode,
@@ -183,7 +187,9 @@ export const GetMessagesHandler = (
                       context,
                       messageModel,
                       serviceModel,
-                      blobService
+                      blobService,
+                      redisClient,
+                      serviceCacheTtl
                     )
                   )
                 ])
@@ -222,13 +228,18 @@ export const GetMessages = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusModel,
   serviceModel: ServiceModel,
-  blobService: BlobService
+  blobService: BlobService,
+  redisClient: RedisClient,
+  serviceCacheTtl: NonNegativeInteger
+  // eslint-disable-next-line max-params
 ): express.RequestHandler => {
   const handler = GetMessagesHandler(
     messageModel,
     messageStatusModel,
     serviceModel,
-    blobService
+    blobService,
+    redisClient,
+    serviceCacheTtl
   );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),

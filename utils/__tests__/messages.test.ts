@@ -33,11 +33,14 @@ import { TimeToLiveSeconds } from "../../generated/backend/TimeToLiveSeconds";
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 import { pipe } from "fp-ts/lib/function";
-import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
 import { Context } from "@azure/functions";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
+import { retrievedServiceToPublic } from "../../utils/mappings";
+import * as cdn_utils from "../cdn";
+
+const aCdnBasePath = "http://cdn/foo" as NonEmptyString;
 
 const anOrganizationFiscalCode = "01234567890" as OrganizationFiscalCode;
 
@@ -153,6 +156,18 @@ const messages = [
   }
 ] as readonly CreatedMessageWithoutContentWithStatus[];
 
+const getContentFromCdnMock = jest
+  .fn()
+  .mockImplementation(() => TE.of(retrievedServiceToPublic(aRetrievedService)));
+jest
+  .spyOn(cdn_utils, "getContentFromCdn")
+  .mockImplementation(getContentFromCdnMock);
+
+const cdnPurgerMock = jest.fn().mockImplementation(() => TE.of(void 0));
+const aCdnPurger: ReturnType<typeof cdn_utils.purgeCdnEndpointPaths> = jest
+  .fn()
+  .mockImplementation(cdnPurgerMock);
+
 // ------------------------
 // Tests
 // ------------------------
@@ -162,44 +177,25 @@ describe("enrichMessagesData", () => {
     jest.clearAllMocks();
   });
 
-  it("should return right when message blob and service are correctly retrieved", async () => {
-    const enrichMessages = enrichMessagesData(
-      functionsContextMock,
-      messageModelMock,
-      serviceModelMock,
-      blobServiceMock
+  it("should return left when both message and service models return errors", async () => {
+    getContentFromCdnMock.mockImplementationOnce(() =>
+      TE.left("Cannot get service from CDN")
+    );
+    findLastVersionByModelIdMock.mockImplementationOnce(() =>
+      TE.left(toCosmosErrorResponse("Any error message"))
     );
 
-    const enrichedMessagesPromises = enrichMessages(messages);
-
-    const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
-      TE.getOrElse(() => {
-        throw Error();
-      })
-    )();
-
-    enrichedMessages.map(enrichedMessage => {
-      expect(E.isRight(enrichedMessage)).toBe(true);
-      if (E.isRight(enrichedMessage)) {
-        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
-        expect(enrichedMessage.right.category).toEqual({
-          tag: TagEnumBase.GENERIC
-        });
-      }
-    });
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
-
-  it("should return right with right message EU_COVID_CERT category when message content is retrieved", async () => {
     getContentFromBlobMock.mockImplementationOnce(() =>
-      TE.of(O.some(mockedGreenPassContent))
+      TE.left(new Error("GENERIC_ERROR"))
     );
+
     const enrichMessages = enrichMessagesData(
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -212,83 +208,23 @@ describe("enrichMessagesData", () => {
     )();
 
     enrichedMessages.map(enrichedMessage => {
-      expect(E.isRight(enrichedMessage)).toBe(true);
-      if (E.isRight(enrichedMessage)) {
-        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
-        expect(enrichedMessage.right.category).toEqual({
-          tag: TagEnumBase.EU_COVID_CERT
-        });
-      }
+      expect(E.isLeft(enrichedMessage)).toBe(true);
     });
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
 
-  it("GIVEN a message with a valid legal_data WHEN a message retrieved from cosmos is enriched THEN the message category must be LEGAL_MESSAGE", async () => {
-    getContentFromBlobMock.mockImplementationOnce(() =>
-      TE.of(O.some(mockedLegalDataContent))
+    // 2 errors means 2 calls to tracking
+    expect(functionsContextMock.log.error).toBeCalledTimes(2);
+    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
     );
-    const enrichMessages = enrichMessagesData(
-      functionsContextMock,
-      messageModelMock,
-      serviceModelMock,
-      blobServiceMock
+    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: GENERIC_ERROR`
     );
-
-    const enrichedMessagesPromises = enrichMessages(messages);
-
-    const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
-      TE.getOrElse(() => {
-        throw Error();
-      })
-    )();
-
-    enrichedMessages.map(enrichedMessage => {
-      expect(E.isRight(enrichedMessage)).toBe(true);
-      if (E.isRight(enrichedMessage)) {
-        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
-        expect(enrichedMessage.right.category).toEqual({
-          tag: TagEnumBase.LEGAL_MESSAGE
-        });
-      }
-    });
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
-
-  it("should return right with right PAYMENT category when message content is retrieved", async () => {
-    getContentFromBlobMock.mockImplementationOnce(() =>
-      TE.of(O.some(mockedPaymentContent))
-    );
-    const enrichMessages = enrichMessagesData(
-      functionsContextMock,
-      messageModelMock,
-      serviceModelMock,
-      blobServiceMock
-    );
-
-    const enrichedMessagesPromises = enrichMessages(messages);
-
-    const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
-      TE.getOrElse(() => {
-        throw Error();
-      })
-    )();
-
-    enrichedMessages.map(enrichedMessage => {
-      expect(E.isRight(enrichedMessage)).toBe(true);
-      if (E.isRight(enrichedMessage)) {
-        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
-        expect(enrichedMessage.right.category).toEqual({
-          tag: TagEnumPayment.PAYMENT,
-          rptId: "01234567890012345678901234567"
-        });
-      }
-    });
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
   it("should return left when service model return a cosmos error", async () => {
+    getContentFromCdnMock.mockImplementationOnce(() =>
+      TE.left("Cannot get service from CDN")
+    );
     findLastVersionByModelIdMock.mockImplementationOnce(() =>
       TE.left(toCosmosErrorResponse("Any error message"))
     );
@@ -297,7 +233,9 @@ describe("enrichMessagesData", () => {
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -320,13 +258,18 @@ describe("enrichMessagesData", () => {
   });
 
   it("should return left when service model return an empty result", async () => {
+    getContentFromCdnMock.mockImplementationOnce(() =>
+      TE.left("Cannot get service from CDN")
+    );
     findLastVersionByModelIdMock.mockImplementationOnce(() => TE.right(O.none));
 
     const enrichMessages = enrichMessagesData(
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -361,7 +304,9 @@ describe("enrichMessagesData", () => {
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -383,20 +328,14 @@ describe("enrichMessagesData", () => {
     );
   });
 
-  it("should return left when both message and service models return errors", async () => {
-    findLastVersionByModelIdMock.mockImplementationOnce(() =>
-      TE.left(toCosmosErrorResponse("Any error message"))
-    );
-
-    getContentFromBlobMock.mockImplementationOnce(() =>
-      TE.left(new Error("GENERIC_ERROR"))
-    );
-
+  it("should return right when message blob and service are correctly retrieved", async () => {
     const enrichMessages = enrichMessagesData(
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -409,16 +348,190 @@ describe("enrichMessagesData", () => {
     )();
 
     enrichedMessages.map(enrichedMessage => {
-      expect(E.isLeft(enrichedMessage)).toBe(true);
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumBase.GENERIC
+        });
+      }
     });
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
 
-    // 2 errors means 2 calls to tracking
-    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(2);
-    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
+  it("should return right even if Service is not correctly cached on CDN and its purge succeed", async () => {
+    getContentFromCdnMock.mockImplementationOnce(() =>
+      TE.left("Cannot read from CDN")
     );
-    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: GENERIC_ERROR`
+    const enrichMessages = enrichMessagesData(
+      functionsContextMock,
+      messageModelMock,
+      serviceModelMock,
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
+
+    const enrichedMessagesPromises = enrichMessages(messages);
+
+    const enrichedMessages = await pipe(
+      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.getOrElse(() => {
+        throw Error();
+      })
+    )();
+
+    enrichedMessages.map(enrichedMessage => {
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumBase.GENERIC
+        });
+      }
+    });
+    expect(cdnPurgerMock).toHaveBeenCalledTimes(1);
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should return right even if Service is not correctly cached on CDN triggering and its purge fails", async () => {
+    getContentFromCdnMock.mockImplementationOnce(() =>
+      TE.left("Cannot read from CDN")
+    );
+    cdnPurgerMock.mockImplementationOnce(() =>
+      TE.left("Cannot purge CDN Content")
+    );
+    const enrichMessages = enrichMessagesData(
+      functionsContextMock,
+      messageModelMock,
+      serviceModelMock,
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
+    );
+
+    const enrichedMessagesPromises = enrichMessages(messages);
+
+    const enrichedMessages = await pipe(
+      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.getOrElse(() => {
+        throw Error();
+      })
+    )();
+
+    enrichedMessages.map(enrichedMessage => {
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumBase.GENERIC
+        });
+      }
+    });
+    expect(cdnPurgerMock).toHaveBeenCalledTimes(1);
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should return right with right message EU_COVID_CERT category when message content is retrieved", async () => {
+    getContentFromBlobMock.mockImplementationOnce(() =>
+      TE.of(O.some(mockedGreenPassContent))
+    );
+    const enrichMessages = enrichMessagesData(
+      functionsContextMock,
+      messageModelMock,
+      serviceModelMock,
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
+    );
+
+    const enrichedMessagesPromises = enrichMessages(messages);
+
+    const enrichedMessages = await pipe(
+      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.getOrElse(() => {
+        throw Error();
+      })
+    )();
+
+    enrichedMessages.map(enrichedMessage => {
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumBase.EU_COVID_CERT
+        });
+      }
+    });
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("GIVEN a message with a valid legal_data WHEN a message retrieved from cosmos is enriched THEN the message category must be LEGAL_MESSAGE", async () => {
+    getContentFromBlobMock.mockImplementationOnce(() =>
+      TE.of(O.some(mockedLegalDataContent))
+    );
+    const enrichMessages = enrichMessagesData(
+      functionsContextMock,
+      messageModelMock,
+      serviceModelMock,
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
+    );
+
+    const enrichedMessagesPromises = enrichMessages(messages);
+
+    const enrichedMessages = await pipe(
+      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.getOrElse(() => {
+        throw Error();
+      })
+    )();
+
+    enrichedMessages.map(enrichedMessage => {
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumBase.LEGAL_MESSAGE
+        });
+      }
+    });
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should return right with right PAYMENT category when message content is retrieved", async () => {
+    getContentFromBlobMock.mockImplementationOnce(() =>
+      TE.of(O.some(mockedPaymentContent))
+    );
+    const enrichMessages = enrichMessagesData(
+      functionsContextMock,
+      messageModelMock,
+      serviceModelMock,
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
+    );
+
+    const enrichedMessagesPromises = enrichMessages(messages);
+
+    const enrichedMessages = await pipe(
+      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.getOrElse(() => {
+        throw Error();
+      })
+    )();
+
+    enrichedMessages.map(enrichedMessage => {
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumPayment.PAYMENT,
+          rptId: "01234567890012345678901234567"
+        });
+      }
+    });
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 });

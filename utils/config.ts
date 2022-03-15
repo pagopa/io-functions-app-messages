@@ -8,6 +8,7 @@
 import * as t from "io-ts";
 
 import * as E from "fp-ts/lib/Either";
+import * as O from "fp-ts/lib/Option";
 import { pipe } from "fp-ts/lib/function";
 
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
@@ -44,6 +45,26 @@ export const ReqServiceIdConfig = t.union([
   })
 ]);
 
+// configuration for REQ_SERVICE_ID in dev
+export type CdnConfig = t.TypeOf<typeof CdnConfig>;
+export const CdnConfig = t.union([
+  t.interface({
+    CDN_ASSETS_ENDPOINT_NAME: NonEmptyString,
+    CDN_AZURE_CLIENT_ID: NonEmptyString,
+    CDN_AZURE_CLIENT_SECRET: NonEmptyString,
+    CDN_AZURE_TENANT_ID: NonEmptyString,
+    CDN_PROFILE_NAME: NonEmptyString,
+    CDN_RESOURCE_GROUP_NAME: NonEmptyString,
+    CDN_SERVICE_BASE_PATH: NonEmptyString,
+    CDN_SUBSCRIPTION_ID: NonEmptyString,
+    ENABLE_CDN_PURGE: t.literal(true)
+  }),
+  t.interface({
+    CDN_SERVICE_BASE_PATH: NonEmptyString,
+    ENABLE_CDN_PURGE: t.literal(false)
+  })
+]);
+
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
@@ -58,12 +79,25 @@ export const IConfig = t.intersection([
 
     isProduction: t.boolean
   }),
-  ReqServiceIdConfig
+  ReqServiceIdConfig,
+  CdnConfig
 ]);
 
+const DEFAULT_CDN_SERVICE_BASE_PATH = "https://assets.cdn.io.italia.it/services" as NonEmptyString;
 // No need to re-evaluate this object for each call
 const errorOrConfig: t.Validation<IConfig> = IConfig.decode({
   ...process.env,
+  CDN_SERVICE_BASE_PATH: pipe(
+    process.env.CDN_SERVICE_BASE_PATH,
+    O.fromNullable,
+    O.getOrElse(() => DEFAULT_CDN_SERVICE_BASE_PATH)
+  ),
+  ENABLE_CDN_PURGE: pipe(
+    process.env.ENABLE_CDN_PURGE,
+    O.fromNullable,
+    O.map(_ => _.toLowerCase() === "true"),
+    O.getOrElse(() => false)
+  ),
   isProduction: process.env.NODE_ENV === "production"
 });
 

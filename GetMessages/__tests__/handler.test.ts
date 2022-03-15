@@ -20,10 +20,7 @@ import {
 import { GetMessagesHandler } from "../handler";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { BlobService } from "azure-storage";
-import {
-  RetrievedService,
-  ServiceModel
-} from "@pagopa/io-functions-commons/dist/src/models/service";
+import { ServiceModel } from "@pagopa/io-functions-commons/dist/src/models/service";
 import {
   CosmosErrors,
   toCosmosErrorResponse
@@ -35,7 +32,10 @@ import {
   RetrievedMessageStatus
 } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
+import { retrievedServiceToPublic } from "../../utils/mappings";
+import * as cdn_utils from "../../utils/cdn";
 
+const aCdnBasePath = "http://cdn/foo" as NonEmptyString;
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
 const aPendingMessageId = "A_PENDING_MESSAGE_ID" as NonEmptyString;
@@ -142,6 +142,16 @@ const messageStatusModelMock = ({
   findLastVersionByModelId: mockFindLastMessageStatusVersion
 } as unknown) as MessageStatusModel;
 
+const getContentFromCdnMock = jest
+  .fn()
+  .mockImplementation(() => TE.of(retrievedServiceToPublic(aRetrievedService)));
+jest
+  .spyOn(cdn_utils, "getContentFromCdn")
+  .mockImplementation(getContentFromCdnMock);
+
+const cdnPurgerMock = jest.fn().mockImplementation(_ => TE.of(void 0));
+const aCdnPurger = jest.fn().mockImplementation(cdnPurgerMock);
+
 // ---------------------
 // Tests
 // ---------------------
@@ -154,7 +164,9 @@ describe("GetMessagesHandler", () => {
       errorMessageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const result = await getMessagesHandler(
@@ -179,7 +191,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const result = await getMessagesHandler(
@@ -208,7 +222,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const result = await getMessagesHandler(
@@ -242,7 +258,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
     const pageSize = 2 as NonNegativeInteger;
 
@@ -281,7 +299,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -320,7 +340,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -364,7 +386,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -404,7 +428,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -451,7 +477,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -498,7 +526,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -537,15 +567,9 @@ describe("GetMessagesHandler", () => {
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
-  it("should respond with internal error when messages cannot be enriched with content and service info", async () => {
+  it("should respond with internal error when messages cannot be enriched with content info", async () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
-
-    serviceModelMock.findLastVersionByModelId = jest
-      .fn()
-      .mockImplementationOnce(() =>
-        TE.left(toCosmosErrorResponse("Any error message"))
-      );
 
     messageModelMock.getContentFromBlob = jest
       .fn()
@@ -555,7 +579,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -572,12 +598,55 @@ describe("GetMessagesHandler", () => {
 
     expect(result.kind).toBe("IResponseErrorInternal");
     expect(messageIterator.next).toHaveBeenCalledTimes(1);
-    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(2);
-    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
-    );
+    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
+
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
       `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: GENERIC_ERROR`
+    );
+  });
+
+  it("should respond with internal error when messages cannot be enriched with service info", async () => {
+    const messageIterator = getMockIterator(aMessageList);
+    const messageModelMock = getMessageModelMock(messageIterator);
+
+    getContentFromCdnMock.mockImplementationOnce(() =>
+      TE.left(new Error("No content from CDN"))
+    );
+
+    serviceModelMock.findLastVersionByModelId = jest
+      .fn()
+      .mockImplementationOnce(() =>
+        TE.left(toCosmosErrorResponse("Any error message"))
+      );
+
+    const getMessagesHandler = GetMessagesHandler(
+      messageModelMock,
+      messageStatusModelMock,
+      serviceModelMock,
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.none,
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseErrorInternal");
+    expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
+    expect(getContentFromCdnMock).toHaveBeenCalledTimes(5);
+    expect(cdnPurgerMock).toHaveBeenCalledTimes(1);
+    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
     );
   });
 
@@ -593,7 +662,9 @@ describe("GetMessagesHandler", () => {
       messageModelMock,
       messageStatusModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aCdnBasePath,
+      aCdnPurger as any
     );
 
     const pageSize = 2 as NonNegativeInteger;

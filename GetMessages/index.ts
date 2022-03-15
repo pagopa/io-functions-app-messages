@@ -23,6 +23,8 @@ import {
 import { createBlobService } from "azure-storage";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
+import { dummyCdnPurger, purgeCdnEndpointPaths } from "../utils/cdn";
+import { CDN_CLIENT } from "../clients/cdn";
 import { GetMessages } from "./handler";
 
 // Setup Express
@@ -45,9 +47,25 @@ const serviceModel = new ServiceModel(
 
 const blobService = createBlobService(config.QueueStorageConnection);
 
+const cdnContentPurger = config.ENABLE_CDN_PURGE
+  ? purgeCdnEndpointPaths(
+      CDN_CLIENT,
+      config.CDN_RESOURCE_GROUP_NAME,
+      config.CDN_PROFILE_NAME,
+      config.CDN_ASSETS_ENDPOINT_NAME
+    )
+  : dummyCdnPurger;
+
 app.get(
   "/api/v1/messages/:fiscalcode",
-  GetMessages(messageModel, messageStatusModel, serviceModel, blobService)
+  GetMessages(
+    messageModel,
+    messageStatusModel,
+    serviceModel,
+    blobService,
+    config.CDN_SERVICE_BASE_PATH,
+    cdnContentPurger
+  )
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);

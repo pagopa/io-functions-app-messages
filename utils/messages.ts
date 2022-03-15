@@ -5,10 +5,7 @@ import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/defi
 import { EUCovidCert } from "@pagopa/io-functions-commons/dist/generated/definitions/EUCovidCert";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
 import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/message";
-import {
-  Service,
-  ServiceModel
-} from "@pagopa/io-functions-commons/dist/src/models/service";
+import { ServiceModel } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService } from "azure-storage";
 import * as AR from "fp-ts/lib/Array";
@@ -25,8 +22,11 @@ import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/gen
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
 import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { LegalData } from "../generated/backend/LegalData";
+import { ServicePublic } from "../generated/backend/ServicePublic";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
+import { getContentFromCdn, purgeCdnEndpointPaths } from "./cdn";
+import { retrievedServiceToPublic } from "./mappings";
 
 const trackErrorAndContinue = (
   context: Context,
@@ -57,7 +57,7 @@ interface IMessageCategoryMapping {
   readonly pattern: t.Type<Partial<MessageContent>>;
   readonly buildOtherCategoryProperties?: (
     m: CreatedMessageWithoutContent,
-    s: Service,
+    s: ServicePublic,
     c: MessageContent
   ) => Record<string, string>;
 }
@@ -73,7 +73,7 @@ const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
   },
   {
     buildOtherCategoryProperties: (_, s, c): Record<string, string> => ({
-      rptId: `${s.organizationFiscalCode}${c.payment_data.notice_number}`
+      rptId: `${s.organization_fiscal_code}${c.payment_data.notice_number}`
     }),
     pattern: t.interface({ payment_data: PaymentData }),
     tag: TagEnumPayment.PAYMENT
@@ -82,7 +82,7 @@ const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
 
 export const mapMessageCategory = (
   message: CreatedMessageWithoutContent,
-  service: Service,
+  service: ServicePublic,
   messageContent: MessageContent
 ): MessageCategory =>
   pipe(
@@ -108,6 +108,26 @@ export const mapMessageCategory = (
     O.getOrElse(() => ({ tag: TagEnumBase.GENERIC }))
   );
 
+export const getServiceContentOrPurgeCdn = (
+  serviceId: ServiceId,
+  cdnServiceBasePath: NonEmptyString,
+  cdnContentPurger: ReturnType<typeof purgeCdnEndpointPaths>
+): TE.TaskEither<Error, ServicePublic> =>
+  pipe(
+    getContentFromCdn(
+      `${cdnServiceBasePath}/${serviceId}/latest`,
+      ServicePublic
+    ),
+    TE.orElse(_ =>
+      pipe(
+        cdnContentPurger({
+          contentPaths: [`${cdnServiceBasePath}/${serviceId}/latest`]
+        }),
+        TE.chain(() => TE.left(new Error("Request for CDN purge")))
+      )
+    )
+  );
+
 /**
  * This function enrich a CreatedMessageWithoutContent with
  * service's details and message's subject.
@@ -121,7 +141,10 @@ export const enrichMessagesData = (
   context: Context,
   messageModel: MessageModel,
   serviceModel: ServiceModel,
-  blobService: BlobService
+  blobService: BlobService,
+  cdnServiceBasePath: NonEmptyString,
+  cdnContentPurger: ReturnType<typeof purgeCdnEndpointPaths>
+  // eslint-disable-next-line max-params
 ) => (
   messages: ReadonlyArray<CreatedMessageWithoutContentWithStatus>
   // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
@@ -143,16 +166,29 @@ export const enrichMessagesData = (
           )
         ),
         service: pipe(
-          serviceModel.findLastVersionByModelId([message.sender_service_id]),
-          TE.mapLeft(
-            e => new Error(`${e.kind}, ServiceId=${message.sender_service_id}`)
+          getServiceContentOrPurgeCdn(
+            message.sender_service_id,
+            cdnServiceBasePath,
+            cdnContentPurger
           ),
-          TE.chain(
-            TE.fromOption(
-              () =>
-                new Error(
-                  `EMPTY_SERVICE, ServiceId=${message.sender_service_id}`
+          TE.orElse(() =>
+            pipe(
+              serviceModel.findLastVersionByModelId([
+                message.sender_service_id
+              ]),
+              TE.mapLeft(
+                e =>
+                  new Error(`${e.kind}, ServiceId=${message.sender_service_id}`)
+              ),
+              TE.chain(
+                TE.fromOption(
+                  () =>
+                    new Error(
+                      `EMPTY_SERVICE, ServiceId=${message.sender_service_id}`
+                    )
                 )
+              ),
+              TE.map(retrievedServiceToPublic)
             )
           ),
           TE.mapLeft(e =>
@@ -172,8 +208,8 @@ export const enrichMessagesData = (
         ...message,
         category: mapMessageCategory(message, service, content),
         message_title: content.subject,
-        organization_name: service.organizationName,
-        service_name: service.serviceName
+        organization_name: service.organization_name,
+        service_name: service.service_name
       }))
     )()
   );

@@ -54,6 +54,7 @@ import {
   enrichMessagesData,
   enrichMessagesStatus
 } from "../utils/messages";
+import { purgeCdnEndpointPaths } from "../utils/cdn";
 
 type RetrievedNotPendingMessage = t.TypeOf<typeof RetrievedNotPendingMessage>;
 const RetrievedNotPendingMessage = t.intersection([
@@ -108,7 +109,10 @@ export const GetMessagesHandler = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusModel,
   serviceModel: ServiceModel,
-  blobService: BlobService
+  blobService: BlobService,
+  cdnBasePath: NonEmptyString,
+  cdnContentPurger: ReturnType<typeof purgeCdnEndpointPaths>
+  // eslint-disable-next-line max-params
 ): IGetMessagesHandler => async (
   context,
   fiscalCode,
@@ -183,7 +187,9 @@ export const GetMessagesHandler = (
                       context,
                       messageModel,
                       serviceModel,
-                      blobService
+                      blobService,
+                      cdnBasePath,
+                      cdnContentPurger
                     )
                   )
                 ])
@@ -222,13 +228,18 @@ export const GetMessages = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusModel,
   serviceModel: ServiceModel,
-  blobService: BlobService
+  blobService: BlobService,
+  cdnBasePath: NonEmptyString,
+  cdnContentPurger: ReturnType<typeof purgeCdnEndpointPaths>
+  // eslint-disable-next-line max-params
 ): express.RequestHandler => {
   const handler = GetMessagesHandler(
     messageModel,
     messageStatusModel,
     serviceModel,
-    blobService
+    blobService,
+    cdnBasePath,
+    cdnContentPurger
   );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),

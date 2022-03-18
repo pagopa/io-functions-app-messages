@@ -15,7 +15,7 @@ import * as AR from "fp-ts/lib/Array";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as A from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
-import { constVoid, identity, pipe } from "fp-ts/lib/function";
+import { constVoid, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as T from "fp-ts/lib/Task";
@@ -24,15 +24,13 @@ import { MessageCategory } from "@pagopa/io-functions-commons/dist/generated/def
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
-import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { LegalData } from "../generated/backend/LegalData";
+
+import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
+import * as AI from "../utils/AsyncIterableTask";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
-import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
-import {
-  asyncIteratorToArray,
-  flattenAsyncIterator
-} from "@pagopa/io-functions-commons/dist/src/utils/async";
 
 const trackErrorAndContinue = (
   context: Context,
@@ -184,6 +182,35 @@ export const enrichMessagesData = (
     )()
   );
 
+const getMessageStatusLastVersion = (
+  messageStatusModel: MessageStatusExtendedQueryModel,
+  messageIds: ReadonlyArray<NonEmptyString>
+): TE.TaskEither<Error, Record<NonEmptyString, RetrievedMessageStatus>> =>
+  pipe(
+    messageIds,
+    ids => messageStatusModel.findAllVersionsByModelIdIn(ids),
+    AI.fromAsyncIterator,
+    AI.foldTaskEither(_ => new Error(`Error retrieving data from cosmos.`)),
+    TE.map(RA.flatten),
+    TE.chainW(_ => {
+      const lefts = RA.lefts(_);
+      return lefts.length > 0
+        ? TE.left<Error, ReadonlyArray<RetrievedMessageStatus>>(
+            new Error(`${lefts.length} service(s) with decoding errors found.`)
+          )
+        : TE.of<Error, ReadonlyArray<RetrievedMessageStatus>>(RA.rights(_));
+    }),
+    TE.map(
+      RA.reduce({} as Record<string, RetrievedMessageStatus>, (acc, val) => {
+        if (!acc[val.messageId] || acc[val.messageId].version < val.version) {
+          // eslint-disable-next-line functional/immutable-data
+          acc[val.messageId] = val;
+        }
+        return acc;
+      })
+    )
+  );
+
 /**
  * This function enrich a CreatedMessageWithoutContent with
  * message status details
@@ -198,25 +225,21 @@ export const enrichMessagesStatus = (
   messageStatusModel: MessageStatusExtendedQueryModel
 ) => (
   messages: ReadonlyArray<CreatedMessageWithoutContent>
-  // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
+  // eslint-disable-next-line functional/prefer-readonly-type,  @typescript-eslint/array-type
 ): T.Task<E.Either<Error, CreatedMessageWithoutContentWithStatus>[]> =>
   pipe(
-    messages.map(message => message.id),
-    messageIds => messageStatusModel.findAllVersionsByModelIdIn(messageIds),
-    flattenAsyncIterator,
-    i => TE.tryCatch(() => asyncIteratorToArray(i), E.toError),
-    TE.chain(
-      TE.fromPredicate(
-        allVersions => allVersions.some(E.isLeft),
-        () => new Error(`Error decoding Message Status version list`)
+    messages.map(message => message.id as NonEmptyString),
+    ids => getMessageStatusLastVersion(messageStatusModel, ids),
+
+    TE.mapLeft(_err => messages.map(_m => E.left(_err))),
+    TE.map(lastMessageStatusPerMessage =>
+      messages.map(m =>
+        E.of({
+          ...m,
+          is_archived: lastMessageStatusPerMessage[m.id].isArchived,
+          is_read: lastMessageStatusPerMessage[m.id].isRead
+        })
       )
     ),
-    TE.map(RA.rights),
-    TE.map(messageStatuses =>
-      messageStatuses.map(messageStatus => ({
-        ...messages.find(m => m.id === messageStatus.messageId),
-        is_archived: messageStatus.isArchived,
-        is_read: messageStatus.isRead
-      }))
-    )
+    TE.toUnion
   );

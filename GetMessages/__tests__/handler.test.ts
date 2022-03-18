@@ -3,6 +3,9 @@
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as RA from "fp-ts/ReadonlyArray";
+import * as t from "io-ts";
+
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   MessageModel,
@@ -35,6 +38,9 @@ import {
   RetrievedMessageStatus
 } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
+import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
+import { pipe } from "fp-ts/lib/function";
+import { id } from "date-fns/locale";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -79,12 +85,15 @@ const aRetrievedPendingMessageWithoutContent: RetrievedMessageWithoutContent = {
 };
 
 const aMessageList = [
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedPendingMessageWithoutContent)
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_1" }),
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_2" }),
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_3" }),
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_4" }),
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_5" }),
+  E.right({
+    ...aRetrievedPendingMessageWithoutContent,
+    id: "aMessageId_P"
+  })
 ];
 
 //----------------------------
@@ -131,22 +140,45 @@ const functionsContextMock = ({
   }
 } as unknown) as Context;
 
+/**
+ * Build a service list iterator
+ */
+async function* buildMessageStatusIterator(
+  list: ReadonlyArray<unknown>,
+  errorToThrow?: CosmosErrors
+): AsyncIterable<ReadonlyArray<t.Validation<RetrievedMessageStatus>>> {
+  // eslint-disable-next-line functional/no-let
+
+  if (errorToThrow) {
+    throw errorToThrow;
+  }
+
+  for (const p of pipe(
+    list,
+    RA.map(RetrievedMessageStatus.decode),
+    RA.chunksOf(2)
+  )) {
+    console.log("RITORNO", p);
+    yield p;
+  }
+}
+
 // MessageStatus Mocks
-const mockFindLastMessageStatusVersion = jest.fn(messageId =>
-  TE.of<CosmosErrors, O.Option<RetrievedMessageStatus>>(
-    O.some({ ...aRetrievedMessageStatus, messageId: messageId })
-  )
-);
+const mockFindAllVersionsByModelIdIn = jest.fn((ids: string[]) => {
+  return buildMessageStatusIterator(
+    ids.map(id => ({ ...aRetrievedMessageStatus, messageId: id }))
+  );
+});
 
 const messageStatusModelMock = ({
-  findLastVersionByModelId: mockFindLastMessageStatusVersion
-} as unknown) as MessageStatusModel;
+  findAllVersionsByModelIdIn: mockFindAllVersionsByModelIdIn
+} as unknown) as MessageStatusExtendedQueryModel;
 
 // ---------------------
 // Tests
 // ---------------------
 
-describe("GetMessagesHandler", () => {
+describe("GetMessagesHandler |> No Enrichment", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("should respond with query error if it cannot retrieve messages", async () => {
@@ -264,8 +296,8 @@ describe("GetMessagesHandler", () => {
           aRetrievedMessageWithoutContent,
           aRetrievedMessageWithoutContent
         ].map(retrievedMessageToPublic),
-        prev: aRetrievedMessageWithoutContent.id,
-        next: aRetrievedMessageWithoutContent.id
+        prev: aMessageList[0].value.id,
+        next: aMessageList[2].value.id
       });
     }
 
@@ -395,6 +427,10 @@ describe("GetMessagesHandler", () => {
     expect(messageIterator.next).toHaveBeenCalledTimes(2);
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
+});
+
+describe("GetMessagesHandler |> Enrichment", () => {
+  beforeEach(() => jest.clearAllMocks());
 
   it("should respond with a page of messages when given enrichment parameter", async () => {
     const messageIterator = getMockIterator(aMessageList);
@@ -484,15 +520,15 @@ describe("GetMessagesHandler", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    mockFindLastMessageStatusVersion.mockImplementationOnce(messageId =>
-      TE.of<CosmosErrors, O.Option<RetrievedMessageStatus>>(
-        O.some({
+    mockFindAllVersionsByModelIdIn.mockImplementationOnce((ids: string[]) => {
+      return buildMessageStatusIterator(
+        ids.map((id, index) => ({
           ...aRetrievedMessageStatus,
-          isArchived: true,
-          messageId: messageId
-        })
-      )
-    );
+          messageId: id,
+          isArchived: index === 0
+        }))
+      );
+    });
 
     const getMessagesHandler = GetMessagesHandler(
       messageModelMock,
@@ -585,9 +621,8 @@ describe("GetMessagesHandler", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    mockFindLastMessageStatusVersion.mockImplementationOnce(() =>
-      TE.left(toCosmosErrorResponse("Any error message"))
-    );
+    // TODO
+    // mockFindAllVersionsByModelIdIn
 
     const getMessagesHandler = GetMessagesHandler(
       messageModelMock,

@@ -12,9 +12,10 @@ import {
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService } from "azure-storage";
 import * as AR from "fp-ts/lib/Array";
+import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as A from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
-import { constVoid, pipe } from "fp-ts/lib/function";
+import { constVoid, identity, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as T from "fp-ts/lib/Task";
@@ -27,6 +28,11 @@ import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models
 import { LegalData } from "../generated/backend/LegalData";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
+import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
+import {
+  asyncIteratorToArray,
+  flattenAsyncIterator
+} from "@pagopa/io-functions-commons/dist/src/utils/async";
 
 const trackErrorAndContinue = (
   context: Context,
@@ -189,37 +195,28 @@ export const enrichMessagesData = (
  */
 export const enrichMessagesStatus = (
   context: Context,
-  messageStatusModel: MessageStatusModel
+  messageStatusModel: MessageStatusExtendedQueryModel
 ) => (
   messages: ReadonlyArray<CreatedMessageWithoutContent>
   // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
 ): T.Task<E.Either<Error, CreatedMessageWithoutContentWithStatus>[]> =>
   pipe(
-    messages.map(message =>
-      pipe(
-        messageStatusModel.findLastVersionByModelId([
-          message.id as NonEmptyString
-        ]),
-        TE.mapLeft(e => new Error(`${e.kind}, MessageStatus`)),
-        TE.chain(
-          TE.fromOption(() => new Error(`EMPTY_MESSAGE_STATUS, MessageId`))
-        ),
-        TE.mapLeft(e =>
-          trackErrorAndContinue(
-            context,
-            e,
-            "STATUS",
-            message.fiscal_code,
-            message.id,
-            message.sender_service_id
-          )
-        ),
-        TE.map(messageStatus => ({
-          ...message,
-          is_archived: messageStatus.isArchived,
-          is_read: messageStatus.isRead
-        }))
+    messages.map(message => message.id),
+    messageIds => messageStatusModel.findAllVersionsByModelIdIn(messageIds),
+    flattenAsyncIterator,
+    i => TE.tryCatch(() => asyncIteratorToArray(i), E.toError),
+    TE.chain(
+      TE.fromPredicate(
+        allVersions => allVersions.some(E.isLeft),
+        () => new Error(`Error decoding Message Status version list`)
       )
     ),
-    AR.sequence(T.ApplicativePar)
+    TE.map(RA.rights),
+    TE.map(messageStatuses =>
+      messageStatuses.map(messageStatus => ({
+        ...messages.find(m => m.id === messageStatus.messageId),
+        is_archived: messageStatus.isArchived,
+        is_read: messageStatus.isRead
+      }))
+    )
   );

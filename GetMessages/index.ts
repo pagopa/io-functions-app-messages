@@ -9,10 +9,7 @@ import {
   MESSAGE_COLLECTION_NAME,
   MessageModel
 } from "@pagopa/io-functions-commons/dist/src/models/message";
-import {
-  MESSAGE_STATUS_COLLECTION_NAME,
-  MessageStatusModel
-} from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import { MESSAGE_STATUS_COLLECTION_NAME } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 
@@ -23,6 +20,7 @@ import {
 import { createBlobService } from "azure-storage";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
+import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import { GetMessages } from "./handler";
 
 // Setup Express
@@ -35,7 +33,7 @@ const messageModel = new MessageModel(
   cosmosdbInstance.container(MESSAGE_COLLECTION_NAME),
   config.MESSAGE_CONTAINER_NAME
 );
-const messageStatusModel = new MessageStatusModel(
+const messageStatusModel = new MessageStatusExtendedQueryModel(
   cosmosdbInstance.container(MESSAGE_STATUS_COLLECTION_NAME)
 );
 

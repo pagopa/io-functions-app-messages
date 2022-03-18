@@ -1,3 +1,5 @@
+import { MessageStatusChange } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusChange";
+
 /**
  * Get Messages
  */
@@ -21,3 +23,20 @@ export const getMessagesWithEnrichment = (
       archived ? `&archived=${archived}` : ``
     }`
   );
+
+// --------------
+// Upsert Message Status
+// --------------
+
+export const upsertMessageStatus = (
+  nodeFetch: typeof fetch,
+  baseUrl: string
+) => async (
+  fiscalCode: string,
+  messageId: string,
+  body: MessageStatusChange
+): Promise<Response> =>
+  nodeFetch(`${baseUrl}/messages/${fiscalCode}/${messageId}/message-status`, {
+    body: JSON.stringify(body),
+    method: "put"
+  });

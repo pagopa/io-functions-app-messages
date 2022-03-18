@@ -48,13 +48,13 @@ import { BlobService } from "azure-storage";
 import * as O from "fp-ts/lib/Option";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { Context } from "@azure/functions";
-import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { RedisClient } from "redis";
 import {
   CreatedMessageWithoutContentWithStatus,
   enrichMessagesData,
   enrichMessagesStatus
 } from "../utils/messages";
+import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 
 type RetrievedNotPendingMessage = t.TypeOf<typeof RetrievedNotPendingMessage>;
 const RetrievedNotPendingMessage = t.intersection([
@@ -107,7 +107,7 @@ const filterMessages = (shouldGetArchivedMessages: boolean) => (
  */
 export const GetMessagesHandler = (
   messageModel: MessageModel,
-  messageStatusModel: MessageStatusModel,
+  messageStatusModel: MessageStatusExtendedQueryModel,
   serviceModel: ServiceModel,
   blobService: BlobService,
   redisClient: RedisClient,
@@ -226,7 +226,7 @@ export const GetMessagesHandler = (
  */
 export const GetMessages = (
   messageModel: MessageModel,
-  messageStatusModel: MessageStatusModel,
+  messageStatusModel: MessageStatusExtendedQueryModel,
   serviceModel: ServiceModel,
   blobService: BlobService,
   redisClient: RedisClient,

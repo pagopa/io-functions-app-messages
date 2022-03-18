@@ -13,6 +13,7 @@ import {
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService } from "azure-storage";
 import * as AR from "fp-ts/lib/Array";
+import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as A from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
 import { constVoid, flow, pipe } from "fp-ts/lib/function";
@@ -24,11 +25,14 @@ import { MessageCategory } from "@pagopa/io-functions-commons/dist/generated/def
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
-import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { parse } from "fp-ts/lib/Json";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { LegalData } from "../generated/backend/LegalData";
+
+import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
+import * as AI from "../utils/AsyncIterableTask";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
@@ -227,6 +231,35 @@ export const enrichMessagesData = (
     )()
   );
 
+const getMessageStatusLastVersion = (
+  messageStatusModel: MessageStatusExtendedQueryModel,
+  messageIds: ReadonlyArray<NonEmptyString>
+): TE.TaskEither<Error, Record<NonEmptyString, RetrievedMessageStatus>> =>
+  pipe(
+    messageIds,
+    ids => messageStatusModel.findAllVersionsByModelIdIn(ids),
+    AI.fromAsyncIterator,
+    AI.foldTaskEither(_ => new Error(`Error retrieving data from cosmos.`)),
+    TE.map(RA.flatten),
+    TE.chainW(_ => {
+      const lefts = RA.lefts(_);
+      return lefts.length > 0
+        ? TE.left<Error, ReadonlyArray<RetrievedMessageStatus>>(
+            new Error(`${lefts.length} service(s) with decoding errors found.`)
+          )
+        : TE.of<Error, ReadonlyArray<RetrievedMessageStatus>>(RA.rights(_));
+    }),
+    TE.map(
+      RA.reduce({} as Record<string, RetrievedMessageStatus>, (acc, val) => {
+        if (!acc[val.messageId] || acc[val.messageId].version < val.version) {
+          // eslint-disable-next-line functional/immutable-data
+          acc[val.messageId] = val;
+        }
+        return acc;
+      })
+    )
+  );
+
 /**
  * This function enrich a CreatedMessageWithoutContent with
  * message status details
@@ -238,37 +271,24 @@ export const enrichMessagesData = (
  */
 export const enrichMessagesStatus = (
   context: Context,
-  messageStatusModel: MessageStatusModel
+  messageStatusModel: MessageStatusExtendedQueryModel
 ) => (
   messages: ReadonlyArray<CreatedMessageWithoutContent>
-  // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
+  // eslint-disable-next-line functional/prefer-readonly-type,  @typescript-eslint/array-type
 ): T.Task<E.Either<Error, CreatedMessageWithoutContentWithStatus>[]> =>
   pipe(
-    messages.map(message =>
-      pipe(
-        messageStatusModel.findLastVersionByModelId([
-          message.id as NonEmptyString
-        ]),
-        TE.mapLeft(e => new Error(`${e.kind}, MessageStatus`)),
-        TE.chain(
-          TE.fromOption(() => new Error(`EMPTY_MESSAGE_STATUS, MessageId`))
-        ),
-        TE.mapLeft(e =>
-          trackErrorAndContinue(
-            context,
-            e,
-            "STATUS",
-            message.fiscal_code,
-            message.id,
-            message.sender_service_id
-          )
-        ),
-        TE.map(messageStatus => ({
-          ...message,
-          is_archived: messageStatus.isArchived,
-          is_read: messageStatus.isRead
-        }))
+    messages.map(message => message.id as NonEmptyString),
+    ids => getMessageStatusLastVersion(messageStatusModel, ids),
+
+    TE.mapLeft(_err => messages.map(_m => E.left(_err))),
+    TE.map(lastMessageStatusPerMessage =>
+      messages.map(m =>
+        E.of({
+          ...m,
+          is_archived: lastMessageStatusPerMessage[m.id].isArchived,
+          is_read: lastMessageStatusPerMessage[m.id].isRead
+        })
       )
     ),
-    AR.sequence(T.ApplicativePar)
+    TE.toUnion
   );

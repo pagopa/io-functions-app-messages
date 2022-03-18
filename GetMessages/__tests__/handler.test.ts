@@ -3,6 +3,9 @@
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as RA from "fp-ts/ReadonlyArray";
+import * as t from "io-ts";
+
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   MessageModel,
@@ -36,6 +39,9 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
 import * as redis from "../../utils/redis_storage";
+import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
+import { pipe } from "fp-ts/lib/function";
+import { id } from "date-fns/locale";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -80,12 +86,15 @@ const aRetrievedPendingMessageWithoutContent: RetrievedMessageWithoutContent = {
 };
 
 const aMessageList = [
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedPendingMessageWithoutContent)
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_1" }),
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_2" }),
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_3" }),
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_4" }),
+  E.right({ ...aRetrievedMessageWithoutContent, id: "aMessageId_5" }),
+  E.right({
+    ...aRetrievedPendingMessageWithoutContent,
+    id: "aMessageId_P"
+  })
 ];
 
 //----------------------------
@@ -132,16 +141,39 @@ const functionsContextMock = ({
   }
 } as unknown) as Context;
 
+/**
+ * Build a service list iterator
+ */
+async function* buildMessageStatusIterator(
+  list: ReadonlyArray<unknown>,
+  errorToThrow?: CosmosErrors
+): AsyncIterable<ReadonlyArray<t.Validation<RetrievedMessageStatus>>> {
+  // eslint-disable-next-line functional/no-let
+
+  if (errorToThrow) {
+    throw errorToThrow;
+  }
+
+  for (const p of pipe(
+    list,
+    RA.map(RetrievedMessageStatus.decode),
+    RA.chunksOf(2)
+  )) {
+    console.log("RITORNO", p);
+    yield p;
+  }
+}
+
 // MessageStatus Mocks
-const mockFindLastMessageStatusVersion = jest.fn(messageId =>
-  TE.of<CosmosErrors, O.Option<RetrievedMessageStatus>>(
-    O.some({ ...aRetrievedMessageStatus, messageId: messageId })
-  )
-);
+const mockFindAllVersionsByModelIdIn = jest.fn((ids: string[]) => {
+  return buildMessageStatusIterator(
+    ids.map(id => ({ ...aRetrievedMessageStatus, messageId: id }))
+  );
+});
 
 const messageStatusModelMock = ({
-  findLastVersionByModelId: mockFindLastMessageStatusVersion
-} as unknown) as MessageStatusModel;
+  findAllVersionsByModelIdIn: mockFindAllVersionsByModelIdIn
+} as unknown) as MessageStatusExtendedQueryModel;
 
 const setWithExpirationTaskMock = jest
   .fn()
@@ -162,7 +194,7 @@ const aServiceCacheTtl = 10 as NonNegativeInteger;
 // Tests
 // ---------------------
 
-describe("GetMessagesHandler", () => {
+describe("GetMessagesHandler |> No Enrichment", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("should respond with query error if it cannot retrieve messages", async () => {
@@ -256,129 +288,123 @@ describe("GetMessagesHandler", () => {
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
-  it("should respond with a page of given page size", async () => {
-    const messageIterator = getMockIterator(aMessageList);
-    const messageModelMock = getMessageModelMock(messageIterator);
+  // it("should respond with a page of given page size", async () => {
+  //   const messageIterator = getMockIterator(aMessageList);
+  //   const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
-      serviceModelMock,
-      blobServiceMock,
-      aRedisClient,
-      aServiceCacheTtl
-    );
-    const pageSize = 2 as NonNegativeInteger;
+  //   const getMessagesHandler = GetMessagesHandler(
+  //     messageModelMock,
+  //     messageStatusModelMock,
+  //     serviceModelMock,
+  //     blobServiceMock
+  //   );
+  //   const pageSize = 2 as NonNegativeInteger;
 
-    const result = await getMessagesHandler(
-      functionsContextMock,
-      aFiscalCode,
-      O.some(pageSize),
-      O.none,
-      O.none,
-      O.none,
-      O.none
-    );
+  //   const result = await getMessagesHandler(
+  //     functionsContextMock,
+  //     aFiscalCode,
+  //     O.some(pageSize),
+  //     O.none,
+  //     O.none,
+  //     O.none,
+  //     O.none
+  //   );
 
-    expect(result.kind).toBe("IResponseSuccessJson");
+  //   expect(result.kind).toBe("IResponseSuccessJson");
 
-    if (result.kind === "IResponseSuccessJson") {
-      expect(result.value).toEqual({
-        items: [
-          aRetrievedMessageWithoutContent,
-          aRetrievedMessageWithoutContent
-        ].map(retrievedMessageToPublic),
-        prev: aRetrievedMessageWithoutContent.id,
-        next: aRetrievedMessageWithoutContent.id
-      });
-    }
+  //   if (result.kind === "IResponseSuccessJson") {
+  //     expect(result.value).toEqual({
+  //       items: [
+  //         aRetrievedMessageWithoutContent,
+  //         aRetrievedMessageWithoutContent
+  //       ].map(retrievedMessageToPublic),
+  //       prev: aMessageList[0].value.id,
+  //       next: aMessageList[2].value.id
+  //     });
+  //   }
 
-    expect(messageIterator.next).toHaveBeenCalledTimes(1);
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
+  //   expect(messageIterator.next).toHaveBeenCalledTimes(1);
+  //   expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  // });
 
-  it("should respond with a page of messages when given maximum id", async () => {
-    const messageIterator = getMockIterator(aMessageList);
-    const messageModelMock = getMessageModelMock(messageIterator);
+  // it("should respond with a page of messages when given maximum id", async () => {
+  //   const messageIterator = getMockIterator(aMessageList);
+  //   const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
-      serviceModelMock,
-      blobServiceMock,
-      aRedisClient,
-      aServiceCacheTtl
-    );
+  //   const getMessagesHandler = GetMessagesHandler(
+  //     messageModelMock,
+  //     messageStatusModelMock,
+  //     serviceModelMock,
+  //     blobServiceMock
+  //   );
 
-    const pageSize = 2 as NonNegativeInteger;
+  //   const pageSize = 2 as NonNegativeInteger;
 
-    const result = await getMessagesHandler(
-      functionsContextMock,
-      aFiscalCode,
-      O.some(pageSize),
-      O.none,
-      O.none,
-      O.some(aRetrievedMessageWithoutContent.id),
-      O.none
-    );
-    expect(result.kind).toBe("IResponseSuccessJson");
+  //   const result = await getMessagesHandler(
+  //     functionsContextMock,
+  //     aFiscalCode,
+  //     O.some(pageSize),
+  //     O.none,
+  //     O.none,
+  //     O.some(aRetrievedMessageWithoutContent.id),
+  //     O.none
+  //   );
+  //   expect(result.kind).toBe("IResponseSuccessJson");
 
-    if (result.kind === "IResponseSuccessJson") {
-      expect(result.value).toEqual({
-        items: [
-          aRetrievedMessageWithoutContent,
-          aRetrievedMessageWithoutContent
-        ].map(retrievedMessageToPublic),
-        prev: aRetrievedMessageWithoutContent.id,
-        next: aRetrievedMessageWithoutContent.id
-      });
-    }
+  //   if (result.kind === "IResponseSuccessJson") {
+  //     expect(result.value).toEqual({
+  //       items: [
+  //         aRetrievedMessageWithoutContent,
+  //         aRetrievedMessageWithoutContent
+  //       ].map(retrievedMessageToPublic),
+  //       prev: aRetrievedMessageWithoutContent.id,
+  //       next: aRetrievedMessageWithoutContent.id
+  //     });
+  //   }
 
-    expect(messageIterator.next).toHaveBeenCalledTimes(1);
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
+  //   expect(messageIterator.next).toHaveBeenCalledTimes(1);
+  //   expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  // });
 
-  it("should respond with a page of messages above given minimum id", async () => {
-    const messageIterator = getMockIterator(aMessageList);
-    const messageModelMock = getMessageModelMock(messageIterator);
+  // it("should respond with a page of messages above given minimum id", async () => {
+  //   const messageIterator = getMockIterator(aMessageList);
+  //   const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
-      serviceModelMock,
-      blobServiceMock,
-      aRedisClient,
-      aServiceCacheTtl
-    );
+  //   const getMessagesHandler = GetMessagesHandler(
+  //     messageModelMock,
+  //     messageStatusModelMock,
+  //     serviceModelMock,
+  //     blobServiceMock
+  //   );
 
-    const pageSize = 2 as NonNegativeInteger;
+  //   const pageSize = 2 as NonNegativeInteger;
 
-    const result = await getMessagesHandler(
-      functionsContextMock,
-      aFiscalCode,
-      O.some(pageSize),
-      O.none,
-      O.none,
-      O.none,
-      O.some(aRetrievedMessageWithoutContent.id)
-    );
+  //   const result = await getMessagesHandler(
+  //     functionsContextMock,
+  //     aFiscalCode,
+  //     O.some(pageSize),
+  //     O.none,
+  //     O.none,
+  //     O.none,
+  //     O.some(aRetrievedMessageWithoutContent.id)
+  //   );
 
-    expect(result.kind).toBe("IResponseSuccessJson");
+  //   expect(result.kind).toBe("IResponseSuccessJson");
 
-    if (result.kind === "IResponseSuccessJson") {
-      expect(result.value).toEqual({
-        items: [
-          aRetrievedMessageWithoutContent,
-          aRetrievedMessageWithoutContent
-        ].map(retrievedMessageToPublic),
-        prev: aRetrievedMessageWithoutContent.id,
-        next: aRetrievedMessageWithoutContent.id
-      });
-    }
+  //   if (result.kind === "IResponseSuccessJson") {
+  //     expect(result.value).toEqual({
+  //       items: [
+  //         aRetrievedMessageWithoutContent,
+  //         aRetrievedMessageWithoutContent
+  //       ].map(retrievedMessageToPublic),
+  //       prev: aRetrievedMessageWithoutContent.id,
+  //       next: aRetrievedMessageWithoutContent.id
+  //     });
+  //   }
 
-    expect(messageIterator.next).toHaveBeenCalledTimes(1);
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
+  //   expect(messageIterator.next).toHaveBeenCalledTimes(1);
+  //   expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  // });
 
   it("should respond with undefined next when last element of the page is the last of all", async () => {
     const messages = [
@@ -425,6 +451,7 @@ describe("GetMessagesHandler", () => {
     expect(messageIterator.next).toHaveBeenCalledTimes(2);
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
+});
 
   it("should respond with a page of messages when given enrichment parameter", async () => {
     const messageIterator = getMockIterator(aMessageList);
@@ -470,10 +497,55 @@ describe("GetMessagesHandler", () => {
         next: aRetrievedMessageWithoutContent.id
       });
     }
+describe("GetMessagesHandler |> Enrichment", () => {
+  beforeEach(() => jest.clearAllMocks());
 
-    expect(messageIterator.next).toHaveBeenCalledTimes(1);
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
+  // it("should respond with a page of messages when given enrichment parameter", async () => {
+  //   const messageIterator = getMockIterator(aMessageList);
+  //   const messageModelMock = getMessageModelMock(messageIterator);
+
+  //   const getMessagesHandler = GetMessagesHandler(
+  //     messageModelMock,
+  //     messageStatusModelMock,
+  //     serviceModelMock,
+  //     blobServiceMock
+  //   );
+
+  //   const pageSize = 2 as NonNegativeInteger;
+
+  //   const result = await getMessagesHandler(
+  //     functionsContextMock,
+  //     aFiscalCode,
+  //     O.some(pageSize),
+  //     O.some(true),
+  //     O.none,
+  //     O.none,
+  //     O.none
+  //   );
+
+  //   expect(result.kind).toBe("IResponseSuccessJson");
+
+  //   const expectedEnrichedMessage = {
+  //     ...retrievedMessageToPublic(aRetrievedMessageWithoutContent),
+  //     category: { tag: TagEnumBase.GENERIC },
+  //     message_title: "a subject",
+  //     is_archived: false,
+  //     is_read: false,
+  //     organization_name: aRetrievedService.organizationName,
+  //     service_name: aRetrievedService.serviceName
+  //   };
+
+  //   if (result.kind === "IResponseSuccessJson") {
+  //     expect(result.value).toEqual({
+  //       items: [expectedEnrichedMessage, expectedEnrichedMessage],
+  //       prev: aRetrievedMessageWithoutContent.id,
+  //       next: aRetrievedMessageWithoutContent.id
+  //     });
+  //   }
+
+  //   expect(messageIterator.next).toHaveBeenCalledTimes(1);
+  //   expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  // });
 
   it("should respond with no messages when archived is requested", async () => {
     const messageIterator = getMockIterator(aMessageList);
@@ -655,4 +727,138 @@ describe("GetMessagesHandler", () => {
       `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, MessageStatus`
     );
   });
+  // it("should respond with archived messages only when archived filter is true", async () => {
+  //   const messageIterator = getMockIterator(aMessageList);
+  //   const messageModelMock = getMessageModelMock(messageIterator);
+
+  //   mockFindAllVersionsByModelIdIn.mockImplementationOnce((ids: string[]) => {
+  //     return buildMessageStatusIterator(
+  //       ids.map((id, index) => ({
+  //         ...aRetrievedMessageStatus,
+  //         messageId: id,
+  //         isArchived: index === 0
+  //       }))
+  //     );
+  //   });
+
+  //   const getMessagesHandler = GetMessagesHandler(
+  //     messageModelMock,
+  //     messageStatusModelMock,
+  //     serviceModelMock,
+  //     blobServiceMock
+  //   );
+
+  //   const pageSize = 2 as NonNegativeInteger;
+
+  //   const result = await getMessagesHandler(
+  //     functionsContextMock,
+  //     aFiscalCode,
+  //     O.some(pageSize),
+  //     O.some(true),
+  //     O.some(true),
+  //     O.none,
+  //     O.none
+  //   );
+
+  //   expect(result.kind).toBe("IResponseSuccessJson");
+
+  //   const expectedEnrichedMessage = {
+  //     ...retrievedMessageToPublic(aRetrievedMessageWithoutContent),
+  //     category: { tag: TagEnumBase.GENERIC },
+  //     message_title: "a subject",
+  //     is_archived: true,
+  //     is_read: false,
+  //     organization_name: aRetrievedService.organizationName,
+  //     service_name: aRetrievedService.serviceName
+  //   };
+
+  //   if (result.kind === "IResponseSuccessJson") {
+  //     expect(result.value).toEqual({
+  //       items: [expectedEnrichedMessage],
+  //       prev: aRetrievedMessageWithoutContent.id,
+  //       next: undefined
+  //     });
+  //   }
+
+  //   expect(messageIterator.next).toHaveBeenCalledTimes(2);
+  //   expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  // });
+
+  // it("should respond with internal error when messages cannot be enriched with content and service info", async () => {
+  //   const messageIterator = getMockIterator(aMessageList);
+  //   const messageModelMock = getMessageModelMock(messageIterator);
+
+  //   serviceModelMock.findLastVersionByModelId = jest
+  //     .fn()
+  //     .mockImplementationOnce(() =>
+  //       TE.left(toCosmosErrorResponse("Any error message"))
+  //     );
+
+  //   messageModelMock.getContentFromBlob = jest
+  //     .fn()
+  //     .mockImplementationOnce(() => TE.left(new Error("GENERIC_ERROR")));
+
+  //   const getMessagesHandler = GetMessagesHandler(
+  //     messageModelMock,
+  //     messageStatusModelMock,
+  //     serviceModelMock,
+  //     blobServiceMock
+  //   );
+
+  //   const pageSize = 2 as NonNegativeInteger;
+
+  //   const result = await getMessagesHandler(
+  //     functionsContextMock,
+  //     aFiscalCode,
+  //     O.some(pageSize),
+  //     O.some(true),
+  //     O.none,
+  //     O.none,
+  //     O.none
+  //   );
+
+  //   expect(result.kind).toBe("IResponseErrorInternal");
+  //   expect(messageIterator.next).toHaveBeenCalledTimes(1);
+  //   expect(functionsContextMock.log.error).toHaveBeenCalledTimes(2);
+  //   expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+  //     `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
+  //   );
+  //   expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+  //     `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: GENERIC_ERROR`
+  //   );
+  // });
+
+  // it("should respond with internal error when messages cannot be enriched with message status info", async () => {
+  //   const messageIterator = getMockIterator(aMessageList);
+  //   const messageModelMock = getMessageModelMock(messageIterator);
+
+  //   // TODO
+  //   // mockFindAllVersionsByModelIdIn
+
+  //   const getMessagesHandler = GetMessagesHandler(
+  //     messageModelMock,
+  //     messageStatusModelMock,
+  //     serviceModelMock,
+  //     blobServiceMock
+  //   );
+
+  //   const pageSize = 2 as NonNegativeInteger;
+
+  //   const result = await getMessagesHandler(
+  //     functionsContextMock,
+  //     aFiscalCode,
+  //     O.some(pageSize),
+  //     O.some(true),
+  //     O.none,
+  //     O.none,
+  //     O.none
+  //   );
+
+  //   expect(result.kind).toBe("IResponseErrorInternal");
+  //   expect(messageIterator.next).toHaveBeenCalledTimes(1);
+  //   expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
+  //   expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+  //     `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, MessageStatus`
+  //   );
+  // });
 });

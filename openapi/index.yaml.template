@@ -724,5 +724,28 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatusArchivingChange"
   MessageStatusBulkChange:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatusBulkChange"
+  
+  MessageStatusPaymentChange:
+    type: object
+    properties:
+      change_type:
+        type: string
+        enum:
+          - paying
+      is_paid:
+        type: boolean
+        enum:
+          - true
+    required:
+      - change_type
+      - is_paid
+  
   MessageStatusChange:
-    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatusChange"
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/MessageStatusReadingChange'
+      - $ref: '#/definitions/MessageStatusArchivingChange'
+      - $ref: '#/definitions/MessageStatusBulkChange'
+      - $ref: '#/definitions/MessageStatusPaymentChange'
+
+  

@@ -6,6 +6,7 @@ import {
 import { CosmosResource } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { aFiscalCode } from "./mocks";
 
 export const aMessageId = "aMessageId" as NonEmptyString;
 
@@ -28,6 +29,7 @@ export const aMessageStatus: MessageStatus = {
 export const aRetrievedMessageStatus: RetrievedMessageStatus = {
   ...aCosmosResourceMetadata,
   ...aMessageStatus,
+  fiscalCode: aFiscalCode,
   version: 0 as NonNegativeInteger,
   id: "aMessageStatusId" as NonEmptyString,
   kind: "IRetrievedMessageStatus"

@@ -17,6 +17,7 @@ import {
   aMessageId
 } from "../../__mocks__/mocks.message-status";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import { FiscalCode } from "@pagopa/ts-commons/lib/strings";
 
 // --------------------------
 // Variables
@@ -76,16 +77,15 @@ describe("GetMessageHandler", () => {
       aReadingStatusChange
     );
 
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        isRead: true,
-        isArchived: false,
-        fiscalCode: aFiscalCode
-      })
-    );
-
     expect(result.kind).toBe("IResponseSuccessJson");
     if (result.kind === "IResponseSuccessJson") {
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isRead: true,
+          isArchived: false,
+          fiscalCode: aFiscalCode
+        })
+      );
       expect(result.value).toMatchObject({
         version: aRetrievedMessageStatus.version + 1
       });
@@ -104,16 +104,15 @@ describe("GetMessageHandler", () => {
       anArchivingStatusChange
     );
 
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        isRead: false,
-        isArchived: true,
-        fiscalCode: aFiscalCode
-      })
-    );
-
     expect(result.kind).toBe("IResponseSuccessJson");
     if (result.kind === "IResponseSuccessJson") {
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isRead: false,
+          isArchived: true,
+          fiscalCode: aFiscalCode
+        })
+      );
       expect(result.value).toMatchObject({
         version: aRetrievedMessageStatus.version + 1
       });
@@ -132,34 +131,27 @@ describe("GetMessageHandler", () => {
       aBulkStatusChange
     );
 
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        isRead: true,
-        isArchived: true,
-        fiscalCode: aFiscalCode
-      })
-    );
-
     expect(result.kind).toBe("IResponseSuccessJson");
     if (result.kind === "IResponseSuccessJson") {
+      expect(mockUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isRead: true,
+          isArchived: true,
+          fiscalCode: aFiscalCode
+        })
+      );
       expect(result.value).toMatchObject({
         version: aRetrievedMessageStatus.version + 1
       });
     }
   });
+});
 
-  it("should respond with a new version of message-status when no mesage-status was found", async () => {
-    mockFindLastVersionByModelId
-      .mockImplementationOnce(() => TE.of(O.none))
-      .mockImplementationOnce(() => TE.of(O.none));
+describe("GetMessageHandler - Errors", () => {
+  afterEach(() => jest.clearAllMocks());
 
-    mockUpsert.mockImplementationOnce(status =>
-      TE.of<CosmosErrors, O.Option<RetrievedMessageStatus>>({
-        ...status,
-        kind: "IRetrievedMessageStatus",
-        version: 0
-      })
-    );
+  it("should respond with IResponseErrorNotFound if no message status was found for messageId", async () => {
+    mockFindLastVersionByModelId.mockImplementationOnce(() => TE.of(O.none));
 
     const upsertMessageStatusHandler = UpsertMessageStatusHandler(
       mockMessageStatusModel
@@ -172,23 +164,25 @@ describe("GetMessageHandler", () => {
       aReadingStatusChange
     );
 
-    expect(mockUpsert).toHaveBeenCalledWith(
-      expect.objectContaining({
-        isRead: true,
-        isArchived: false,
-        fiscalCode: aFiscalCode
-      })
+    expect(mockUpsert).not.toHaveBeenCalled();
+
+    expect(result.kind).toBe("IResponseErrorNotFound");
+  });
+
+  it("should respond with IResponseErrorForbiddenNotAuthorized if fiscalCode is different from statusModel one", async () => {
+    const upsertMessageStatusHandler = UpsertMessageStatusHandler(
+      mockMessageStatusModel
     );
 
-    expect(result.kind).toBe("IResponseSuccessJson");
-    if (result.kind === "IResponseSuccessJson") {
-      expect(result.value).toMatchObject({
-        version: 0
-      });
-    }
-  });
-});
+    const result = await upsertMessageStatusHandler(
+      contextMock as any,
+      "anotherFiscalCode" as FiscalCode,
+      aMessageId,
+      aReadingStatusChange
+    );
 
-describe("GetMessageHandler - Errors", () => {
-  afterEach(() => jest.clearAllMocks());
+    expect(mockUpsert).not.toHaveBeenCalled();
+
+    expect(result.kind).toBe("IResponseErrorForbiddenNotAuthorized");
+  });
 });

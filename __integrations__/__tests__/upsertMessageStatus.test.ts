@@ -19,6 +19,7 @@ import {
 
 import {
   aFiscalCodeWithMessages,
+  aFiscalCodeWithoutMessages,
   aMessage,
   messagesList,
   messageStatusList
@@ -228,8 +229,8 @@ describe("Upsert Message Status |> Success Results |> Existing Message Status", 
   });
 });
 
-describe("Upsert Message Status |> Success Results |> Non Existing Message Status", () => {
-  it("should return a new version of message-status", async () => {
+describe("Upsert Message Status |> Errors", () => {
+  it("should return 404 when no messageStatus was found", async () => {
     // Add new message without any message status
     const aMessageWithoutMessageStatus = {
       ...aMessage,
@@ -252,24 +253,18 @@ describe("Upsert Message Status |> Success Results |> Non Existing Message Statu
       aMessageId,
       aReadingStatusChange
     );
-    expect(response.status).toEqual(200);
-    const body = (await response.json()) as MessageStatus;
+    expect(response.status).toEqual(404);
+  });
 
-    console.log(body);
+  it("should return 403 when fiscalCode does not match with messageStatus one", async () => {
+    const aMessageId = messagesList[4].id;
 
-    const maybeNewStatus = await getMessageStatusList(aMessageId);
-    if (O.isNone(maybeNewStatus)) {
-      fail("New Message Status not found");
-    }
-    const newStatus = maybeNewStatus.value;
-
-    expect(newStatus).toMatchObject(
-      expect.objectContaining({
-        version: 0,
-        isArchived: false,
-        isRead: true
-      })
+    const response = await upsertMessageStatus(fetch, baseUrl)(
+      aFiscalCodeWithoutMessages,
+      aMessageId,
+      aReadingStatusChange
     );
+    expect(response.status).toEqual(403);
   });
 });
 

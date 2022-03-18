@@ -1,10 +1,13 @@
 import * as express from "express";
 
 import * as TE from "fp-ts/TaskEither";
-import * as O from "fp-ts/Option";
 
 import {
+  IResponseErrorForbiddenNotAuthorized,
+  IResponseErrorNotFound,
   IResponseSuccessJson,
+  ResponseErrorForbiddenNotAuthorized,
+  ResponseErrorNotFound,
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -33,7 +36,6 @@ import {
   IResponseErrorQuery,
   ResponseErrorQuery
 } from "@pagopa/io-functions-commons/dist/src/utils/response";
-import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
 
 const exaustiveCheck = (x: never): never => {
   throw new Error(`unexpected value ${x}`);
@@ -54,17 +56,6 @@ const mapChange = (
   }
 };
 
-const buildMessageStatus = (
-  fiscalCode: FiscalCode,
-  messageId: NonEmptyString
-): Omit<MessageStatus, "updatedAt"> => ({
-  fiscalCode,
-  isArchived: false,
-  isRead: false,
-  messageId,
-  status: MessageStatusValueEnum.PROCESSED
-});
-
 /**
  * Type of a GetMessage handler.
  *
@@ -77,7 +68,12 @@ type IUpsertMessageStatusHandler = (
   fiscalCode: FiscalCode,
   messageId: NonEmptyString,
   change: MessageStatusChange
-) => Promise<IResponseSuccessJson<MessageStatusApi> | IResponseErrorQuery>;
+) => Promise<
+  | IResponseSuccessJson<MessageStatusApi>
+  | IResponseErrorQuery
+  | IResponseErrorNotFound
+  | IResponseErrorForbiddenNotAuthorized
+>;
 
 /**
  * Handles requests for getting a single message for a recipient.
@@ -91,9 +87,21 @@ export function UpsertMessageStatusHandler(
     pipe(
       messageStatusModel.findLastVersionByModelId([messageId]),
       TE.mapLeft(err => ResponseErrorQuery("findLastVersionByModelId", err)),
-      TE.map(
+      TE.chainW(
         // If no message-status was found, build a new one
-        O.getOrElse(() => buildMessageStatus(fiscalCode, messageId))
+        TE.fromOption(() =>
+          ResponseErrorNotFound(
+            `Cannot found message status`,
+            `Cannot found message status for message ${messageId}`
+          )
+        )
+      ),
+      TE.chainW(
+        // If no message-status was found, build a new one
+        TE.fromPredicate(
+          messageStatus => messageStatus.fiscalCode === fiscalCode,
+          () => ResponseErrorForbiddenNotAuthorized
+        )
       ),
       TE.map(messageStatus => ({
         ...messageStatus,

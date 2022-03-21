@@ -71,19 +71,15 @@ const integerReply = (
   return E.right<Error, boolean>(typeof reply === "number");
 };
 
+const isTrue = (b: boolean): b is true => b === true;
+
 const falsyResponseToError = (
   response: E.Either<Error, boolean>,
   error: Error
-): E.Either<Error, true> => {
-  if (E.isLeft(response)) {
-    return response;
-  } else {
-    if (response.right) {
-      return E.right(true);
-    }
-    return E.left(error);
-  }
-};
+): E.Either<Error, true> =>
+  pipe(
+    response,
+    E.filterOrElse(isTrue, () => error)
 
 export const setWithExpirationTask = (
   redisClient: RedisClient,

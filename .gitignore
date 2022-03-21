@@ -54,3 +54,4 @@ generated/**/*
 # eslint section
 !.eslintrc.js
 .eslintcache
+__integrations__/environments/generated/**/*

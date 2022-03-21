@@ -13,13 +13,13 @@ const givenStringReply = (
   err: Error | null,
   reply: string | undefined,
   message: string
-): E.Either<Error, boolean> => {
-  if (err) {
-    return E.left<Error, boolean>(err);
-  }
-
-  return E.right<Error, boolean>(reply === message);
-};
+): E.Either<Error, boolean> =>
+  pipe(
+    err,
+    O.fromNullable,
+    O.map(E.left),
+    O.getOrElse(() => E.right(reply === message))
+  );
 
 /**
  * Parse a Redis single string reply.
@@ -29,13 +29,13 @@ const givenStringReply = (
 const singleStringReply = (
   err: Error | null,
   reply: "OK" | undefined
-): E.Either<Error, boolean> => {
-  if (err) {
-    return E.left<Error, boolean>(err);
-  }
-
-  return E.right<Error, boolean>(reply === "OK");
-};
+): E.Either<Error, boolean> =>
+  pipe(
+    err,
+    O.fromNullable,
+    O.map(E.left),
+    O.getOrElse(() => E.right(reply === "OK"))
+  );
 
 /**
  * Parse a Redis single string reply.
@@ -45,12 +45,13 @@ const singleStringReply = (
 const singleValueReply = (
   err: Error | null,
   reply: string | null
-): E.Either<Error, O.Option<string>> => {
-  if (err) {
-    return E.left<Error, O.Option<string>>(err);
-  }
-  return E.right<Error, O.Option<string>>(O.fromNullable(reply));
-};
+): E.Either<Error, O.Option<string>> =>
+  pipe(
+    err,
+    O.fromNullable,
+    O.map(E.left),
+    O.getOrElse(() => E.right(O.fromNullable(reply)))
+  );
 
 /**
  * Parse a Redis integer reply.
@@ -80,6 +81,7 @@ const falsyResponseToError = (
   pipe(
     response,
     E.filterOrElse(isTrue, () => error)
+  );
 
 export const setWithExpirationTask = (
   redisClient: RedisClient,

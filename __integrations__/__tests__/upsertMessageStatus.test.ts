@@ -45,8 +45,7 @@ import {
   MessageStatusModel
 } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusChange } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusChange";
-import { randomInt } from "crypto";
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import { randomInt } from "fp-ts/lib/Random";
 
 // --------------------------
 // Variables
@@ -76,6 +75,8 @@ jest.setTimeout(WAIT_MS * MAX_ATTEMPT);
 
 const baseUrl = "http://function:7071/api/v1";
 const fetch = getNodeFetch();
+
+const getRandomInt = (max: number) => randomInt(0, max)().valueOf();
 
 // ----------------
 // Setup dbs
@@ -232,12 +233,11 @@ describe("Upsert Message Status |> Success Results |> Existing Message Status", 
 describe("Upsert Message Status |> Errors", () => {
   it("should return 404 when no messageStatus was found", async () => {
     // Add new message without any message status
+    const randomId = getRandomInt(1000000);
     const aMessageWithoutMessageStatus = {
       ...aMessage,
-      id: `${aMessage.id}_nostatus_${randomInt(1000000)}` as NonEmptyString,
-      indexedId: `${aMessage.id}_nostatus_${randomInt(
-        1000000
-      )}` as NonEmptyString
+      id: `${aMessage.id}_nostatus_${randomId}` as NonEmptyString,
+      indexedId: `${aMessage.id}_nostatus_${randomId}` as NonEmptyString
     };
     await fillMessages(database, blobService, [aMessageWithoutMessageStatus]);
 

@@ -206,6 +206,7 @@ describe("enrichMessagesData", () => {
       }
     });
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+    expect(findLastVersionByModelIdMock).not.toHaveBeenCalled();
   });
 
   it("should return right when message blob is retrieved and service is retrieved from Cosmos due to cache miss", async () => {

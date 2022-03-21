@@ -122,7 +122,7 @@ const getOrCacheService = (
   pipe(
     getTask(redisClient, serviceId),
     TE.chain(TE.fromOption(() => new Error("Cannot Get Service from Redis"))),
-    TE.chain(
+    TE.chainEitherK(
       flow(
         parse,
         E.mapLeft(() => new Error("Cannot parse Service Json from Redis")),
@@ -131,8 +131,7 @@ const getOrCacheService = (
             RetrievedService.decode,
             E.mapLeft(() => new Error("Cannot decode Service Json from Redis"))
           )
-        ),
-        TE.fromEither
+        )
       )
     ),
     TE.orElse(() =>

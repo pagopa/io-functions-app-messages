@@ -230,8 +230,10 @@ export const enrichMessagesStatus = (
   pipe(
     messages.map(message => message.id as NonEmptyString),
     ids => getMessageStatusLastVersion(messageStatusModel, ids),
-
-    TE.mapLeft(_err => messages.map(_m => E.left(_err))),
+    TE.mapLeft(error => {
+      context.log.error(`Cannot enrich message status | ${error}`);
+      return messages.map(_m => E.left(error));
+    }),
     TE.map(lastMessageStatusPerMessage =>
       messages.map(m =>
         E.of({

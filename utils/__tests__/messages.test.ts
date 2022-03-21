@@ -33,11 +33,11 @@ import { TimeToLiveSeconds } from "../../generated/backend/TimeToLiveSeconds";
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 import { pipe } from "fp-ts/lib/function";
-import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
 import { Context } from "@azure/functions";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
+import * as redis from "../redis_storage";
 
 const anOrganizationFiscalCode = "01234567890" as OrganizationFiscalCode;
 
@@ -153,6 +153,21 @@ const messages = [
   }
 ] as readonly CreatedMessageWithoutContentWithStatus[];
 
+const setWithExpirationTaskMock = jest
+  .fn()
+  .mockImplementation(() => TE.of(true));
+jest
+  .spyOn(redis, "setWithExpirationTask")
+  .mockImplementation(setWithExpirationTaskMock);
+
+const getTaskMock = jest
+  .fn()
+  .mockImplementation(() => TE.of(O.some(JSON.stringify(aRetrievedService))));
+jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
+
+const aRedisClient = {} as any;
+const aServiceCacheTtl = 10 as NonNegativeInteger;
+
 // ------------------------
 // Tests
 // ------------------------
@@ -162,12 +177,14 @@ describe("enrichMessagesData", () => {
     jest.clearAllMocks();
   });
 
-  it("should return right when message blob and service are correctly retrieved", async () => {
+  it("should return right when message blob is retrieved and service is retrieved from Redis", async () => {
     const enrichMessages = enrichMessagesData(
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -189,6 +206,94 @@ describe("enrichMessagesData", () => {
       }
     });
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+    expect(findLastVersionByModelIdMock).not.toHaveBeenCalled();
+  });
+
+  it("should return right when message blob is retrieved and service is retrieved from Cosmos due to cache miss", async () => {
+    getTaskMock.mockImplementationOnce(() => TE.of(O.none));
+    const enrichMessages = enrichMessagesData(
+      functionsContextMock,
+      messageModelMock,
+      serviceModelMock,
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const enrichedMessagesPromises = enrichMessages(messages);
+
+    const enrichedMessages = await pipe(
+      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.getOrElse(() => {
+        throw Error();
+      })
+    )();
+
+    enrichedMessages.map(enrichedMessage => {
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumBase.GENERIC
+        });
+      }
+    });
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    expect(findLastVersionByModelIdMock).toHaveBeenCalledTimes(1);
+    expect(setWithExpirationTaskMock).toHaveBeenCalledTimes(1);
+    expect(setWithExpirationTaskMock).toHaveBeenCalledWith(
+      aRedisClient,
+      aNewMessageWithoutContent.senderServiceId,
+      JSON.stringify(aRetrievedService),
+      aServiceCacheTtl
+    );
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should return right when message blob is retrieved and service is retrieved from Cosmos due to cache unavailability", async () => {
+    getTaskMock.mockImplementationOnce(() =>
+      TE.left(new Error("Redis unreachable"))
+    );
+    setWithExpirationTaskMock.mockImplementationOnce(() =>
+      TE.left(new Error("Redis unreachable"))
+    );
+    const enrichMessages = enrichMessagesData(
+      functionsContextMock,
+      messageModelMock,
+      serviceModelMock,
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const enrichedMessagesPromises = enrichMessages(messages);
+
+    const enrichedMessages = await pipe(
+      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.getOrElse(() => {
+        throw Error();
+      })
+    )();
+
+    enrichedMessages.map(enrichedMessage => {
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessage.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumBase.GENERIC
+        });
+      }
+    });
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    expect(findLastVersionByModelIdMock).toHaveBeenCalledTimes(1);
+    expect(setWithExpirationTaskMock).toHaveBeenCalledTimes(1);
+    expect(setWithExpirationTaskMock).toHaveBeenCalledWith(
+      aRedisClient,
+      aNewMessageWithoutContent.senderServiceId,
+      JSON.stringify(aRetrievedService),
+      aServiceCacheTtl
+    );
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
   it("should return right with right message EU_COVID_CERT category when message content is retrieved", async () => {
@@ -199,7 +304,9 @@ describe("enrichMessagesData", () => {
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -231,7 +338,9 @@ describe("enrichMessagesData", () => {
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -263,7 +372,9 @@ describe("enrichMessagesData", () => {
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -289,6 +400,7 @@ describe("enrichMessagesData", () => {
   });
 
   it("should return left when service model return a cosmos error", async () => {
+    getTaskMock.mockImplementationOnce(() => TE.left("Cache unreachable"));
     findLastVersionByModelIdMock.mockImplementationOnce(() =>
       TE.left(toCosmosErrorResponse("Any error message"))
     );
@@ -297,7 +409,9 @@ describe("enrichMessagesData", () => {
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -320,13 +434,16 @@ describe("enrichMessagesData", () => {
   });
 
   it("should return left when service model return an empty result", async () => {
+    getTaskMock.mockImplementationOnce(() => TE.left("Cache unreachable"));
     findLastVersionByModelIdMock.mockImplementationOnce(() => TE.right(O.none));
 
     const enrichMessages = enrichMessagesData(
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -361,7 +478,9 @@ describe("enrichMessagesData", () => {
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -384,6 +503,7 @@ describe("enrichMessagesData", () => {
   });
 
   it("should return left when both message and service models return errors", async () => {
+    getTaskMock.mockImplementationOnce(() => TE.of(O.none));
     findLastVersionByModelIdMock.mockImplementationOnce(() =>
       TE.left(toCosmosErrorResponse("Any error message"))
     );
@@ -396,29 +516,23 @@ describe("enrichMessagesData", () => {
       functionsContextMock,
       messageModelMock,
       serviceModelMock,
-      blobServiceMock
+      blobServiceMock,
+      aRedisClient,
+      aServiceCacheTtl
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
 
     const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.tryCatch(() => Promise.all(enrichedMessagesPromises), void 0),
       TE.getOrElse(() => {
         throw Error();
       })
     )();
+    expect(functionsContextMock.log.error).toHaveBeenCalled();
 
     enrichedMessages.map(enrichedMessage => {
       expect(E.isLeft(enrichedMessage)).toBe(true);
     });
-
-    // 2 errors means 2 calls to tracking
-    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(2);
-    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
-    );
-    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: GENERIC_ERROR`
-    );
   });
 });

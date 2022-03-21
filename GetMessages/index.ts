@@ -23,6 +23,7 @@ import {
 import { createBlobService } from "azure-storage";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
+import { REDIS_CLIENT } from "../utils/redis";
 import { GetMessages } from "./handler";
 
 // Setup Express
@@ -47,7 +48,14 @@ const blobService = createBlobService(config.QueueStorageConnection);
 
 app.get(
   "/api/v1/messages/:fiscalcode",
-  GetMessages(messageModel, messageStatusModel, serviceModel, blobService)
+  GetMessages(
+    messageModel,
+    messageStatusModel,
+    serviceModel,
+    blobService,
+    REDIS_CLIENT,
+    config.SERVICE_CACHE_TTL_DURATION
+  )
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);

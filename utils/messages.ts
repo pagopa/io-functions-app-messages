@@ -6,6 +6,7 @@ import { EUCovidCert } from "@pagopa/io-functions-commons/dist/generated/definit
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
 import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/message";
 import {
+  RetrievedService,
   Service,
   ServiceModel
 } from "@pagopa/io-functions-commons/dist/src/models/service";
@@ -14,7 +15,7 @@ import { BlobService } from "azure-storage";
 import * as AR from "fp-ts/lib/Array";
 import * as A from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
-import { constVoid, pipe } from "fp-ts/lib/function";
+import { constVoid, flow, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as T from "fp-ts/lib/Task";
@@ -24,9 +25,13 @@ import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/genera
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
 import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import { parse } from "fp-ts/lib/Json";
+import { RedisClient } from "redis";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { LegalData } from "../generated/backend/LegalData";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
+import { getTask, setWithExpirationTask } from "./redis_storage";
 
 const trackErrorAndContinue = (
   context: Context,
@@ -108,6 +113,52 @@ export const mapMessageCategory = (
     O.getOrElse(() => ({ tag: TagEnumBase.GENERIC }))
   );
 
+const getOrCacheService = (
+  serviceId: ServiceId,
+  serviceModel: ServiceModel,
+  redisClient: RedisClient,
+  serviceCacheTtl: NonNegativeInteger
+): TE.TaskEither<Error, RetrievedService> =>
+  pipe(
+    getTask(redisClient, serviceId),
+    TE.chain(TE.fromOption(() => new Error("Cannot Get Service from Redis"))),
+    TE.chainEitherK(
+      flow(
+        parse,
+        E.mapLeft(() => new Error("Cannot parse Service Json from Redis")),
+        E.chain(
+          flow(
+            RetrievedService.decode,
+            E.mapLeft(() => new Error("Cannot decode Service Json from Redis"))
+          )
+        )
+      )
+    ),
+    TE.orElse(() =>
+      pipe(
+        serviceModel.findLastVersionByModelId([serviceId]),
+        TE.mapLeft(e => new Error(`${e.kind}, ServiceId=${serviceId}`)),
+        TE.chain(
+          TE.fromOption(
+            () => new Error(`EMPTY_SERVICE, ServiceId=${serviceId}`)
+          )
+        ),
+        TE.chain(service =>
+          pipe(
+            setWithExpirationTask(
+              redisClient,
+              serviceId,
+              JSON.stringify(service),
+              serviceCacheTtl
+            ),
+            TE.map(() => service),
+            TE.orElse(() => TE.of(service))
+          )
+        )
+      )
+    )
+  );
+
 /**
  * This function enrich a CreatedMessageWithoutContent with
  * service's details and message's subject.
@@ -121,7 +172,10 @@ export const enrichMessagesData = (
   context: Context,
   messageModel: MessageModel,
   serviceModel: ServiceModel,
-  blobService: BlobService
+  blobService: BlobService,
+  redisClient: RedisClient,
+  serviceCacheTtl: NonNegativeInteger
+  // eslint-disable-next-line max-params
 ) => (
   messages: ReadonlyArray<CreatedMessageWithoutContentWithStatus>
   // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
@@ -143,17 +197,11 @@ export const enrichMessagesData = (
           )
         ),
         service: pipe(
-          serviceModel.findLastVersionByModelId([message.sender_service_id]),
-          TE.mapLeft(
-            e => new Error(`${e.kind}, ServiceId=${message.sender_service_id}`)
-          ),
-          TE.chain(
-            TE.fromOption(
-              () =>
-                new Error(
-                  `EMPTY_SERVICE, ServiceId=${message.sender_service_id}`
-                )
-            )
+          getOrCacheService(
+            message.sender_service_id,
+            serviceModel,
+            redisClient,
+            serviceCacheTtl
           ),
           TE.mapLeft(e =>
             trackErrorAndContinue(

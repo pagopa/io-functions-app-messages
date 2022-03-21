@@ -78,53 +78,53 @@ type IUpsertMessageStatusHandler = (
 /**
  * Handles requests for getting a single message for a recipient.
  */
-// eslint-disable-next-line prefer-arrow/prefer-arrow-functions
-export function UpsertMessageStatusHandler(
+export const UpsertMessageStatusHandler = (
   messageStatusModel: MessageStatusModel
-): IUpsertMessageStatusHandler {
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  return async (context, fiscalCode, messageId, change) =>
-    pipe(
-      messageStatusModel.findLastVersionByModelId([messageId]),
-      TE.mapLeft(err => ResponseErrorQuery("findLastVersionByModelId", err)),
-      TE.chainW(
-        // If no message-status was found, build a new one
-        TE.fromOption(() =>
-          ResponseErrorNotFound(
-            `Cannot found message status`,
-            `Cannot found message status for message ${messageId}`
-          )
+): IUpsertMessageStatusHandler => async (
+  _context,
+  fiscalCode,
+  messageId,
+  change
+) =>
+  pipe(
+    messageStatusModel.findLastVersionByModelId([messageId]),
+    TE.mapLeft(err => ResponseErrorQuery("findLastVersionByModelId", err)),
+    TE.chainW(
+      TE.fromOption(() =>
+        ResponseErrorNotFound(
+          `Cannot found message status`,
+          `Cannot found message status for message ${messageId}`
         )
-      ),
-      TE.chainW(
-        // If no message-status was found, build a new one
-        TE.fromPredicate(
-          messageStatus => messageStatus.fiscalCode === fiscalCode,
-          () => ResponseErrorForbiddenNotAuthorized
-        )
-      ),
-      TE.map(messageStatus => ({
-        ...messageStatus,
-        ...mapChange(change),
-        fiscalCode,
-        kind: "INewMessageStatus" as const,
-        updatedAt: new Date()
-      })),
-      TE.chainW(newStatus =>
-        pipe(
-          messageStatusModel.upsert(newStatus),
-          TE.mapLeft(err => ResponseErrorQuery("upsert", err))
-        )
-      ),
-      TE.map(res => ({
-        status: res.status,
-        updated_at: res.updatedAt,
-        version: res.version
-      })),
-      TE.map(res => ResponseSuccessJson(res)),
-      TE.toUnion
-    )();
-}
+      )
+    ),
+    TE.chainW(
+      TE.fromPredicate(
+        messageStatus => messageStatus.fiscalCode === fiscalCode,
+        () => ResponseErrorForbiddenNotAuthorized
+      )
+    ),
+    TE.map(messageStatus => ({
+      ...messageStatus,
+      ...mapChange(change),
+      fiscalCode,
+      kind: "INewMessageStatus" as const,
+      updatedAt: new Date()
+    })),
+    TE.chainW(newStatus =>
+      pipe(
+        messageStatusModel.upsert(newStatus),
+        TE.mapLeft(err => ResponseErrorQuery("on upsert", err))
+      )
+    ),
+    TE.map(res => ({
+      status: res.status,
+      updated_at: res.updatedAt,
+      version: res.version
+    })),
+    TE.map(res => ResponseSuccessJson(res)),
+    TE.toUnion
+  )();
 
 /**
  * Wraps a GetMessage handler inside an Express request handler.

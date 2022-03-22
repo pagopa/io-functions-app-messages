@@ -3,6 +3,9 @@
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as RA from "fp-ts/ReadonlyArray";
+import * as t from "io-ts";
+
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   MessageModel,
@@ -30,11 +33,10 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { Context } from "@azure/functions";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
-import {
-  MessageStatusModel,
-  RetrievedMessageStatus
-} from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
+import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
+import { pipe } from "fp-ts/lib/function";
 import * as redis from "../../utils/redis_storage";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
@@ -78,15 +80,6 @@ const aRetrievedPendingMessageWithoutContent: RetrievedMessageWithoutContent = {
   isPending: true,
   kind: "IRetrievedMessageWithoutContent"
 };
-
-const aMessageList = [
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedMessageWithoutContent),
-  E.right(aRetrievedPendingMessageWithoutContent)
-];
 
 //----------------------------
 // Mocks
@@ -132,16 +125,38 @@ const functionsContextMock = ({
   }
 } as unknown) as Context;
 
+/**
+ * Build a service list iterator
+ */
+async function* buildMessageStatusIterator(
+  list: ReadonlyArray<unknown>,
+  errorToThrow?: CosmosErrors
+): AsyncIterable<ReadonlyArray<t.Validation<RetrievedMessageStatus>>> {
+  // eslint-disable-next-line functional/no-let
+
+  if (errorToThrow) {
+    throw errorToThrow;
+  }
+
+  for (const p of pipe(
+    list,
+    RA.map(RetrievedMessageStatus.decode),
+    RA.chunksOf(2)
+  )) {
+    yield p;
+  }
+}
+
 // MessageStatus Mocks
-const mockFindLastMessageStatusVersion = jest.fn(messageId =>
-  TE.of<CosmosErrors, O.Option<RetrievedMessageStatus>>(
-    O.some({ ...aRetrievedMessageStatus, messageId: messageId })
-  )
-);
+const mockFindAllVersionsByModelIdIn = jest.fn((ids: string[]) => {
+  return buildMessageStatusIterator(
+    ids.map(id => ({ ...aRetrievedMessageStatus, messageId: id }))
+  );
+});
 
 const messageStatusModelMock = ({
-  findLastVersionByModelId: mockFindLastMessageStatusVersion
-} as unknown) as MessageStatusModel;
+  findAllVersionsByModelIdIn: mockFindAllVersionsByModelIdIn
+} as unknown) as MessageStatusExtendedQueryModel;
 
 const setWithExpirationTaskMock = jest
   .fn()
@@ -162,7 +177,17 @@ const aServiceCacheTtl = 10 as NonNegativeInteger;
 // Tests
 // ---------------------
 
-describe("GetMessagesHandler", () => {
+describe("GetMessagesHandler |> No Enrichment", () => {
+  const aSimpleList = [
+    aRetrievedMessageWithoutContent,
+    aRetrievedMessageWithoutContent,
+    aRetrievedMessageWithoutContent,
+    aRetrievedMessageWithoutContent,
+    aRetrievedMessageWithoutContent,
+    aRetrievedPendingMessageWithoutContent
+  ];
+  const aMessageList = aSimpleList.map(m => E.right(m));
+
   beforeEach(() => jest.clearAllMocks());
 
   it("should respond with query error if it cannot retrieve messages", async () => {
@@ -288,8 +313,8 @@ describe("GetMessagesHandler", () => {
           aRetrievedMessageWithoutContent,
           aRetrievedMessageWithoutContent
         ].map(retrievedMessageToPublic),
-        prev: aRetrievedMessageWithoutContent.id,
-        next: aRetrievedMessageWithoutContent.id
+        prev: aSimpleList[0].id,
+        next: aSimpleList[2].id
       });
     }
 
@@ -425,6 +450,38 @@ describe("GetMessagesHandler", () => {
     expect(messageIterator.next).toHaveBeenCalledTimes(2);
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
+});
+
+describe("GetMessagesHandler |> Enrichment", () => {
+  const aSimpleList = [
+    {
+      ...aRetrievedMessageWithoutContent,
+      id: "aMessageId_5" as NonEmptyString
+    },
+    {
+      ...aRetrievedMessageWithoutContent,
+      id: "aMessageId_4" as NonEmptyString
+    },
+    {
+      ...aRetrievedMessageWithoutContent,
+      id: "aMessageId_3" as NonEmptyString
+    },
+    {
+      ...aRetrievedMessageWithoutContent,
+      id: "aMessageId_2" as NonEmptyString
+    },
+    {
+      ...aRetrievedMessageWithoutContent,
+      id: "aMessageId_1" as NonEmptyString
+    },
+    {
+      ...aRetrievedPendingMessageWithoutContent,
+      id: "aMessageId_P" as NonEmptyString
+    }
+  ];
+  const aMessageList = aSimpleList.map(m => E.right(m));
+
+  beforeEach(() => jest.clearAllMocks());
 
   it("should respond with a page of messages when given enrichment parameter", async () => {
     const messageIterator = getMockIterator(aMessageList);
@@ -454,7 +511,7 @@ describe("GetMessagesHandler", () => {
     expect(result.kind).toBe("IResponseSuccessJson");
 
     const expectedEnrichedMessage = {
-      ...retrievedMessageToPublic(aRetrievedMessageWithoutContent),
+      ...retrievedMessageToPublic(aSimpleList[0]),
       category: { tag: TagEnumBase.GENERIC },
       message_title: "a subject",
       is_archived: false,
@@ -465,9 +522,12 @@ describe("GetMessagesHandler", () => {
 
     if (result.kind === "IResponseSuccessJson") {
       expect(result.value).toEqual({
-        items: [expectedEnrichedMessage, expectedEnrichedMessage],
-        prev: aRetrievedMessageWithoutContent.id,
-        next: aRetrievedMessageWithoutContent.id
+        items: [
+          { ...expectedEnrichedMessage, id: aSimpleList[0].id },
+          { ...expectedEnrichedMessage, id: aSimpleList[1].id }
+        ],
+        prev: aSimpleList[0].id,
+        next: aSimpleList[1].id
       });
     }
 
@@ -518,15 +578,15 @@ describe("GetMessagesHandler", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    mockFindLastMessageStatusVersion.mockImplementationOnce(messageId =>
-      TE.of<CosmosErrors, O.Option<RetrievedMessageStatus>>(
-        O.some({
+    mockFindAllVersionsByModelIdIn.mockImplementationOnce((ids: string[]) => {
+      return buildMessageStatusIterator(
+        ids.map((id, index) => ({
           ...aRetrievedMessageStatus,
-          isArchived: true,
-          messageId: messageId
-        })
-      )
-    );
+          messageId: id,
+          isArchived: index === 0
+        }))
+      );
+    });
 
     const getMessagesHandler = GetMessagesHandler(
       messageModelMock,
@@ -552,7 +612,7 @@ describe("GetMessagesHandler", () => {
     expect(result.kind).toBe("IResponseSuccessJson");
 
     const expectedEnrichedMessage = {
-      ...retrievedMessageToPublic(aRetrievedMessageWithoutContent),
+      ...retrievedMessageToPublic(aSimpleList[0]),
       category: { tag: TagEnumBase.GENERIC },
       message_title: "a subject",
       is_archived: true,
@@ -564,7 +624,7 @@ describe("GetMessagesHandler", () => {
     if (result.kind === "IResponseSuccessJson") {
       expect(result.value).toEqual({
         items: [expectedEnrichedMessage],
-        prev: aRetrievedMessageWithoutContent.id,
+        prev: aSimpleList[0].id,
         next: undefined
       });
     }
@@ -612,10 +672,10 @@ describe("GetMessagesHandler", () => {
     expect(messageIterator.next).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledTimes(2);
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
+      `Cannot enrich message "${aSimpleList[0].id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
     );
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: GENERIC_ERROR`
+      `Cannot enrich message "${aSimpleList[0].id}" | Error: GENERIC_ERROR`
     );
   });
 
@@ -623,9 +683,16 @@ describe("GetMessagesHandler", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    mockFindLastMessageStatusVersion.mockImplementationOnce(() =>
-      TE.left(toCosmosErrorResponse("Any error message"))
-    );
+    mockFindAllVersionsByModelIdIn.mockImplementationOnce((ids: string[]) => {
+      return buildMessageStatusIterator(
+        ids.map((id, index) => ({
+          ...aRetrievedMessageStatus,
+          messageId: id,
+          isArchived: index === 0
+        })),
+        toCosmosErrorResponse("Any message-status error")
+      );
+    });
 
     const getMessagesHandler = GetMessagesHandler(
       messageModelMock,
@@ -652,7 +719,7 @@ describe("GetMessagesHandler", () => {
     expect(messageIterator.next).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: COSMOS_ERROR_RESPONSE, MessageStatus`
+      `Cannot enrich message status | Error: Error retrieving data from cosmos.`
     );
   });
 });

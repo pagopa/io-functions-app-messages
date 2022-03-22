@@ -143,7 +143,6 @@ async function* buildMessageStatusIterator(
     RA.map(RetrievedMessageStatus.decode),
     RA.chunksOf(2)
   )) {
-    console.log("RITORNO", p);
     yield p;
   }
 }

@@ -56,6 +56,7 @@ export const messageStatusList = pipe(
   messagesList,
   RA.map(m => [
     {
+      fiscalCode: m.fiscalCode,
       messageId: m.id,
       id: `${m.id}-${"0".repeat(15)}0`,
       version: 0,
@@ -66,6 +67,7 @@ export const messageStatusList = pipe(
       kind: "INewMessageStatus"
     },
     {
+      fiscalCode: m.fiscalCode,
       messageId: m.id,
       id: `${m.id}-${"0".repeat(15)}1`,
       version: 1,

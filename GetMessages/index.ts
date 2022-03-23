@@ -23,6 +23,7 @@ import { getConfigOrThrow } from "../utils/config";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import { REDIS_CLIENT } from "../utils/redis";
 import { GetMessages } from "./handler";
+import { createGetMessagesFunctionSelection } from "./getMessagesFunctions/getMessages.selector";
 
 // Setup Express
 const app = express();
@@ -44,13 +45,17 @@ const serviceModel = new ServiceModel(
 
 const blobService = createBlobService(config.QueueStorageConnection);
 
+const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+  config.USE_FALLBACK,
+  "none",
+  [messageModel, messageStatusModel, blobService]
+);
+
 app.get(
   "/api/v1/messages/:fiscalcode",
   GetMessages(
-    messageModel,
-    messageStatusModel,
+    getMessagesFunctionSelector,
     serviceModel,
-    blobService,
     REDIS_CLIENT,
     config.SERVICE_CACHE_TTL_DURATION
   )

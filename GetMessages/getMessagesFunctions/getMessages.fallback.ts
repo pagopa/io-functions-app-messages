@@ -4,10 +4,7 @@ import {
   mapAsyncIterator
 } from "@pagopa/io-functions-commons/dist/src/utils/async";
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
-import {
-  PageResults,
-  toPageResults
-} from "@pagopa/io-functions-commons/dist/src/utils/paging";
+import { toPageResults } from "@pagopa/io-functions-commons/dist/src/utils/paging";
 import {
   MessageModel,
   RetrievedMessage
@@ -18,19 +15,17 @@ import * as E from "fp-ts/lib/Either";
 import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as t from "io-ts";
-import { ServiceModel } from "@pagopa/io-functions-commons/dist/src/models/service";
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { BlobService } from "azure-storage";
-import { Context } from "@azure/functions";
-import { RedisClient } from "redis";
+
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import {
   CreatedMessageWithoutContentWithStatus,
-  enrichMessagesData,
+  enrichContentData,
   enrichMessagesStatus
-} from "../utils/messages";
-import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
+} from "../../utils/messages";
+import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
+import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
+import { EnrichedMessageWithContent } from "./models";
 
 type RetrievedNotPendingMessage = t.TypeOf<typeof RetrievedNotPendingMessage>;
 const RetrievedNotPendingMessage = t.intersection([
@@ -55,26 +50,11 @@ const filterMessages = (shouldGetArchivedMessages: boolean) => (
     )
   );
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
-type GetMessagesParams = {
-  readonly context: Context;
-  readonly fiscalCode: FiscalCode;
-  readonly pageSize: NonNegativeInteger;
-  readonly shouldEnrichResultData: boolean;
-  readonly shouldGetArchivedMessages: boolean;
-  readonly maximumId: NonEmptyString;
-  readonly minimumId: NonEmptyString;
-};
-
 export const getMessagesFromFallback = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusExtendedQueryModel,
-  serviceModel: ServiceModel,
-  blobService: BlobService,
-  redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
-  // eslint-disable-next-line  max-params
-) => ({
+  blobService: BlobService
+): IGetMessagesFunction => ({
   context,
   fiscalCode,
   pageSize,
@@ -82,7 +62,10 @@ export const getMessagesFromFallback = (
   shouldGetArchivedMessages,
   maximumId,
   minimumId
-}: GetMessagesParams): TE.TaskEither<CosmosErrors | Error, PageResults> =>
+}): TE.TaskEither<
+  CosmosErrors | Error,
+  IPageResult<EnrichedMessageWithContent>
+> =>
   pipe(
     messageModel.findMessages(fiscalCode, pageSize, maximumId, minimumId),
     TE.map(i => mapAsyncIterator(i, A.rights)),
@@ -117,14 +100,7 @@ export const getMessagesFromFallback = (
             ),
             ...pipe(
               A.rights(x),
-              enrichMessagesData(
-                context,
-                messageModel,
-                serviceModel,
-                blobService,
-                redisClient,
-                serviceCacheTtl
-              )
+              enrichContentData(context, messageModel, blobService)
             )
           ])
         ),
@@ -142,7 +118,14 @@ export const getMessagesFromFallback = (
         ),
         TE.map(({ hasMoreResults, results }) =>
           toPageResults(A.rights([...results]), hasMoreResults)
-        )
+        ),
+        // cast is needed because PageResults returns an incomplete type
+        TE.map(paginatedItems => ({
+          ...paginatedItems,
+          items: paginatedItems.items as ReadonlyArray<
+            EnrichedMessageWithContent
+          >
+        }))
       )
     )
   );

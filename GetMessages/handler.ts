@@ -8,10 +8,7 @@ import {
   ResponseErrorQuery
 } from "@pagopa/io-functions-commons/dist/src/utils/response";
 import { PageResults } from "@pagopa/io-functions-commons/dist/src/utils/paging";
-import {
-  defaultPageSize,
-  MessageModel
-} from "@pagopa/io-functions-commons/dist/src/models/message";
+import { defaultPageSize } from "@pagopa/io-functions-commons/dist/src/models/message";
 import { OptionalQueryParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/optional_query_param";
 import * as express from "express";
 import { pipe } from "fp-ts/lib/function";
@@ -30,13 +27,12 @@ import {
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { BlobService } from "azure-storage";
 import * as O from "fp-ts/lib/Option";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { Context } from "@azure/functions";
 import { RedisClient } from "redis";
-import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
-import { getMessagesFromFallback } from "./getMessages.fallback";
+import { enrichServiceData } from "../utils/messages";
+import { IGetMessagesFunctionSelector } from "./getMessagesFunctions/getMessages.selector";
 
 type IGetMessagesHandlerResponse =
   | IResponseSuccessJson<PageResults>
@@ -65,10 +61,8 @@ type IGetMessagesHandler = (
  * Handles requests for getting all message for a recipient.
  */
 export const GetMessagesHandler = (
-  messageModel: MessageModel,
-  messageStatusModel: MessageStatusExtendedQueryModel,
+  functionSelector: IGetMessagesFunctionSelector,
   serviceModel: ServiceModel,
-  blobService: BlobService,
   redisClient: RedisClient,
   serviceCacheTtl: NonNegativeInteger
   // eslint-disable-next-line max-params
@@ -103,23 +97,35 @@ export const GetMessagesHandler = (
         maximumId,
         minimumId
       }) =>
-        getMessagesFromFallback(
-          messageModel,
-          messageStatusModel,
-          serviceModel,
-          blobService,
-          redisClient,
-          serviceCacheTtl
-        )({
-          context,
-          fiscalCode,
-          maximumId,
-          minimumId,
-          pageSize,
-          shouldEnrichResultData,
-          shouldGetArchivedMessages
-        })
+        pipe(
+          functionSelector.select({ fiscalCode }),
+          getMessagesFunction =>
+            getMessagesFunction({
+              context,
+              fiscalCode,
+              maximumId,
+              minimumId,
+              pageSize,
+              shouldEnrichResultData,
+              shouldGetArchivedMessages
+            }),
+          TE.chainW(paginatedItems =>
+            !shouldEnrichResultData
+              ? TE.of(paginatedItems)
+              : pipe(
+                  paginatedItems.items,
+                  enrichServiceData(
+                    context,
+                    serviceModel,
+                    redisClient,
+                    serviceCacheTtl
+                  ),
+                  TE.map(items => ({ ...paginatedItems, items }))
+                )
+          )
+        )
     ),
+
     TE.mapLeft(e => {
       if (e instanceof Error) {
         return ResponseErrorInternal(e.message);
@@ -135,19 +141,15 @@ export const GetMessagesHandler = (
  * Wraps a GetMessages handler inside an Express request handler.
  */
 export const GetMessages = (
-  messageModel: MessageModel,
-  messageStatusModel: MessageStatusExtendedQueryModel,
+  functionSelector: IGetMessagesFunctionSelector,
   serviceModel: ServiceModel,
-  blobService: BlobService,
   redisClient: RedisClient,
   serviceCacheTtl: NonNegativeInteger
   // eslint-disable-next-line max-params
 ): express.RequestHandler => {
   const handler = GetMessagesHandler(
-    messageModel,
-    messageStatusModel,
+    functionSelector,
     serviceModel,
-    blobService,
     redisClient,
     serviceCacheTtl
   );

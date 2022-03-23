@@ -17,6 +17,8 @@ import {
   IntegerFromString,
   NonNegativeInteger
 } from "@pagopa/ts-commons/lib/numbers";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
+import { BooleanFromString } from "@pagopa/ts-commons/lib/booleans";
 
 // exclude a specific value from a type
 // as strict equality is performed, allowed input types are constrained to be values not references (object, arrays, etc)
@@ -62,10 +64,19 @@ export const RedisParams = t.intersection([
 ]);
 export type RedisParams = t.TypeOf<typeof RedisParams>;
 
+export const FeatureFlatType = t.union([
+  t.literal("none"),
+  t.literal("beta"),
+  t.literal("canary"),
+  t.literal("prod")
+]);
+export type FeatureFlatType = t.TypeOf<typeof FeatureFlatType>;
+
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
   t.interface({
+    /* eslint-disable sort-keys */
     COSMOSDB_KEY: NonEmptyString,
     COSMOSDB_NAME: NonEmptyString,
     COSMOSDB_URI: NonEmptyString,
@@ -75,7 +86,12 @@ export const IConfig = t.intersection([
     QueueStorageConnection: NonEmptyString,
 
     SERVICE_CACHE_TTL_DURATION: NonNegativeInteger,
+
+    FF_TYPE: FeatureFlatType,
+    USE_FALLBACK: withDefault(BooleanFromString, false),
+
     isProduction: t.boolean
+    /* eslint-enable sort-keys */
   }),
   ReqServiceIdConfig,
   RedisParams

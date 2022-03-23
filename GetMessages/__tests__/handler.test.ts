@@ -38,6 +38,7 @@ import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/genera
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
 import { pipe } from "fp-ts/lib/function";
 import * as redis from "../../utils/redis_storage";
+import { createGetMessagesFunctionSelection } from "../getMessagesFunctions/getMessages.selector";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -191,11 +192,15 @@ describe("GetMessagesHandler |> No Enrichment", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("should respond with query error if it cannot retrieve messages", async () => {
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [errorMessageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      errorMessageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -218,11 +223,15 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const messageIterator = getMockIterator(messages);
     const messageModelMock = getMessageModelMock(messageIterator);
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -249,11 +258,15 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const messageIterator = getMockIterator(messages);
     const messageModelMock = getMessageModelMock(messageIterator);
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -285,14 +298,19 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
+
     const pageSize = 2 as NonNegativeInteger;
 
     const result = await getMessagesHandler(
@@ -326,11 +344,15 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -367,11 +389,15 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -413,11 +439,15 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const messageIterator = getMockIterator(messages);
     const messageModelMock = getMessageModelMock(messageIterator);
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -487,11 +517,15 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -539,11 +573,15 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -588,11 +626,15 @@ describe("GetMessagesHandler |> Enrichment", () => {
       );
     });
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -647,11 +689,15 @@ describe("GetMessagesHandler |> Enrichment", () => {
       .fn()
       .mockImplementationOnce(() => TE.left(new Error("GENERIC_ERROR")));
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );
@@ -670,10 +716,7 @@ describe("GetMessagesHandler |> Enrichment", () => {
 
     expect(result.kind).toBe("IResponseErrorInternal");
     expect(messageIterator.next).toHaveBeenCalledTimes(1);
-    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(2);
-    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aSimpleList[0].id}" | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
-    );
+    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
       `Cannot enrich message "${aSimpleList[0].id}" | Error: GENERIC_ERROR`
     );
@@ -694,11 +737,15 @@ describe("GetMessagesHandler |> Enrichment", () => {
       );
     });
 
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [messageModelMock, messageStatusModelMock, blobServiceMock]
+    );
+
     const getMessagesHandler = GetMessagesHandler(
-      messageModelMock,
-      messageStatusModelMock,
+      getMessagesFunctionSelector,
       serviceModelMock,
-      blobServiceMock,
       aRedisClient,
       aServiceCacheTtl
     );

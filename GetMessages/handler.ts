@@ -120,12 +120,14 @@ export const GetMessagesHandler = (
                     redisClient,
                     serviceCacheTtl
                   ),
-                  TE.map(items => ({ ...paginatedItems, items }))
+                  TE.map((items: PageResults["items"]) => ({
+                    ...paginatedItems,
+                    items
+                  }))
                 )
           )
         )
     ),
-
     TE.mapLeft(e => {
       if (e instanceof Error) {
         return ResponseErrorInternal(e.message);

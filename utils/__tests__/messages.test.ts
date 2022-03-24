@@ -314,7 +314,7 @@ describe("enrichContentData", () => {
         expect(EnrichedMessageWithContent.is(enrichedMessage.right)).toBe(true);
         expect(enrichedMessage.right.category).toEqual({
           tag: TagEnumPayment.PAYMENT,
-          rptId: mockedPaymentContent.payment_data.notice_number
+          noticeNumber: mockedPaymentContent.payment_data.notice_number
         });
       }
     });
@@ -465,7 +465,7 @@ describe("enrichServiceData", () => {
     expect(E.isRight(enrichedMessages)).toBe(true);
     if (E.isRight(enrichedMessages)) {
       enrichedMessages.right.map(enrichedMessage => {
-        expect(EnrichedMessageWithContent.is(enrichedMessage)).toBe(true);
+        expect(EnrichedMessage.is(enrichedMessage)).toBe(true);
         expect(enrichedMessage.category).toEqual({
           tag: TagEnumPayment.PAYMENT,
           rptId: `${aRetrievedService.organizationFiscalCode}${mockedPaymentContent.payment_data.notice_number}`

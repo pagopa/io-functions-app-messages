@@ -32,7 +32,11 @@ import { LegalData } from "../generated/backend/LegalData";
 
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import * as AI from "../utils/AsyncIterableTask";
-import { EnrichedMessageWithContent } from "../GetMessages/getMessagesFunctions/models";
+import {
+  EnrichedMessageWithContent,
+  InternalMessageCategory
+} from "../GetMessages/getMessagesFunctions/models";
+import { EnrichedMessage } from "../generated/backend/EnrichedMessage";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
@@ -87,7 +91,7 @@ const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
   {
     buildOtherCategoryProperties: (_, c): Record<string, string> => ({
       // Notice Number only. Organization fiscal code will be added by enrichServiceData
-      rptId: c.payment_data.notice_number
+      noticeNumber: c.payment_data.notice_number
     }),
     pattern: t.interface({ payment_data: PaymentData }),
     tag: TagEnumPayment.PAYMENT
@@ -97,7 +101,7 @@ const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
 export const mapMessageCategory = (
   message: CreatedMessageWithoutContent,
   messageContent: MessageContent
-): MessageCategory =>
+): InternalMessageCategory =>
   pipe(
     messageCategoryMappings,
     AR.map(mapping =>
@@ -116,7 +120,7 @@ export const mapMessageCategory = (
         }))
       )
     ),
-    AR.filter(MessageCategory.is),
+    AR.filter(InternalMessageCategory.is),
     AR.head,
     O.getOrElse(() => ({ tag: TagEnumBase.GENERIC }))
   );
@@ -226,25 +230,10 @@ export const enrichServiceData = (
   redisClient: RedisClient,
   serviceCacheTtl: NonNegativeInteger
   // eslint-disable-next-line max-params
-) => <
-  M extends {
-    readonly id: NonEmptyString;
-    readonly fiscal_code: FiscalCode;
-    readonly sender_service_id: NonEmptyString;
-    readonly category?: MessageCategory;
-  }
->(
+) => <M extends EnrichedMessageWithContent>(
   messages: ReadonlyArray<M>
 ): // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
-TE.TaskEither<
-  Error,
-  ReadonlyArray<
-    M & {
-      readonly organization_name: string;
-      readonly service_name: string;
-    }
-  >
-> =>
+TE.TaskEither<Error, ReadonlyArray<EnrichedMessage>> =>
   pipe(
     messages,
     RA.map(m => m.sender_service_id),
@@ -284,13 +273,13 @@ TE.TaskEither<
             service
           }),
           ({ message, service }) =>
-            message.category?.tag !== TagEnumPayment.PAYMENT
-              ? message
+            message.category?.tag !== "PAYMENT"
+              ? { ...message, category: message.category }
               : {
                   ...message,
                   category: {
-                    ...message.category,
-                    rptId: `${service.organizationFiscalCode}${message.category.rptId}`
+                    rptId: `${service.organizationFiscalCode}${message.category.noticeNumber}`,
+                    tag: TagEnumPayment.PAYMENT
                   }
                 }
         )

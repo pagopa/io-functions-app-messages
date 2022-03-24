@@ -1,16 +1,44 @@
+/* eslint-disable sort-keys */
 import * as t from "io-ts";
 
-import { MessageCategory } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategory";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { DateFromTimestamp } from "@pagopa/ts-commons/lib/dates";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 
+import { MessageCategoryBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TimeToLiveSeconds } from "../../generated/backend/TimeToLiveSeconds";
+
+// ---------------------------------------
+// ---------------------------------------
+
+export const InternalMessageCategoryPayment = t.exact(
+  t.interface({
+    tag: t.literal("PAYMENT"),
+    noticeNumber: NonEmptyString
+  }),
+  "MessageCategoryPayment"
+);
+
+export type InternalMessageCategoryPayment = t.TypeOf<
+  typeof InternalMessageCategoryPayment
+>;
+
+// ---------------------------------------
+// ---------------------------------------
+
+export const InternalMessageCategory = t.union(
+  [InternalMessageCategoryPayment, MessageCategoryBase],
+  "MessageCategory"
+);
+
+export type InternalMessageCategory = t.TypeOf<typeof InternalMessageCategory>;
+
+// ---------------------------------------
+// ---------------------------------------
 
 // required attributes
 const EnrichedMessageWithContentR = t.interface({
-  /* eslint-disable sort-keys */
   id: NonEmptyString,
   fiscal_code: FiscalCode,
   created_at: DateFromTimestamp,
@@ -18,16 +46,13 @@ const EnrichedMessageWithContentR = t.interface({
   message_title: t.string,
   is_read: t.boolean,
   is_archived: t.boolean
-  /* eslint-enable sort-keys */
 });
 
 // optional attributes
 const EnrichedMessageWithContentO = t.partial({
-  /* eslint-disable sort-keys */
   time_to_live: TimeToLiveSeconds,
-  category: MessageCategory,
+  category: InternalMessageCategory,
   has_attachments: withDefault(t.boolean, false)
-  /* eslint-enable sort-keys */
 });
 
 export const EnrichedMessageWithContent = t.exact(

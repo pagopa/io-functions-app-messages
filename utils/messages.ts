@@ -249,10 +249,10 @@ TE.TaskEither<
     messages,
     RA.map(m => m.sender_service_id),
     RA.uniq(S.Eq),
-    RA.map(serviceId =>
+    RA.map((serviceId: NonEmptyString) =>
       pipe(
         getOrCacheService(
-          serviceId as NonEmptyString,
+          serviceId,
           serviceModel,
           redisClient,
           serviceCacheTtl
@@ -264,7 +264,7 @@ TE.TaskEither<
             "SERVICE",
             messages[0].fiscal_code,
             undefined,
-            serviceId as NonEmptyString
+            serviceId
           )
         )
       )

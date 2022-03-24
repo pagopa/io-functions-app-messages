@@ -87,8 +87,8 @@ export const IConfig = t.intersection([
 
     SERVICE_CACHE_TTL_DURATION: NonNegativeInteger,
 
-    FF_TYPE: FeatureFlatType,
-    USE_FALLBACK: withDefault(BooleanFromString, false),
+    FF_TYPE: withDefault(t.string, "none").pipe(FeatureFlatType),
+    USE_FALLBACK: withDefault(t.string, "false").pipe(BooleanFromString),
 
     isProduction: t.boolean
     /* eslint-enable sort-keys */

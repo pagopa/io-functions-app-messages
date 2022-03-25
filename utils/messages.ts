@@ -1,13 +1,11 @@
 import { Context } from "@azure/functions";
 import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
-import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { EUCovidCert } from "@pagopa/io-functions-commons/dist/generated/definitions/EUCovidCert";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
 import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/message";
 import {
   RetrievedService,
-  Service,
   ServiceModel
 } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
@@ -20,6 +18,7 @@ import { constVoid, flow, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as T from "fp-ts/lib/Task";
+import * as S from "fp-ts/string";
 import * as t from "io-ts";
 import { MessageCategory } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategory";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
@@ -33,6 +32,11 @@ import { LegalData } from "../generated/backend/LegalData";
 
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import * as AI from "../utils/AsyncIterableTask";
+import {
+  EnrichedMessageWithContent,
+  InternalMessageCategory
+} from "../GetMessages/getMessagesFunctions/models";
+import { EnrichedMessage } from "../generated/backend/EnrichedMessage";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
@@ -42,11 +46,16 @@ const trackErrorAndContinue = (
   error: Error,
   kind: "SERVICE" | "CONTENT" | "STATUS",
   fiscalCode: FiscalCode,
-  messageId: string,
+  messageId?: string,
   serviceId?: ServiceId
   // eslint-disable-next-line max-params
 ): Error => {
-  context.log.error(`Cannot enrich message "${messageId}" | ${error}`);
+  const message =
+    kind === "SERVICE"
+      ? `Cannot enrich service data | ${error}`
+      : `Cannot enrich message "${messageId}" | ${error}`;
+
+  context.log.error(message);
   createTracker(initTelemetryClient()).messages.trackEnrichmentFailure(
     kind,
     fiscalCode,
@@ -66,7 +75,6 @@ interface IMessageCategoryMapping {
   readonly pattern: t.Type<Partial<MessageContent>>;
   readonly buildOtherCategoryProperties?: (
     m: CreatedMessageWithoutContent,
-    s: Service,
     c: MessageContent
   ) => Record<string, string>;
 }
@@ -81,8 +89,9 @@ const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
     tag: TagEnumBase.LEGAL_MESSAGE
   },
   {
-    buildOtherCategoryProperties: (_, s, c): Record<string, string> => ({
-      rptId: `${s.organizationFiscalCode}${c.payment_data.notice_number}`
+    buildOtherCategoryProperties: (_, c): Record<string, string> => ({
+      // Notice Number only. Organization fiscal code will be added by enrichServiceData
+      noticeNumber: c.payment_data.notice_number
     }),
     pattern: t.interface({ payment_data: PaymentData }),
     tag: TagEnumPayment.PAYMENT
@@ -91,9 +100,8 @@ const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
 
 export const mapMessageCategory = (
   message: CreatedMessageWithoutContent,
-  service: Service,
   messageContent: MessageContent
-): MessageCategory =>
+): InternalMessageCategory =>
   pipe(
     messageCategoryMappings,
     AR.map(mapping =>
@@ -106,13 +114,13 @@ export const mapMessageCategory = (
             O.fromNullable(mapping.buildOtherCategoryProperties),
             O.fold(
               () => ({}),
-              f => f(message, service, messageContent)
+              f => f(message, messageContent)
             )
           )
         }))
       )
     ),
-    AR.filter(MessageCategory.is),
+    AR.filter(InternalMessageCategory.is),
     AR.head,
     O.getOrElse(() => ({ tag: TagEnumBase.GENERIC }))
   );
@@ -172,18 +180,14 @@ const getOrCacheService = (
  * @param blobService
  * @returns
  */
-export const enrichMessagesData = (
+export const enrichContentData = (
   context: Context,
   messageModel: MessageModel,
-  serviceModel: ServiceModel,
-  blobService: BlobService,
-  redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
-  // eslint-disable-next-line max-params
+  blobService: BlobService
 ) => (
   messages: ReadonlyArray<CreatedMessageWithoutContentWithStatus>
   // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
-): Promise<E.Either<Error, EnrichedMessage>>[] =>
+): Promise<E.Either<Error, EnrichedMessageWithContent>>[] =>
   messages.map(message =>
     pipe(
       {
@@ -199,35 +203,88 @@ export const enrichMessagesData = (
               message.id
             )
           )
-        ),
-        service: pipe(
-          getOrCacheService(
-            message.sender_service_id,
-            serviceModel,
-            redisClient,
-            serviceCacheTtl
-          ),
-          TE.mapLeft(e =>
-            trackErrorAndContinue(
-              context,
-              e,
-              "SERVICE",
-              message.fiscal_code,
-              message.id,
-              message.sender_service_id
-            )
-          )
         )
       },
       A.sequenceS(TE.ApplicativePar),
-      TE.map(({ service, content }) => ({
+      TE.map(({ content }) => ({
         ...message,
-        category: mapMessageCategory(message, service, content),
-        message_title: content.subject,
-        organization_name: service.organizationName,
-        service_name: service.serviceName
+        category: mapMessageCategory(message, content),
+        id: message.id as NonEmptyString,
+        message_title: content.subject
       }))
     )()
+  );
+
+/**
+ * This function enrich a CreatedMessageWithoutContent with
+ * service's details and message's subject.
+ *
+ * @param messageModel
+ * @param serviceModel
+ * @param blobService
+ * @returns
+ */
+export const enrichServiceData = (
+  context: Context,
+  serviceModel: ServiceModel,
+  redisClient: RedisClient,
+  serviceCacheTtl: NonNegativeInteger
+  // eslint-disable-next-line max-params
+) => <M extends EnrichedMessageWithContent>(
+  messages: ReadonlyArray<M>
+): // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
+TE.TaskEither<Error, ReadonlyArray<EnrichedMessage>> =>
+  pipe(
+    messages,
+    RA.map(m => m.sender_service_id),
+    RA.uniq(S.Eq),
+    RA.map((serviceId: NonEmptyString) =>
+      pipe(
+        getOrCacheService(
+          serviceId,
+          serviceModel,
+          redisClient,
+          serviceCacheTtl
+        ),
+        TE.mapLeft(e =>
+          trackErrorAndContinue(
+            context,
+            e,
+            "SERVICE",
+            messages[0].fiscal_code,
+            undefined,
+            serviceId
+          )
+        )
+      )
+    ),
+    RA.sequence(TE.ApplicativePar),
+    TE.map(services => new Map(services.map(s => [s.serviceId, s]))),
+    TE.map(serviceMap =>
+      messages.map(m =>
+        pipe(
+          serviceMap.get(m.sender_service_id),
+          service => ({
+            message: {
+              ...m,
+              organization_name: service.organizationName,
+              service_name: service.serviceName
+            },
+            service
+          }),
+          ({ message, service }) =>
+            message.category?.tag !== "PAYMENT"
+              ? { ...message, category: message.category }
+              : {
+                  ...message,
+                  category: {
+                    rptId: `${service.organizationFiscalCode}${message.category.noticeNumber}`,
+                    tag: TagEnumPayment.PAYMENT
+                  }
+                }
+        )
+      )
+    )
   );
 
 const getMessageStatusLastVersion = (

@@ -12,7 +12,7 @@ export const createTracker = (
   const trackEnrichmentFailure = (
     kind: "SERVICE" | "CONTENT" | "STATUS",
     fiscalCode: FiscalCode,
-    messageId: string,
+    messageId?: string,
     serviceId?: ServiceId
   ) => {
     telemetryClient.trackEvent({

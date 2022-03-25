@@ -17,6 +17,9 @@ export const envConfig: IConfig = {
   REDIS_URL: "aaa" as NonEmptyString,
   SERVICE_CACHE_TTL_DURATION: 10 as NonNegativeInteger,
 
+  FF_TYPE: "none",
+  USE_FALLBACK: false,
+
   NODE_ENV: "production",
   REQ_SERVICE_ID: undefined
 };

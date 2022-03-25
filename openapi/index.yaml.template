@@ -382,7 +382,7 @@ definitions:
   MessageStatusAttributes:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatusAttributes"
   MessageStatusWithAttributes:
-    $ref: "https://raw.githubusercontent.com/pagopa/io-functions-commons/add_message_status_with_attributes_def/openapi/definitions.yaml#/MessageStatusWithAttributes"
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatusWithAttributes"
   MessageStatusReadingChange:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatusReadingChange"
   MessageStatusArchivingChange:

@@ -142,7 +142,13 @@ describe("Upsert Message Status |> Success Results |> Existing Message Status", 
     expect(response.status).toEqual(200);
     const body = (await response.json()) as MessageStatus;
 
-    console.log(body);
+    expect(body).toMatchObject(
+      expect.objectContaining({
+        version: currentStatus.version + 1,
+        is_archived: currentStatus.isArchived,
+        is_read: !currentStatus.isRead
+      })
+    );
 
     const maybeNewStatus = await getMessageStatusList(aMessageId);
     if (O.isNone(maybeNewStatus)) {
@@ -177,7 +183,13 @@ describe("Upsert Message Status |> Success Results |> Existing Message Status", 
     expect(response.status).toEqual(200);
     const body = (await response.json()) as MessageStatus;
 
-    console.log(body);
+    expect(body).toMatchObject(
+      expect.objectContaining({
+        version: currentStatus.version + 1,
+        is_archived: !currentStatus.isArchived,
+        is_read: currentStatus.isRead
+      })
+    );
 
     const maybeNewStatus = await getMessageStatusList(aMessageId);
     if (O.isNone(maybeNewStatus)) {
@@ -212,7 +224,13 @@ describe("Upsert Message Status |> Success Results |> Existing Message Status", 
     expect(response.status).toEqual(200);
     const body = (await response.json()) as MessageStatus;
 
-    console.log(body);
+    expect(body).toMatchObject(
+      expect.objectContaining({
+        version: currentStatus.version + 1,
+        is_archived: !currentStatus.isArchived,
+        is_read: !currentStatus.isRead
+      })
+    );
 
     const maybeNewStatus = await getMessageStatusList(aMessageId);
     if (O.isNone(maybeNewStatus)) {

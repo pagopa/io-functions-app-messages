@@ -62,7 +62,7 @@ const mockMessageStatusModel = ({
   upsert: mockUpsert
 } as any) as MessageStatusModel;
 
-describe("GetMessageHandler", () => {
+describe("UpsertMessageStatus", () => {
   afterEach(() => jest.clearAllMocks());
 
   it("should respond with a new version of message-status when change_type is `reading`", async () => {
@@ -87,7 +87,9 @@ describe("GetMessageHandler", () => {
         })
       );
       expect(result.value).toMatchObject({
-        version: aRetrievedMessageStatus.version + 1
+        version: aRetrievedMessageStatus.version + 1,
+        is_read: true,
+        is_archived: false
       });
     }
   });
@@ -114,7 +116,9 @@ describe("GetMessageHandler", () => {
         })
       );
       expect(result.value).toMatchObject({
-        version: aRetrievedMessageStatus.version + 1
+        version: aRetrievedMessageStatus.version + 1,
+        is_read: false,
+        is_archived: true
       });
     }
   });
@@ -141,13 +145,15 @@ describe("GetMessageHandler", () => {
         })
       );
       expect(result.value).toMatchObject({
-        version: aRetrievedMessageStatus.version + 1
+        version: aRetrievedMessageStatus.version + 1,
+        is_read: true,
+        is_archived: true
       });
     }
   });
 });
 
-describe("GetMessageHandler - Errors", () => {
+describe("UpsertMessageStatus - Errors", () => {
   afterEach(() => jest.clearAllMocks());
 
   it("should respond with IResponseErrorNotFound if no message status was found for messageId", async () => {

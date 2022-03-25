@@ -28,7 +28,7 @@ import {
   MessageStatusModel
 } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { pipe } from "fp-ts/lib/function";
-import { MessageStatus as MessageStatusApi } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatus";
+import { MessageStatusWithAttributes as MessageStatusApi } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusWithAttributes";
 import { Change_typeEnum as ReadingChangeType } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusReadingChange";
 import { Change_typeEnum as ArchivingChangeType } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusArchivingChange";
 import { Change_typeEnum as BulkChangeType } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusBulkChange";
@@ -118,6 +118,8 @@ export const UpsertMessageStatusHandler = (
       )
     ),
     TE.map(res => ({
+      is_archived: res.isArchived,
+      is_read: res.isRead,
       status: res.status,
       updated_at: res.updatedAt,
       version: res.version

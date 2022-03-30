@@ -1,8 +1,13 @@
 import * as T from "fp-ts/lib/Task";
 import * as TE from "fp-ts/lib/TaskEither";
 
-import { mapAsyncIterator } from "@pagopa/io-functions-commons/dist/src/utils/async";
+import {
+  asyncIterableToPageArray,
+  IPage,
+  mapAsyncIterator
+} from "@pagopa/io-functions-commons/dist/src/utils/async";
 import { pipe } from "fp-ts/lib/function";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 
 /**
  * @category model
@@ -39,6 +44,10 @@ export const map: <A, B>(
     fa,
     T.map(_ => mapAsyncIterable2(_, f))
   );
+
+export const mapIterable = <A, B>(
+  f: (a: AsyncIterable<A>) => AsyncIterable<B>
+) => (fa: AsyncIterableTask<A>): AsyncIterableTask<B> => pipe(fa, T.map(f));
 
 export const fromAsyncIterable = <A>(
   a: AsyncIterable<A>
@@ -140,3 +149,18 @@ const reduceIterableArray = <A, B>(
   }
   return p;
 };
+
+/**
+ * Return a TaskEither of a paged result or an Error
+ */
+export const toPageArray = <E, A>(
+  onError: (err: unknown) => E,
+  pageSize: NonNegativeInteger
+) => (fa: AsyncIterableTask<A>): TE.TaskEither<E, IPage<A>> =>
+  pipe(
+    fa,
+    TE.fromTask,
+    TE.chain(_ =>
+      TE.tryCatch(() => asyncIterableToPageArray(_, pageSize), onError)
+    )
+  );

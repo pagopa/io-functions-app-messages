@@ -41,8 +41,7 @@ export class MessageViewExtendedQueryModel extends MessageViewModelBase {
           }
         ],
         query: `SELECT * FROM m WHERE m.fiscalCode = @fiscalCode 
-                AND m.isPending = false
-                AND m.isArchived = @archived
+                AND m.status.archived = @archived
                 AND ((NOT IS_DEFINED(@maximumId)) OR m.id < @maximumId)
                 AND ((NOT IS_DEFINED(@minimumId)) OR m.id > @minimumId)
                 ORDER BY m.fiscalCode, m.id DESC`

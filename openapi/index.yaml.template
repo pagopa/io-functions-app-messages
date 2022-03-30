@@ -153,6 +153,8 @@ paths:
               is_archived: false
         "401":
           description: Unauthorized
+        "403":
+          description: Operation Forbidden
         "404":
           description: No message found for the provided ID.
           schema:

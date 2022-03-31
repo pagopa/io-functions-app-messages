@@ -6,6 +6,7 @@ import * as O from "fp-ts/Option";
 import { pipe } from "fp-ts/lib/function";
 
 import * as MessageCollection from "@pagopa/io-functions-commons/dist/src/models/message";
+import * as MessageViewCollection from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import * as MessageStatusCollection from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import * as ServiceModel from "@pagopa/io-functions-commons/dist/src/models/service";
 
@@ -15,7 +16,7 @@ import {
   createDatabase,
   deleteContainer
 } from "./utils/cosmos";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { debugPort } from "process";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
@@ -24,6 +25,7 @@ import { BlobService } from "azure-storage";
 import { MESSAGE_CONTAINER_NAME } from "../env";
 import { flow } from "fp-ts/lib/function";
 import { toError } from "fp-ts/lib/Either";
+import { getOrElseW } from "fp-ts/lib/Either";
 
 /**
  * Create "messages" collection, with indexing policy
@@ -67,6 +69,50 @@ const createMessageCollection = (
       } as any
     )
   );
+
+/**
+ * Create "messages" collection, with indexing policy
+ *
+ * @param db
+ * @returns
+ */
+const createMessageViewCollection = (
+  db: Database
+): TE.TaskEither<CosmosErrors, Container> =>
+  pipe(
+    createCollection(
+      db,
+      MessageViewCollection.MESSAGE_VIEW_COLLECTION_NAME,
+      "fiscalCode",
+      {
+        indexingMode: "consistent",
+        automatic: true,
+        includedPaths: [
+          {
+            path: "/*"
+          }
+        ],
+        excludedPaths: [
+          {
+            path: '/"_etag"/?'
+          }
+        ],
+        compositeIndexes: [
+          [
+            {
+              path: "/fiscalCode",
+              order: "ascending"
+            },
+            {
+              path: "/id",
+              order: "descending"
+            }
+          ]
+        ]
+      } as any
+    )
+  );
+
 /**
  *
  * @param database
@@ -79,6 +125,8 @@ export const createAllCollections = (
     [
       // messages
       createMessageCollection(database),
+      // messages-view
+      createMessageViewCollection(database),
       // services
       createCollection(
         database,
@@ -197,6 +245,65 @@ export const fillMessages = async (
   )();
 };
 
+/**
+ * Create DB
+ */
+export const fillMessagesView = async (
+  db: Database,
+  messages: ReadonlyArray<MessageCollection.NewMessageWithContent>,
+  messageStatuses: ReadonlyArray<MessageStatusCollection.NewMessageStatus>
+): Promise<void> => {
+  await pipe(
+    db.container(MessageViewCollection.MESSAGE_VIEW_COLLECTION_NAME),
+    TE.of,
+    TE.map(c => new MessageViewCollection.MessageViewModel(c)),
+    TE.chain(model =>
+      pipe(
+        messages,
+        RA.map(m => ({
+          ...m,
+          components: {
+            attachments: {
+              has: false
+            },
+            euCovidCert: {
+              has: m.content.eu_covid_cert != null
+            },
+            legalData: {
+              has: m.content.legal_data != null
+            },
+            payment: {
+              has: m.content.payment_data != null,
+              notice_number: m.content.payment_data?.notice_number
+            }
+          },
+          messageTitle: m.content.subject,
+          status: {
+            archived: messageStatuses.find(ms => ms.messageId === m.id)
+              .isArchived,
+            processing: messageStatuses.find(ms => ms.messageId === m.id)
+              .status,
+            read: messageStatuses.find(ms => ms.messageId === m.id).isRead
+          },
+          version: 0
+        })),
+        RA.map(MessageViewCollection.MessageView.decode),
+        RA.map(
+          getOrElseW(_ => {
+            throw _;
+          })
+        ),
+        RA.map(m => model.create(m)),
+        RA.sequence(TE.ApplicativePar)
+      )
+    ),
+    TE.map(_ => log(`${_.length} MessagesView created`)),
+    TE.mapLeft(_ => {
+      log("Error", _);
+    })
+  )();
+};
+
 export const fillServices = async (
   db: Database,
   services: ReadonlyArray<ServiceModel.NewService>
@@ -270,4 +377,34 @@ export const setMessagesAsArchived = async (
         )
       )
     )
+  )();
+
+export const setMessagesViewAsArchived = async (
+  db: Database,
+  fiscalCode: FiscalCode,
+  messageIds: ReadonlyArray<NonEmptyString>
+) =>
+  pipe(
+    db.container(MessageViewCollection.MESSAGE_VIEW_COLLECTION_NAME),
+    TE.of,
+    TE.map(c => new MessageViewCollection.MessageViewModel(c)),
+    TE.chain(model =>
+      pipe(
+        messageIds,
+        RA.map(id =>
+          pipe(
+            model.find([id, fiscalCode]),
+            TE.filterOrElseW(O.isSome, () => Error(`cannot find id ${id}`)),
+            TE.chainW(m =>
+              model.upsert({
+                ...m.value,
+                status: { ...m.value.status, archived: true }
+              })
+            )
+          )
+        ),
+        RA.sequence(TE.ApplicativeSeq)
+      )
+    ),
+    TE.mapLeft(_ => console.log("Error patching", _))
   )();

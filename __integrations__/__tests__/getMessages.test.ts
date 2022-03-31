@@ -16,8 +16,10 @@ import {
   createCosmosDbAndCollections,
   fillMessages,
   fillMessagesStatus,
+  fillMessagesView,
   fillServices,
-  setMessagesAsArchived
+  setMessagesAsArchived,
+  setMessagesViewAsArchived
 } from "../__mocks__/fixtures";
 
 import {
@@ -40,7 +42,8 @@ import {
   COSMOSDB_KEY,
   COSMOSDB_NAME,
   QueueStorageConnection,
-  MESSAGE_CONTAINER_NAME
+  MESSAGE_CONTAINER_NAME,
+  FF_TYPE
 } from "../env";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
@@ -69,7 +72,7 @@ let database: Database;
 beforeAll(async () => {
   database = await pipe(
     createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
-    TE.getOrElse(() => {
+    TE.getOrElse(e => {
       throw Error("Cannot create db");
     })
   )();
@@ -83,6 +86,7 @@ beforeAll(async () => {
 
   await fillMessages(database, blobService, messagesList);
   await fillMessagesStatus(database, messageStatusList);
+  await fillMessagesView(database, messagesList, messageStatusList);
   await fillServices(database, serviceList);
 
   await waitFunctionToSetup();
@@ -103,34 +107,37 @@ describe("Get Messages |> Middleware errors", () => {
   });
 });
 
-describe("Get Messages |> Success Results, No Enrichment", () => {
-  it.each`
-    fiscalCode                    | expectedItems   | expectedPrev           | expectedNext
-    ${aFiscalCodeWithoutMessages} | ${[]}           | ${undefined}           | ${undefined}
-    ${aFiscalCodeWithMessages}    | ${messagesList} | ${messagesList[0]?.id} | ${messagesList[9]?.id}
-  `(
-    "should return and empty list when user has no messages",
-    async ({ fiscalCode, expectedItems, expectedPrev, expectedNext }) => {
-      const response = await getMessages(fetch, baseUrl)(fiscalCode);
-      expect(response.status).toEqual(200);
+// No Enrichment tests are only valid if FF_TYPE is "none"
+if (FF_TYPE === "none") {
+  describe("Get Messages |> Success Results, No Enrichment", () => {
+    it.each`
+      fiscalCode                    | expectedItems   | expectedPrev           | expectedNext
+      ${aFiscalCodeWithoutMessages} | ${[]}           | ${undefined}           | ${undefined}
+      ${aFiscalCodeWithMessages}    | ${messagesList} | ${messagesList[0]?.id} | ${messagesList[9]?.id}
+    `(
+      "should return and empty list when user has no messages",
+      async ({ fiscalCode, expectedItems, expectedPrev, expectedNext }) => {
+        const response = await getMessages(fetch, baseUrl)(fiscalCode);
+        expect(response.status).toEqual(200);
 
-      const body = (await response.json()) as PaginatedPublicMessagesCollection;
+        const body = (await response.json()) as PaginatedPublicMessagesCollection;
 
-      // strip away undefind properties by stringify/parsing to JSON
-      const expected = JSON.parse(
-        JSON.stringify({
-          items: (expectedItems as ReadonlyArray<RetrievedMessage>).map(
-            retrievedMessageToPublic
-          ),
-          prev: expectedPrev,
-          next: expectedNext
-        })
-      );
+        // strip away undefind properties by stringify/parsing to JSON
+        const expected = JSON.parse(
+          JSON.stringify({
+            items: (expectedItems as ReadonlyArray<RetrievedMessage>).map(
+              retrievedMessageToPublic
+            ),
+            prev: expectedPrev,
+            next: expectedNext
+          })
+        );
 
-      expect(body).toEqual(expected);
-    }
-  );
-});
+        expect(body).toEqual(expected);
+      }
+    );
+  });
+}
 
 describe("Get Messages |> Success Results, With Enrichment", () => {
   it.each`
@@ -155,6 +162,7 @@ describe("Get Messages |> Success Results, With Enrichment", () => {
       expectedNext
     }) => {
       await setMessagesAsArchived(database, messagesArchived);
+      await setMessagesViewAsArchived(database, fiscalCode, messagesArchived);
 
       const response = await getMessagesWithEnrichment(fetch, baseUrl)(
         fiscalCode,

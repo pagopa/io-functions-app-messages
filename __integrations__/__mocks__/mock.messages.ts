@@ -14,10 +14,7 @@ import { RetrievedMessage } from "@pagopa/io-functions-commons/dist/src/models/m
 import { pipe } from "fp-ts/lib/function";
 
 import * as RA from "fp-ts/ReadonlyArray";
-import {
-  MessageStatus,
-  NewMessageStatus
-} from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import { NewMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
 
 export const aFiscalCodeWithoutMessages = "FFLFRC74E04B157I" as FiscalCode;
@@ -92,6 +89,8 @@ export const mockEnrichMessage = (
 
   return {
     ...retrievedMessageToPublic((message as any) as RetrievedMessage),
+    has_attachments: false,
+    time_to_live: message.timeToLiveSeconds,
     message_title: message.content.subject,
     service_name: service.serviceName,
     organization_name: service.organizationName,

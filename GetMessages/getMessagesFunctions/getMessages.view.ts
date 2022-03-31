@@ -56,9 +56,9 @@ export const getMessagesFromView = (
         toEnrichedMessageWithContent
       )
     })),
-    TE.mapLeft(_err => {
+    TE.mapLeft(err => {
       context.log.error(
-        "getMessagesFromView|Error retrieving data from cosmos"
+        `getMessagesFromView|Error retrieving data from cosmos|${err.message}`
       );
       return new Error(`Error retrieving data from cosmos`);
     })
@@ -67,7 +67,7 @@ export const getMessagesFromView = (
 /**
  * Map `RetrievedMessageView` to `EnrichedMessageWithContent`
  */
-const toEnrichedMessageWithContent = (
+export const toEnrichedMessageWithContent = (
   item: RetrievedMessageView
 ): EnrichedMessageWithContent => ({
   // eslint-disable-next-line @typescript-eslint/no-use-before-define

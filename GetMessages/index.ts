@@ -18,10 +18,12 @@ import {
   SERVICE_COLLECTION_NAME
 } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { createBlobService } from "azure-storage";
+import { MESSAGE_VIEW_COLLECTION_NAME } from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import { REDIS_CLIENT } from "../utils/redis";
+import { MessageViewExtendedQueryModel } from "../model/message_view_query";
 import { GetMessages } from "./handler";
 import { createGetMessagesFunctionSelection } from "./getMessagesFunctions/getMessages.selector";
 
@@ -43,12 +45,17 @@ const serviceModel = new ServiceModel(
   cosmosdbInstance.container(SERVICE_COLLECTION_NAME)
 );
 
+const messageViewModel = new MessageViewExtendedQueryModel(
+  cosmosdbInstance.container(MESSAGE_VIEW_COLLECTION_NAME)
+);
+
 const blobService = createBlobService(config.QueueStorageConnection);
 
 const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
   config.USE_FALLBACK,
-  "none",
-  [messageModel, messageStatusModel, blobService]
+  config.FF_TYPE,
+  [messageModel, messageStatusModel, blobService],
+  [messageViewModel]
 );
 
 app.get(

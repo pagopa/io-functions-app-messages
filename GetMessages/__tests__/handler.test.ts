@@ -39,6 +39,9 @@ import { MessageStatusExtendedQueryModel } from "../../model/message_status_quer
 import { pipe } from "fp-ts/lib/function";
 import * as redis from "../../utils/redis_storage";
 import { createGetMessagesFunctionSelection } from "../getMessagesFunctions/getMessages.selector";
+import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
+import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/models/message_view";
+import { toEnrichedMessageWithContent } from "../getMessagesFunctions/getMessages.view";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -82,6 +85,42 @@ const aRetrievedPendingMessageWithoutContent: RetrievedMessageWithoutContent = {
   kind: "IRetrievedMessageWithoutContent"
 };
 
+const aRetrievedMessageView: RetrievedMessageView = pipe(
+  RetrievedMessageView.decode({
+    ...aCosmosResourceMetadata,
+    components: {
+      attachments: {
+        has: false
+      },
+      euCovidCert: {
+        has: false
+      },
+      legalData: {
+        has: false
+      },
+      payment: {
+        has: true,
+        notice_number: "177777777777777777"
+      }
+    },
+    createdAt: "2021-05-09T14:55:52.206Z",
+    fiscalCode: aFiscalCode,
+    id: "aMessageId",
+    messageTitle: "reprehenderit unde rerum ea officiis",
+    senderServiceId: aRetrievedService.serviceId,
+    status: {
+      archived: false,
+      processing: "PROCESSED",
+      read: false
+    },
+    version: 0,
+    timeToLive: 3600
+  }),
+  E.getOrElseW(() => {
+    throw Error("wrong RetrievedMessageView");
+  })
+);
+
 //----------------------------
 // Mocks
 //----------------------------
@@ -116,8 +155,11 @@ const errorMessageModelMock = ({
   findMessages: jest.fn(() => TE.left(toCosmosErrorResponse("Not found")))
 } as unknown) as MessageModel;
 
+const mockFindLastVersionByModelId = jest.fn(() =>
+  TE.of<CosmosErrors, O.Option<RetrievedService>>(O.some(aRetrievedService))
+);
 const serviceModelMock = ({
-  findLastVersionByModelId: jest.fn(() => TE.of(O.some(aRetrievedService)))
+  findLastVersionByModelId: mockFindLastVersionByModelId
 } as unknown) as ServiceModel;
 
 const functionsContextMock = ({
@@ -129,28 +171,30 @@ const functionsContextMock = ({
 /**
  * Build a service list iterator
  */
-async function* buildMessageStatusIterator(
-  list: ReadonlyArray<unknown>,
+async function* buildIterator<A, I extends unknown, O extends unknown>(
+  codec: t.Type<A, I, O>,
+  list: ReadonlyArray<O>,
+  onNewPage?: (i: number) => void,
   errorToThrow?: CosmosErrors
-): AsyncIterable<ReadonlyArray<t.Validation<RetrievedMessageStatus>>> {
+): AsyncIterable<ReadonlyArray<t.Validation<A>>> {
   // eslint-disable-next-line functional/no-let
 
   if (errorToThrow) {
     throw errorToThrow;
   }
 
-  for (const p of pipe(
-    list,
-    RA.map(RetrievedMessageStatus.decode),
-    RA.chunksOf(2)
-  )) {
+  let i = 0;
+  for (const p of pipe(list, RA.map(codec.decode), RA.chunksOf(2))) {
     yield p;
+    if (onNewPage) onNewPage(i);
+    i++;
   }
 }
 
 // MessageStatus Mocks
 const mockFindAllVersionsByModelIdIn = jest.fn((ids: string[]) => {
-  return buildMessageStatusIterator(
+  return buildIterator(
+    RetrievedMessageStatus,
     ids.map(id => ({ ...aRetrievedMessageStatus, messageId: id }))
   );
 });
@@ -159,16 +203,27 @@ const messageStatusModelMock = ({
   findAllVersionsByModelIdIn: mockFindAllVersionsByModelIdIn
 } as unknown) as MessageStatusExtendedQueryModel;
 
-const setWithExpirationTaskMock = jest
-  .fn()
-  .mockImplementation(() => TE.of(true));
+// MessageView Mocks
+const mockQueryPage = jest.fn(_ => {
+  return buildIterator(
+    RetrievedMessageView,
+    Array.from({ length: 1 }, (_, id) => ({
+      ...aRetrievedMessageView
+    }))
+  );
+});
+const messageViewModelMock = ({
+  queryPage: mockQueryPage
+} as unknown) as MessageViewExtendedQueryModel;
+
+const setWithExpirationTaskMock = jest.fn(() => TE.of<Error, true>(true));
 jest
   .spyOn(redis, "setWithExpirationTask")
   .mockImplementation(setWithExpirationTaskMock);
 
-const getTaskMock = jest
-  .fn()
-  .mockImplementation(() => TE.of(O.some(JSON.stringify(aRetrievedService))));
+const getTaskMock = jest.fn(() =>
+  TE.of(O.some(JSON.stringify(aRetrievedService)))
+);
 jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
 
 const aRedisClient = {} as any;
@@ -178,7 +233,7 @@ const aServiceCacheTtl = 10 as NonNegativeInteger;
 // Tests
 // ---------------------
 
-describe("GetMessagesHandler |> No Enrichment", () => {
+describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
   const aSimpleList = [
     aRetrievedMessageWithoutContent,
     aRetrievedMessageWithoutContent,
@@ -195,7 +250,8 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [errorMessageModelMock, messageStatusModelMock, blobServiceMock]
+      [errorMessageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -226,7 +282,8 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -261,7 +318,8 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -301,7 +359,8 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -347,7 +406,8 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -392,7 +452,8 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -442,7 +503,8 @@ describe("GetMessagesHandler |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -482,7 +544,7 @@ describe("GetMessagesHandler |> No Enrichment", () => {
   });
 });
 
-describe("GetMessagesHandler |> Enrichment", () => {
+describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
   const aSimpleList = [
     {
       ...aRetrievedMessageWithoutContent,
@@ -520,7 +582,8 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -576,7 +639,8 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -617,7 +681,8 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const messageModelMock = getMessageModelMock(messageIterator);
 
     mockFindAllVersionsByModelIdIn.mockImplementationOnce((ids: string[]) => {
-      return buildMessageStatusIterator(
+      return buildIterator(
+        RetrievedMessageStatus,
         ids.map((id, index) => ({
           ...aRetrievedMessageStatus,
           messageId: id,
@@ -629,7 +694,8 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -675,15 +741,9 @@ describe("GetMessagesHandler |> Enrichment", () => {
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
-  it("should respond with internal error when messages cannot be enriched with content and service info", async () => {
+  it("should respond with internal error when messages cannot be enriched with content", async () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
-
-    serviceModelMock.findLastVersionByModelId = jest
-      .fn()
-      .mockImplementationOnce(() =>
-        TE.left(toCosmosErrorResponse("Any error message"))
-      );
 
     messageModelMock.getContentFromBlob = jest
       .fn()
@@ -692,7 +752,8 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -727,12 +788,14 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const messageModelMock = getMessageModelMock(messageIterator);
 
     mockFindAllVersionsByModelIdIn.mockImplementationOnce((ids: string[]) => {
-      return buildMessageStatusIterator(
+      return buildIterator(
+        RetrievedMessageStatus,
         ids.map((id, index) => ({
           ...aRetrievedMessageStatus,
           messageId: id,
           isArchived: index === 0
         })),
+        undefined,
         toCosmosErrorResponse("Any message-status error")
       );
     });
@@ -740,7 +803,8 @@ describe("GetMessagesHandler |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
-      [messageModelMock, messageStatusModelMock, blobServiceMock]
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -767,6 +831,204 @@ describe("GetMessagesHandler |> Enrichment", () => {
     expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
       `Cannot enrich message status | Error: Error retrieving data from cosmos.`
+    );
+  });
+});
+
+describe("GetMessagesHandler |> Message View", () => {
+  const aSimpleList = [
+    {
+      ...aRetrievedMessageView,
+      id: "aMessageId_5" as NonEmptyString
+    },
+    {
+      ...aRetrievedMessageView,
+      id: "aMessageId_4" as NonEmptyString
+    },
+    {
+      ...aRetrievedMessageView,
+      id: "aMessageId_3" as NonEmptyString
+    },
+    {
+      ...aRetrievedMessageView,
+      id: "aMessageId_2" as NonEmptyString
+    },
+    {
+      ...aRetrievedMessageView,
+      id: "aMessageId_1" as NonEmptyString
+    }
+  ];
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it("should respond with a page of messages", async () => {
+    let iteratorCalls = 0;
+
+    mockQueryPage.mockImplementationOnce(_ => {
+      return buildIterator(RetrievedMessageView, aSimpleList, _ => {
+        iteratorCalls++;
+      });
+    });
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "prod",
+      [
+        {} as MessageModel,
+        {} as MessageStatusExtendedQueryModel,
+        {} as BlobService
+      ],
+      [messageViewModelMock]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.none,
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+
+    const expectedEnrichedMessage = {
+      ...toEnrichedMessageWithContent(aSimpleList[0]),
+      category: {
+        rptId: `${aRetrievedService.organizationFiscalCode}177777777777777777`,
+        tag: "PAYMENT"
+      },
+      organization_name: aRetrievedService.organizationName,
+      service_name: aRetrievedService.serviceName
+    };
+
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        items: [
+          { ...expectedEnrichedMessage, id: aSimpleList[0].id },
+          { ...expectedEnrichedMessage, id: aSimpleList[1].id }
+        ],
+        prev: aSimpleList[0].id,
+        next: aSimpleList[1].id
+      });
+    }
+
+    expect(iteratorCalls).toEqual(1);
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should respond with no messages when archived is requested", async () => {
+    let iteratorCalls = 0;
+
+    mockQueryPage.mockImplementationOnce(_ => {
+      return buildIterator(RetrievedMessageView, [], _ => {
+        iteratorCalls++;
+      });
+    });
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "prod",
+      [
+        {} as MessageModel,
+        {} as MessageStatusExtendedQueryModel,
+        {} as BlobService
+      ],
+      [messageViewModelMock]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.some(true),
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        items: [],
+        prev: undefined,
+        next: undefined
+      });
+    }
+
+    expect(iteratorCalls).toEqual(0);
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should respond with internal error when messages cannot be enriched with service info", async () => {
+    let iteratorCalls = 0;
+
+    mockQueryPage.mockImplementationOnce(_ => {
+      return buildIterator(RetrievedMessageView, aSimpleList, _ => {
+        iteratorCalls++;
+      });
+    });
+
+    mockFindLastVersionByModelId.mockImplementationOnce(() =>
+      TE.left(toCosmosErrorResponse("Any error message"))
+    );
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "prod",
+      [
+        {} as MessageModel,
+        {} as MessageStatusExtendedQueryModel,
+        {} as BlobService
+      ],
+      [messageViewModelMock]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.some(true),
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseErrorInternal");
+
+    expect(iteratorCalls).toEqual(1);
+    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
+    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+      `Cannot enrich service data | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aSimpleList[0].senderServiceId}`
     );
   });
 });

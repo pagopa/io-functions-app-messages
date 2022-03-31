@@ -70,7 +70,15 @@ export const getMessagesFromFallback = (
     messageModel.findMessages(fiscalCode, pageSize, maximumId, minimumId),
     TE.map(i => mapAsyncIterator(i, A.rights)),
     TE.map(i => mapAsyncIterator(i, A.filter(RetrievedNotPendingMessage.is))),
-    TE.map(i => mapAsyncIterator(i, A.map(retrievedMessageToPublic))),
+    TE.map(i =>
+      mapAsyncIterator(
+        i,
+        A.map(m => ({
+          ...retrievedMessageToPublic(m),
+          time_to_live: m.timeToLiveSeconds
+        }))
+      )
+    ),
     TE.chainW(i =>
       // check whether we should enrich messages or not
       pipe(

@@ -109,7 +109,7 @@ stages:
             sleep 30s
             docker exec integrations___testagent_1 yarn test
             #           ^^^ FIXME: reference container using a less arbitrary name
-            displayName: 'Execute tests'
+          displayName: 'Execute tests'
 
       - job: integration_tests_ff_PROD
         steps:

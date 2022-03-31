@@ -44,7 +44,7 @@ export class MessageViewExtendedQueryModel extends MessageViewModelBase {
                 AND m.status.archived = @archived
                 AND ((NOT IS_DEFINED(@maximumId)) OR m.id < @maximumId)
                 AND ((NOT IS_DEFINED(@minimumId)) OR m.id > @minimumId)
-                ORDER BY m.fiscalCode, m.id DESC`
+                ORDER BY m.fiscalCode, m.id DESC, m.status.archived`
       },
       {
         maxItemCount: pageSize,

@@ -106,6 +106,10 @@ const createMessageViewCollection = (
             {
               path: "/id",
               order: "descending"
+            },
+            {
+              path: "/status/archived",
+              order: "ascending"
             }
           ]
         ]

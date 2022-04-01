@@ -253,6 +253,8 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [errorMessageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -285,6 +287,8 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -321,6 +325,8 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -362,6 +368,8 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -409,6 +417,8 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -455,6 +465,8 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -506,6 +518,8 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -585,6 +599,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -643,6 +659,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -698,6 +716,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -757,6 +777,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -808,6 +830,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
+      [],
+      "XYZ" as NonEmptyString,
       [messageModelMock, messageStatusModelMock, blobServiceMock],
       [messageViewModelMock]
     );
@@ -864,6 +888,19 @@ describe("GetMessagesHandler |> Message View", () => {
     }
   ];
 
+  const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+    false,
+    "prod",
+    [],
+    "XYZ" as NonEmptyString,
+    [
+      {} as MessageModel,
+      {} as MessageStatusExtendedQueryModel,
+      {} as BlobService
+    ],
+    [messageViewModelMock]
+  );
+
   beforeEach(() => jest.clearAllMocks());
 
   it("should respond with a page of messages", async () => {
@@ -876,17 +913,6 @@ describe("GetMessagesHandler |> Message View", () => {
         })
       );
     });
-
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "prod",
-      [
-        {} as MessageModel,
-        {} as MessageStatusExtendedQueryModel,
-        {} as BlobService
-      ],
-      [messageViewModelMock]
-    );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
@@ -945,17 +971,6 @@ describe("GetMessagesHandler |> Message View", () => {
       );
     });
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "prod",
-      [
-        {} as MessageModel,
-        {} as MessageStatusExtendedQueryModel,
-        {} as BlobService
-      ],
-      [messageViewModelMock]
-    );
-
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
@@ -1004,17 +1019,6 @@ describe("GetMessagesHandler |> Message View", () => {
       TE.left(toCosmosErrorResponse("Any error message"))
     );
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "prod",
-      [
-        {} as MessageModel,
-        {} as MessageStatusExtendedQueryModel,
-        {} as BlobService
-      ],
-      [messageViewModelMock]
-    );
-
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
@@ -1046,17 +1050,6 @@ describe("GetMessagesHandler |> Message View", () => {
   it("should respond with query error if it cannot build queryPage iterator", async () => {
     mockQueryPage.mockImplementationOnce(_ =>
       TE.left(toCosmosErrorResponse("Cosmos Error"))
-    );
-
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "prod",
-      [
-        {} as MessageModel,
-        {} as MessageStatusExtendedQueryModel,
-        {} as BlobService
-      ],
-      [messageViewModelMock]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1092,17 +1085,6 @@ describe("GetMessagesHandler |> Message View", () => {
         )
       );
     });
-
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "prod",
-      [
-        {} as MessageModel,
-        {} as MessageStatusExtendedQueryModel,
-        {} as BlobService
-      ],
-      [messageViewModelMock]
-    );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,

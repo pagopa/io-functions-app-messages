@@ -609,10 +609,10 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.0.3.tgz#13a12ae9e05c2a782f7b5e84c3cbfda4225eaf80"
   integrity sha512-puWxACExDe9nxbBB3lOymQFrLYml2dVOrd7USiVRnSbgXE+KwBu+HxFvxrzfqsiSda9IWsXJG1ef7C1O2/GmKQ==
 
-"@pagopa/io-functions-commons@^23.8.1":
-  version "23.8.1"
-  resolved "https://registry.yarnpkg.com/@pagopa/io-functions-commons/-/io-functions-commons-23.8.1.tgz#d9e85e132f974b99eb4cfebaba8c9527c7d6dae1"
-  integrity sha512-eo2X2AO5e3hoPUEeJJypI8QAuJPIB7UOcovzCGRWzFr3VNkjZEttcqgh+1GAvczlmmNjkooSbNI8Eh7RgmGOPw==
+"@pagopa/io-functions-commons@^23.9.0":
+  version "23.9.0"
+  resolved "https://registry.yarnpkg.com/@pagopa/io-functions-commons/-/io-functions-commons-23.9.0.tgz#9d6e083333e233fef2fde3935b1a0c56986c2a7a"
+  integrity sha512-nna/tCV8q/eYv981si39CcecGXNBV1W7gw1TUPuzRDxH4G7eqnPIXqSdFRTrPhspi3iDf2hygdYFI6hHb+rroA==
   dependencies:
     "@azure/cosmos" "^3.15.1"
     "@pagopa/ts-commons" "^10.0.1"

@@ -610,6 +610,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const expectedEnrichedMessage = {
       ...retrievedMessageToPublic(aSimpleList[0]),
       category: { tag: TagEnumBase.GENERIC },
+      has_attachments: false,
       message_title: "a subject",
       is_archived: false,
       is_read: false,
@@ -722,6 +723,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const expectedEnrichedMessage = {
       ...retrievedMessageToPublic(aSimpleList[0]),
       category: { tag: TagEnumBase.GENERIC },
+      has_attachments: false,
       message_title: "a subject",
       is_archived: true,
       is_read: false,

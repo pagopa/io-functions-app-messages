@@ -13,6 +13,7 @@ import {
   Components,
   RetrievedMessageView
 } from "@pagopa/io-functions-commons/dist/src/models/message_view";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import * as AI from "../../utils/AsyncIterableTask";
 
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
@@ -96,7 +97,7 @@ const toCategory = (itemComponents: Components): InternalMessageCategory =>
         // Ignore ts error since we've already checked payment.has to be true
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        noticeNumber: itemComponents.payment.notice_number,
+        noticeNumber: itemComponents.payment.notice_number as NonEmptyString,
         tag: "PAYMENT"
       }
     : { tag: TagEnum.GENERIC };

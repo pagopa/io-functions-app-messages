@@ -56,7 +56,8 @@ const aPublicExtendedMessage: CreatedMessageWithoutContent = {
   created_at: aDate,
   fiscal_code: aNewMessageWithoutContent.fiscalCode,
   id: "A_MESSAGE_ID",
-  sender_service_id: aNewMessageWithoutContent.senderServiceId
+  sender_service_id: aNewMessageWithoutContent.senderServiceId,
+  time_to_live: 3600 as TimeToLiveSeconds
 };
 
 const aPublicExtendedMessageResponse: MessageResponseWithoutContent = {

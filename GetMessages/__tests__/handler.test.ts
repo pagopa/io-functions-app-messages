@@ -175,7 +175,7 @@ async function* buildIterator<A, I extends unknown, O extends unknown>(
   codec: t.Type<A, I, O>,
   list: ReadonlyArray<O>,
   onNewPage?: (i: number) => void,
-  errorToThrow?: CosmosErrors
+  errorToThrow?: CosmosErrors | Error
 ): AsyncIterable<ReadonlyArray<t.Validation<A>>> {
   // eslint-disable-next-line functional/no-let
 
@@ -205,11 +205,14 @@ const messageStatusModelMock = ({
 
 // MessageView Mocks
 const mockQueryPage = jest.fn(_ => {
-  return buildIterator(
-    RetrievedMessageView,
-    Array.from({ length: 1 }, (_, id) => ({
-      ...aRetrievedMessageView
-    }))
+  return TE.of<
+    CosmosErrors,
+    AsyncIterable<ReadonlyArray<t.Validation<RetrievedMessageView>>>
+  >(
+    buildIterator(
+      RetrievedMessageView,
+      Array.from({ length: 1 }, _ => aRetrievedMessageView)
+    )
   );
 });
 const messageViewModelMock = ({
@@ -867,9 +870,11 @@ describe("GetMessagesHandler |> Message View", () => {
     let iteratorCalls = 0;
 
     mockQueryPage.mockImplementationOnce(_ => {
-      return buildIterator(RetrievedMessageView, aSimpleList, _ => {
-        iteratorCalls++;
-      });
+      return TE.of(
+        buildIterator(RetrievedMessageView, aSimpleList, _ => {
+          iteratorCalls++;
+        })
+      );
     });
 
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
@@ -933,9 +938,11 @@ describe("GetMessagesHandler |> Message View", () => {
     let iteratorCalls = 0;
 
     mockQueryPage.mockImplementationOnce(_ => {
-      return buildIterator(RetrievedMessageView, [], _ => {
-        iteratorCalls++;
-      });
+      return TE.of(
+        buildIterator(RetrievedMessageView, [], _ => {
+          iteratorCalls++;
+        })
+      );
     });
 
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
@@ -986,9 +993,11 @@ describe("GetMessagesHandler |> Message View", () => {
     let iteratorCalls = 0;
 
     mockQueryPage.mockImplementationOnce(_ => {
-      return buildIterator(RetrievedMessageView, aSimpleList, _ => {
-        iteratorCalls++;
-      });
+      return TE.of(
+        buildIterator(RetrievedMessageView, aSimpleList, _ => {
+          iteratorCalls++;
+        })
+      );
     });
 
     mockFindLastVersionByModelId.mockImplementationOnce(() =>
@@ -1031,6 +1040,89 @@ describe("GetMessagesHandler |> Message View", () => {
     expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
       `Cannot enrich service data | Error: COSMOS_ERROR_RESPONSE, ServiceId=${aSimpleList[0].senderServiceId}`
+    );
+  });
+
+  it("should respond with query error if it cannot build queryPage iterator", async () => {
+    mockQueryPage.mockImplementationOnce(_ =>
+      TE.left(toCosmosErrorResponse("Cosmos Error"))
+    );
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "prod",
+      [
+        {} as MessageModel,
+        {} as MessageStatusExtendedQueryModel,
+        {} as BlobService
+      ],
+      [messageViewModelMock]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.none,
+      O.none,
+      O.none,
+      O.none,
+      O.none
+    );
+    expect(result.kind).toBe("IResponseErrorQuery");
+    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+      "getMessagesFromView|Error building queryPage iterator"
+    );
+  });
+
+  it("should respond with query error if it cannot retrieve messages", async () => {
+    mockQueryPage.mockImplementationOnce(_ => {
+      return TE.of(
+        buildIterator(
+          RetrievedMessageView,
+          aSimpleList,
+          _ => {},
+          Error("IterationError")
+        )
+      );
+    });
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "prod",
+      [
+        {} as MessageModel,
+        {} as MessageStatusExtendedQueryModel,
+        {} as BlobService
+      ],
+      [messageViewModelMock]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.none,
+      O.none,
+      O.none,
+      O.none,
+      O.none
+    );
+    expect(result.kind).toBe("IResponseErrorQuery");
+    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
+      "getMessagesFromView|Error retrieving page data from cosmos|IterationError"
     );
   });
 });

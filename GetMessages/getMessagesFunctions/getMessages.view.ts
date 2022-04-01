@@ -1,5 +1,4 @@
-import { pipe } from "fp-ts/lib/function";
-import * as E from "fp-ts/lib/Either";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 
@@ -8,7 +7,10 @@ import { flattenAsyncIterable } from "@pagopa/io-functions-commons/dist/src/util
 import { defaultPageSize } from "@pagopa/io-functions-commons/dist/src/models/message";
 
 import { toPageResults } from "@pagopa/io-functions-commons/dist/src/utils/paging";
-import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import {
+  CosmosErrors,
+  toCosmosErrorResponse
+} from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import {
   Components,
   RetrievedMessageView
@@ -43,26 +45,40 @@ export const getMessagesFromView = (
       minimumId,
       pageSize
     ),
-    AI.fromAsyncIterable,
-    AI.map(RA.rights),
-    AI.mapIterable(flattenAsyncIterable),
-    AI.toPageArray(E.toError, pageSize),
-    TE.map(({ hasMoreResults, results }) =>
-      toPageResults(results, hasMoreResults)
-    ),
-    TE.map(paginatedItems => ({
-      ...paginatedItems,
-      items: (paginatedItems.items as ReadonlyArray<RetrievedMessageView>).map(
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        toEnrichedMessageWithContent
-      )
-    })),
     TE.mapLeft(err => {
       context.log.error(
-        `getMessagesFromView|Error retrieving data from cosmos|${err.message}`
+        `getMessagesFromView|Error building queryPage iterator`
       );
-      return new Error(`Error retrieving data from cosmos`);
-    })
+
+      return err;
+    }),
+    TE.chain(
+      flow(
+        AI.fromAsyncIterable,
+        AI.map(RA.rights),
+        AI.mapIterable(flattenAsyncIterable),
+        AI.toPageArray(toCosmosErrorResponse, pageSize),
+        TE.map(({ hasMoreResults, results }) =>
+          toPageResults(results, hasMoreResults)
+        ),
+        TE.map(paginatedItems => ({
+          ...paginatedItems,
+          items: (paginatedItems.items as ReadonlyArray<
+            RetrievedMessageView
+          >).map(
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define
+            toEnrichedMessageWithContent
+          )
+        })),
+        TE.mapLeft(err => {
+          context.log.error(
+            `getMessagesFromView|Error retrieving page data from cosmos|${err.error.message}`
+          );
+
+          return err;
+        })
+      )
+    )
   );
 
 /**

@@ -19,6 +19,8 @@ export const envConfig: IConfig = {
 
   FF_TYPE: "none",
   USE_FALLBACK: false,
+  FF_BETA_TESTER_LIST: [],
+  FF_CANARY_USERS_REGEX: "XYZ" as NonEmptyString,
 
   NODE_ENV: "production",
   REQ_SERVICE_ID: undefined

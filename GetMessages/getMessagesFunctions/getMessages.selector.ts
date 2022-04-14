@@ -6,7 +6,9 @@ import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmos
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 
-import { FeatureFlatType } from "../../utils/config";
+import { FeatureFlagType } from "../../utils/config";
+import { toFiscalCodeHash } from "../../utils/fiscalCodeHash";
+
 import { getMessagesFromFallback } from "./getMessages.fallback";
 import { EnrichedMessageWithContent } from "./models";
 import { getMessagesFromView } from "./getMessages.view";
@@ -49,7 +51,7 @@ export type IGetMessagesFunction = ({
 // --------------------------------
 
 export interface ISelectionParameters {
-  readonly fiscalCode: string;
+  readonly fiscalCode: FiscalCode;
 }
 
 export interface IGetMessagesFunctionSelector {
@@ -58,27 +60,50 @@ export interface IGetMessagesFunctionSelector {
 
 export const createGetMessagesFunctionSelection = (
   switchToFallback: boolean,
-  featureFlagType: FeatureFlatType,
+  featureFlagType: FeatureFlagType,
+  betaTesterUsers: ReadonlyArray<NonEmptyString>,
+  canaryTestUserRegex: NonEmptyString,
   fallbackSetup: Parameters<typeof getMessagesFromFallback>,
   viewSetup: Parameters<typeof getMessagesFromView>
+  // eslint-disable-next-line max-params
 ): IGetMessagesFunctionSelector => ({
-  select: (_params: ISelectionParameters): IGetMessagesFunction => {
+  select: (params: ISelectionParameters): IGetMessagesFunction => {
     if (switchToFallback) {
       return getMessagesFromFallback(...fallbackSetup);
     } else {
-      // TODO
-      // check fiscal code from beta tester, if "beta"
-      // check fiscal code pattern, if "canary"
-      // always return new function, if "prod"
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      const isCanaryTestUser = getIsUserACanaryTestUser(canaryTestUserRegex);
+
       switch (featureFlagType) {
+        case "none":
+          return getMessagesFromFallback(...fallbackSetup);
+        case "beta":
+          return betaTesterUsers.includes(toFiscalCodeHash(params.fiscalCode))
+            ? getMessagesFromView(...viewSetup)
+            : getMessagesFromFallback(...fallbackSetup);
+        case "canary":
+          return isCanaryTestUser(toFiscalCodeHash(params.fiscalCode)) ||
+            betaTesterUsers.includes(toFiscalCodeHash(params.fiscalCode))
+            ? getMessagesFromView(...viewSetup)
+            : getMessagesFromFallback(...fallbackSetup);
         case "prod":
           return getMessagesFromView(...viewSetup);
-        case "none":
-        case "beta":
-        case "canary":
         default:
           return getMessagesFromFallback(...fallbackSetup);
       }
     }
   }
 });
+
+/**
+ *
+ * @param regex The regex to use
+ * @returns
+ */
+export const getIsUserACanaryTestUser = (
+  regex: string
+): ((sha: NonEmptyString) => boolean) => {
+  const regExp = new RegExp(regex);
+
+  return (sha: NonEmptyString): boolean => regExp.test(sha);
+};

@@ -1,4 +1,5 @@
 import { Context } from "@azure/functions";
+import { createBlobService } from "azure-storage";
 
 import * as express from "express";
 
@@ -17,7 +18,6 @@ import {
   ServiceModel,
   SERVICE_COLLECTION_NAME
 } from "@pagopa/io-functions-commons/dist/src/models/service";
-import { createBlobService } from "azure-storage";
 import { MESSAGE_VIEW_COLLECTION_NAME } from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
@@ -54,6 +54,8 @@ const blobService = createBlobService(config.QueueStorageConnection);
 const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
   config.USE_FALLBACK,
   config.FF_TYPE,
+  config.FF_BETA_TESTER_LIST,
+  config.FF_CANARY_USERS_REGEX,
   [messageModel, messageStatusModel, blobService],
   [messageViewModel]
 );

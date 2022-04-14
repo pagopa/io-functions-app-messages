@@ -19,6 +19,7 @@ import {
 } from "@pagopa/ts-commons/lib/numbers";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 import { BooleanFromString } from "@pagopa/ts-commons/lib/booleans";
+import { CommaSeparatedListOf } from "./types";
 
 // exclude a specific value from a type
 // as strict equality is performed, allowed input types are constrained to be values not references (object, arrays, etc)
@@ -64,13 +65,13 @@ export const RedisParams = t.intersection([
 ]);
 export type RedisParams = t.TypeOf<typeof RedisParams>;
 
-export const FeatureFlatType = t.union([
+export const FeatureFlagType = t.union([
   t.literal("none"),
   t.literal("beta"),
   t.literal("canary"),
   t.literal("prod")
 ]);
-export type FeatureFlatType = t.TypeOf<typeof FeatureFlatType>;
+export type FeatureFlagType = t.TypeOf<typeof FeatureFlagType>;
 
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
@@ -87,8 +88,12 @@ export const IConfig = t.intersection([
 
     SERVICE_CACHE_TTL_DURATION: NonNegativeInteger,
 
-    FF_TYPE: withDefault(t.string, "none").pipe(FeatureFlatType),
+    FF_TYPE: withDefault(t.string, "none").pipe(FeatureFlagType),
     USE_FALLBACK: withDefault(t.string, "false").pipe(BooleanFromString),
+    FF_BETA_TESTER_LIST: withDefault(t.string, "").pipe(
+      CommaSeparatedListOf(NonEmptyString)
+    ),
+    FF_CANARY_USERS_REGEX: withDefault(t.string, "XYZ").pipe(NonEmptyString),
 
     isProduction: t.boolean
     /* eslint-enable sort-keys */

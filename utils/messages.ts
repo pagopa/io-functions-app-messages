@@ -209,6 +209,7 @@ export const enrichContentData = (
       TE.map(({ content }) => ({
         ...message,
         category: mapMessageCategory(message, content),
+        has_attachments: content.legal_data?.has_attachment ?? false,
         id: message.id as NonEmptyString,
         message_title: content.subject
       }))

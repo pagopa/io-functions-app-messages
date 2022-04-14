@@ -9,6 +9,7 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { FeatureFlatType } from "../../utils/config";
 import { getMessagesFromFallback } from "./getMessages.fallback";
 import { EnrichedMessageWithContent } from "./models";
+import { getMessagesFromView } from "./getMessages.view";
 
 // --------------------------------
 // GetMessages Functions Interface
@@ -20,8 +21,8 @@ interface IGetMessagesParams {
   readonly pageSize: NonNegativeInteger;
   readonly shouldEnrichResultData: boolean;
   readonly shouldGetArchivedMessages: boolean;
-  readonly maximumId: NonEmptyString;
-  readonly minimumId: NonEmptyString;
+  readonly maximumId?: NonEmptyString;
+  readonly minimumId?: NonEmptyString;
 }
 
 export interface IPageResult<T> {
@@ -58,7 +59,8 @@ export interface IGetMessagesFunctionSelector {
 export const createGetMessagesFunctionSelection = (
   switchToFallback: boolean,
   featureFlagType: FeatureFlatType,
-  fallbackSetup: Parameters<typeof getMessagesFromFallback>
+  fallbackSetup: Parameters<typeof getMessagesFromFallback>,
+  viewSetup: Parameters<typeof getMessagesFromView>
 ): IGetMessagesFunctionSelector => ({
   select: (_params: ISelectionParameters): IGetMessagesFunction => {
     if (switchToFallback) {
@@ -69,10 +71,11 @@ export const createGetMessagesFunctionSelection = (
       // check fiscal code pattern, if "canary"
       // always return new function, if "prod"
       switch (featureFlagType) {
+        case "prod":
+          return getMessagesFromView(...viewSetup);
         case "none":
         case "beta":
         case "canary":
-        case "prod":
         default:
           return getMessagesFromFallback(...fallbackSetup);
       }

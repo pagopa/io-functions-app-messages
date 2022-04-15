@@ -35,7 +35,6 @@ export const getMessagesFromView = (
 }): TE.TaskEither<
   CosmosErrors | Error,
   IPageResult<EnrichedMessageWithContent>
-  // eslint-disable-next-line max-params
 > =>
   pipe(
     messageViewModel.queryPage(

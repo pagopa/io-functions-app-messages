@@ -1,6 +1,8 @@
 import * as t from "io-ts";
 
 import * as TE from "fp-ts/TaskEither";
+import * as O from "fp-ts/lib/Option";
+import { pipe } from "fp-ts/lib/function";
 
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 
@@ -13,6 +15,11 @@ import {
   CosmosErrors,
   toCosmosErrorResponse
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+
+const emptyMessageParameter = {
+  condition: "",
+  parameters: []
+};
 
 /**
  * Extends MessageStatusModel with query in operation
@@ -31,40 +38,68 @@ export class MessageViewExtendedQueryModel extends MessageViewModelBase {
     CosmosErrors,
     AsyncIterable<ReadonlyArray<t.Validation<RetrievedMessageView>>>
   > {
-    return TE.tryCatch(
-      async () =>
-        this.getQueryIterator(
+    return pipe(
+      {
+        parameters: [
           {
-            parameters: [
-              {
-                name: "@fiscalCode",
-                value: fiscalCode
-              },
-              {
-                name: "@archived",
-                value: getArchived
-              },
-              {
-                name: "@maximumId",
-                value: maximumMessageId
-              },
-              {
-                name: "@minimumId",
-                value: minimumMessageId
-              }
-            ],
-            query: `SELECT * FROM m WHERE m.fiscalCode = @fiscalCode 
-                AND m.status.archived = @archived
-                AND ((NOT IS_DEFINED(@maximumId)) OR m.id < @maximumId)
-                AND ((NOT IS_DEFINED(@minimumId)) OR m.id > @minimumId)
-                ORDER BY m.fiscalCode, m.id DESC, m.status.archived`
+            name: "@fiscalCode",
+            value: fiscalCode
           },
           {
-            maxItemCount: pageSize,
-            populateQueryMetrics: true
+            name: "@archived",
+            value: getArchived
           }
-        ),
-      toCosmosErrorResponse
+        ],
+        query: `SELECT * FROM m WHERE m.fiscalCode = @fiscalCode AND m.status.archived = @archived`
+      },
+      TE.of,
+      TE.bindTo("commonQuerySpec"),
+      TE.bind("nextMessagesParams", () =>
+        pipe(
+          O.fromNullable(maximumMessageId),
+          O.foldW(
+            () => emptyMessageParameter,
+            maximumId => ({
+              condition: ` AND m.id < @maxId`,
+              parameters: [{ name: "@maxId", value: maximumId }]
+            })
+          ),
+          TE.of
+        )
+      ),
+      TE.bind("prevMessagesParams", () =>
+        pipe(
+          O.fromNullable(minimumMessageId),
+          O.foldW(
+            () => emptyMessageParameter,
+            minimumId => ({
+              condition: ` AND m.id > @minId`,
+              parameters: [{ name: "@minId", value: minimumId }]
+            })
+          ),
+          TE.of
+        )
+      ),
+      TE.chain(({ commonQuerySpec, nextMessagesParams, prevMessagesParams }) =>
+        TE.tryCatch(
+          async () =>
+            this.getQueryIterator(
+              {
+                parameters: [
+                  ...commonQuerySpec.parameters,
+                  ...nextMessagesParams.parameters,
+                  ...prevMessagesParams.parameters
+                ],
+                query: `${commonQuerySpec.query}${nextMessagesParams.condition}${prevMessagesParams.condition} 
+                ORDER BY m.fiscalCode, m.id DESC, m.status.archived`
+              },
+              {
+                maxItemCount: pageSize
+              }
+            ),
+          toCosmosErrorResponse
+        )
+      )
     );
   }
 }

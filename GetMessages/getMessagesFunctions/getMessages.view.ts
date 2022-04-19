@@ -37,13 +37,7 @@ export const getMessagesFromView = (
   IPageResult<EnrichedMessageWithContent>
 > =>
   pipe(
-    messageViewModel.queryPage(
-      fiscalCode,
-      shouldGetArchivedMessages,
-      maximumId,
-      minimumId,
-      pageSize
-    ),
+    messageViewModel.queryPage(fiscalCode, maximumId, minimumId, pageSize),
     TE.mapLeft(err => {
       context.log.error(
         `getMessagesFromView|Error building queryPage iterator`
@@ -55,6 +49,11 @@ export const getMessagesFromView = (
       flow(
         AI.fromAsyncIterable,
         AI.map(RA.rights),
+        AI.map(
+          RA.filter(
+            message => message.status.archived === shouldGetArchivedMessages
+          )
+        ),
         AI.mapIterable(flattenAsyncIterable),
         AI.toPageArray(toCosmosErrorResponse, pageSize),
         TE.map(({ hasMoreResults, results }) =>

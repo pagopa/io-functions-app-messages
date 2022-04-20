@@ -30,7 +30,6 @@ export class MessageViewExtendedQueryModel extends MessageViewModelBase {
    */
   public queryPage(
     fiscalCode: FiscalCode,
-    getArchived: boolean,
     maximumMessageId?: NonEmptyString,
     minimumMessageId?: NonEmptyString,
     pageSize = defaultPageSize
@@ -44,13 +43,9 @@ export class MessageViewExtendedQueryModel extends MessageViewModelBase {
           {
             name: "@fiscalCode",
             value: fiscalCode
-          },
-          {
-            name: "@archived",
-            value: getArchived
           }
         ],
-        query: `SELECT * FROM m WHERE m.fiscalCode = @fiscalCode AND m.status.archived = @archived`
+        query: `SELECT * FROM m WHERE m.fiscalCode = @fiscalCode`
       },
       TE.of,
       TE.bindTo("commonQuerySpec"),
@@ -91,7 +86,7 @@ export class MessageViewExtendedQueryModel extends MessageViewModelBase {
                   ...prevMessagesParams.parameters
                 ],
                 query: `${commonQuerySpec.query}${nextMessagesParams.condition}${prevMessagesParams.condition} 
-                ORDER BY m.fiscalCode, m.id DESC, m.status.archived`
+                ORDER BY m.fiscalCode, m.id DESC`
               },
               {
                 maxItemCount: pageSize

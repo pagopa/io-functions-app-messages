@@ -106,6 +106,16 @@ const createMessageViewCollection = (
             {
               path: "/id",
               order: "descending"
+            }
+          ],
+          [
+            {
+              path: "/fiscalCode",
+              order: "ascending"
+            },
+            {
+              path: "/id",
+              order: "descending"
             },
             {
               path: "/status/archived",

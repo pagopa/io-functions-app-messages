@@ -1004,14 +1004,89 @@ describe("GetMessagesHandler |> Message View", () => {
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
+  it("should respond with archived messages only when archived is requested", async () => {
+    let iteratorCalls = 0;
+
+    mockQueryPage.mockImplementationOnce(_ => {
+      return TE.of(
+        buildIterator(
+          RetrievedMessageView,
+          aSimpleList.map((m, i) => ({
+            ...m,
+            status: { ...m.status, archived: i === 0 }
+          })),
+          _ => {
+            iteratorCalls++;
+          }
+        )
+      );
+    });
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.some(true),
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+
+    const expectedEnrichedMessage = {
+      ...toEnrichedMessageWithContent(aSimpleList[0]),
+      category: {
+        rptId: `${aRetrievedService.organizationFiscalCode}177777777777777777`,
+        tag: "PAYMENT"
+      },
+      organization_name: aRetrievedService.organizationName,
+      service_name: aRetrievedService.serviceName
+    };
+
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        items: [
+          {
+            ...expectedEnrichedMessage,
+            id: aSimpleList[0].id,
+            is_archived: true
+          }
+        ],
+        prev: aSimpleList[0].id,
+        next: undefined
+      });
+    }
+
+    // We expect it to loop through the whole list
+    expect(iteratorCalls).toEqual(Math.round(aSimpleList.length / pageSize));
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
   it("should respond with internal error when messages cannot be enriched with service info", async () => {
     let iteratorCalls = 0;
 
     mockQueryPage.mockImplementationOnce(_ => {
       return TE.of(
-        buildIterator(RetrievedMessageView, aSimpleList, _ => {
-          iteratorCalls++;
-        })
+        buildIterator(
+          RetrievedMessageView,
+          aSimpleList.map(m => ({
+            ...m,
+            status: { ...m.status, archived: true }
+          })),
+          _ => {
+            iteratorCalls++;
+          }
+        )
       );
     });
 

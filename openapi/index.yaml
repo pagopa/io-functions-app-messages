@@ -492,6 +492,13 @@ definitions:
             $ref: '#/definitions/EmailAddress'
       fiscal_code:
         $ref: '#/definitions/FiscalCode'
+      feature_level_type:
+        type: string
+        default: STANDARD
+        x-extensible-enum:
+          - STANDARD
+          - ADVANCED
+        example: STANDARD
     required:
       - content
   NewProfile:

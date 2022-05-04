@@ -30,12 +30,14 @@ import { PaymentAmount } from "../../generated/backend/PaymentAmount";
 import { PaymentNoticeNumber } from "../../generated/backend/PaymentNoticeNumber";
 import { MessageBodyMarkdown } from "../../generated/backend/MessageBodyMarkdown";
 import { MessageSubject } from "../../generated/backend/MessageSubject";
+import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aDate = new Date();
 
 const aNewMessageWithoutContent: NewMessageWithoutContent = {
   createdAt: aDate,
+  featureLevelType: FeatureLevelTypeEnum.STANDARD,
   fiscalCode: aFiscalCode,
   id: "A_MESSAGE_ID" as NonEmptyString,
   indexedId: "A_MESSAGE_ID" as NonEmptyString,

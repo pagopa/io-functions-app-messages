@@ -41,6 +41,7 @@ import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/genera
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import * as redis from "../redis_storage";
 import { EnrichedMessageWithContent } from "../../GetMessages/getMessagesFunctions/models";
+import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 
 const anOrganizationFiscalCode = "01234567890" as OrganizationFiscalCode;
 
@@ -75,6 +76,7 @@ const aDate = new Date();
 
 const aNewMessageWithoutContent: NewMessageWithoutContent = {
   createdAt: aDate,
+  featureLevelType: FeatureLevelTypeEnum.STANDARD,
   fiscalCode: aFiscalCode,
   id: "A_MESSAGE_ID" as NonEmptyString,
   indexedId: "A_MESSAGE_ID" as NonEmptyString,

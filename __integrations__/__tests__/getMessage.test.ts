@@ -129,6 +129,9 @@ describe("Get Message |> Success Results", () => {
     ${"should return a message detail"}                        | ${aFiscalCodeWithMessages} | ${messagesList[0].id} | ${undefined}  | ${expectedGetMessageResponse}
     ${"should return a message detail with public attributes"} | ${aFiscalCodeWithMessages} | ${messagesList[0].id} | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
   `("$title", async ({ fiscalCode, msgId, publicMessage, expectedResult }) => {
+    console.log(
+      `calling getMessage with fiscalCode=${fiscalCode},messageId=${msgId}`
+    );
     const response = await getMessage(fetch, baseUrl)(
       fiscalCode,
       msgId,

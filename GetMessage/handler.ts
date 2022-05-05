@@ -3,6 +3,7 @@ import * as express from "express";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import * as A from "fp-ts/lib/Apply";
+import * as B from "fp-ts/lib/boolean";
 
 import { BlobService } from "azure-storage";
 
@@ -201,62 +202,64 @@ export function GetMessageHandler(
     const publicMessage = retrievedMessageToPublic(retrievedMessage);
     const getErrorOrMaybePublicData = await pipe(
       returnPublicMessage,
-      O.fromPredicate(isPublic => isPublic),
-      TE.of,
-      TE.chain(
-        O.fold(
-          () => TE.right(O.none),
-          _ =>
-            pipe(
-              A.sequenceS(TE.ApplicativePar)({
-                messageStatus: pipe(
-                  messageStatusModel.findLastVersionByModelId([
-                    retrievedMessage.id
-                  ]),
-                  TE.mapLeft(E.toError),
-                  TE.chain(
-                    TE.fromOption(
-                      () => new Error("Cannot find status for message")
-                    )
+      B.fold(
+        () => TE.right(O.none),
+        () =>
+          pipe(
+            A.sequenceS(TE.ApplicativePar)({
+              messageStatus: pipe(
+                messageStatusModel.findLastVersionByModelId([
+                  retrievedMessage.id
+                ]),
+                TE.mapLeft(E.toError),
+                TE.chain(
+                  TE.fromOption(
+                    () => new Error("Cannot find status for message")
                   )
-                ),
-                service: getOrCacheService(
-                  retrievedMessage.senderServiceId,
-                  serviceModel,
-                  redisClient,
-                  serviceCacheTtl
                 )
-              }),
-              TE.map(({ messageStatus, service }) =>
-                O.some({
-                  organization_name: service.organizationName,
-                  service_name: service.serviceName,
-                  ...pipe(
-                    maybeContent,
-                    O.map(content => ({
+              ),
+              service: getOrCacheService(
+                retrievedMessage.senderServiceId,
+                serviceModel,
+                redisClient,
+                serviceCacheTtl
+              )
+            }),
+            TE.map(({ messageStatus, service }) =>
+              O.some({
+                organization_name: service.organizationName,
+                service_name: service.serviceName,
+                ...pipe(
+                  maybeContent,
+                  O.map(content => ({
+                    content,
+                    enriched: {
                       category: mapMessageCategory(publicMessage, content),
                       is_archived: messageStatus.isArchived,
                       is_read: messageStatus.isRead,
                       message_title: content.subject
-                    })),
-                    O.map(enriched =>
-                      enriched.category?.tag !== TagEnumPayment.PAYMENT
-                        ? { ...enriched }
-                        : {
-                            ...enriched,
-                            category: {
-                              rptId: `${service.organizationFiscalCode}${enriched.category.noticeNumber}`,
-                              tag: TagEnumPayment.PAYMENT
-                            }
+                    }
+                  })),
+                  O.map(({ content, enriched }) =>
+                    enriched.category?.tag !== TagEnumPayment.PAYMENT
+                      ? { ...enriched }
+                      : {
+                          ...enriched,
+                          category: {
+                            rptId: `${content.payment_data.payee?.fiscal_code ??
+                              service.organizationFiscalCode}${
+                              enriched.category.noticeNumber
+                            }`,
+                            tag: TagEnumPayment.PAYMENT
                           }
-                    ),
-                    O.toUndefined
-                  )
-                })
-              ),
-              TE.mapLeft(err => ResponseErrorInternal(err.message))
-            )
-        )
+                        }
+                  ),
+                  O.toUndefined
+                )
+              })
+            ),
+            TE.mapLeft(err => ResponseErrorInternal(err.message))
+          )
       )
     )();
 

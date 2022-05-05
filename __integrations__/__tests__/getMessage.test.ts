@@ -18,7 +18,6 @@ import {
 
 import {
   aFiscalCodeWithMessages,
-  aMessage,
   messagesList,
   messageStatusList
 } from "../__mocks__/mock.messages";
@@ -95,23 +94,22 @@ beforeEach(() => {
 // Tests
 // -------------------------
 
+const aMessage = messagesList[0];
+
 const expectedGetMessageResponse: GetMessageResponse = {
   message: {
     content: aMessage.content,
     created_at: aMessage.createdAt,
     fiscal_code: aMessage.fiscalCode,
     id: aMessage.id,
-    sender_service_id: aMessage.senderServiceId
+    sender_service_id: aMessage.senderServiceId,
+    time_to_live: aMessage.timeToLiveSeconds
   }
 };
 
 const expectedGetMessageResponseWithPublicAttributes: GetMessageResponse = {
   message: {
-    content: aMessage.content,
-    created_at: aMessage.createdAt,
-    fiscal_code: aMessage.fiscalCode,
-    id: aMessage.id,
-    sender_service_id: aMessage.senderServiceId,
+    ...expectedGetMessageResponse.message,
     is_archived: aMessageStatus.isArchived,
     is_read: aMessageStatus.isRead,
     message_title: aMessage.content.subject,
@@ -125,9 +123,9 @@ const expectedGetMessageResponseWithPublicAttributes: GetMessageResponse = {
 
 describe("Get Message |> Success Results", () => {
   it.each`
-    title                                                      | fiscalCode                 | msgId                 | publicMessage | expectedResult
-    ${"should return a message detail"}                        | ${aFiscalCodeWithMessages} | ${messagesList[0].id} | ${undefined}  | ${expectedGetMessageResponse}
-    ${"should return a message detail with public attributes"} | ${aFiscalCodeWithMessages} | ${messagesList[0].id} | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
+    title                                                      | fiscalCode                 | msgId          | publicMessage | expectedResult
+    ${"should return a message detail"}                        | ${aFiscalCodeWithMessages} | ${aMessage.id} | ${undefined}  | ${expectedGetMessageResponse}
+    ${"should return a message detail with public attributes"} | ${aFiscalCodeWithMessages} | ${aMessage.id} | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
   `("$title", async ({ fiscalCode, msgId, publicMessage, expectedResult }) => {
     console.log(
       `calling getMessage with fiscalCode=${fiscalCode},messageId=${msgId}`
@@ -143,7 +141,7 @@ describe("Get Message |> Success Results", () => {
     // strip away undefind properties by stringify/parsing to JSON
     const expected = JSON.parse(
       JSON.stringify({
-        message: expectedResult
+        expectedResult
       })
     );
 

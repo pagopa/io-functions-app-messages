@@ -9,7 +9,7 @@ export const getMessage = (nodeFetch: typeof fetch, baseUrl: string) => async (
   publicMessage?: boolean
 ): Promise<Response> =>
   nodeFetch(
-    `${baseUrl}/api/v1/message/${fiscalCode}/${msgId}${
+    `${baseUrl}/api/v1/messages/${fiscalCode}/${msgId}${
       publicMessage ? `?public_message=${publicMessage}` : ``
     }`
   );

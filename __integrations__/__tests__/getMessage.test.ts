@@ -40,7 +40,7 @@ import {
 import { GetMessageResponse } from "@pagopa/io-functions-commons/dist/generated/definitions/GetMessageResponse";
 
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
-import { aMessageStatus } from "../../__mocks__/mocks.message-status";
+import { aMessageStatus } from "../__mocks__/mock.messages";
 
 const MAX_ATTEMPT = 50;
 

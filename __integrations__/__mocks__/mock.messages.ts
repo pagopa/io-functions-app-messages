@@ -13,7 +13,10 @@ import { RetrievedMessage } from "@pagopa/io-functions-commons/dist/src/models/m
 import { pipe } from "fp-ts/lib/function";
 
 import * as RA from "fp-ts/ReadonlyArray";
-import { NewMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import {
+  MessageStatus,
+  NewMessageStatus
+} from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
 import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 
@@ -99,4 +102,12 @@ export const mockEnrichMessage = (
     is_archived: false,
     is_read: false
   };
+};
+
+export const aMessageStatus: MessageStatus = {
+  messageId: aMessage.id,
+  status: MessageStatusValueEnum.PROCESSED,
+  updatedAt: new Date(),
+  isArchived: false,
+  isRead: false
 };

@@ -179,7 +179,9 @@ describe("Get Messages |> Success Results, With Enrichment", () => {
         JSON.stringify({
           items: expectedItems.map(mockEnrichMessage).map(m => ({
             ...m,
-            is_archived: (messagesArchived as NonEmptyString[]).includes(m.id)
+            has_attachments: false,
+            is_archived: (messagesArchived as NonEmptyString[]).includes(m.id),
+            time_to_live: 3600
           })),
           prev: expectedPrev,
           next: expectedNext

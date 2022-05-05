@@ -3,7 +3,6 @@ import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/defi
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
-import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 
 import { NewMessageWithContent } from "@pagopa/io-functions-commons/dist/src/models/message";
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
@@ -16,6 +15,7 @@ import { pipe } from "fp-ts/lib/function";
 import * as RA from "fp-ts/ReadonlyArray";
 import { NewMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
+import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 
 export const aFiscalCodeWithoutMessages = "FFLFRC74E04B157I" as FiscalCode;
 export const aFiscalCodeWithMessages = "FRLFRC74E04B157I" as FiscalCode;
@@ -29,6 +29,7 @@ export const aMessageContent = {
 export const aMessage: NewMessageWithContent = {
   content: aMessageContent as Omit<MessageContent, "payment_data">,
   createdAt: new Date(),
+  featureLevelType: FeatureLevelTypeEnum.STANDARD,
   fiscalCode: aFiscalCodeWithMessages,
   id: "A_MESSAGE_ID" as NonEmptyString,
   indexedId: "A_MESSAGE_ID" as NonEmptyString,

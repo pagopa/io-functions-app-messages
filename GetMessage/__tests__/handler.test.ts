@@ -31,6 +31,11 @@ import { PaymentNoticeNumber } from "../../generated/backend/PaymentNoticeNumber
 import { MessageBodyMarkdown } from "../../generated/backend/MessageBodyMarkdown";
 import { MessageSubject } from "../../generated/backend/MessageSubject";
 import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
+import { aMessageStatus } from "../../__mocks__/mocks.message-status";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import * as msgUtil from "../../utils/messages";
+import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aDate = new Date();
@@ -72,20 +77,24 @@ const aSenderService: Service = {
 };
 const aPaymentDataWithoutPayee: PaymentData = {
   amount: 1000 as PaymentAmount,
-  notice_number: "1777777777777777" as PaymentNoticeNumber
+  notice_number: "177777777777777777" as PaymentNoticeNumber
 };
 
-const aPaymentMessageContent: MessageContent = {
+const aMessageContent: MessageContent = {
   markdown: "a".repeat(81) as MessageBodyMarkdown,
   subject: "sub".repeat(10) as MessageSubject
 };
 
-const serviceFindLastVersionByModelIdMock = jest
-  .fn()
-  .mockImplementation(() => TE.of(O.some(aSenderService)));
-const mockServiceModel = {
-  findLastVersionByModelId: serviceFindLastVersionByModelIdMock
+const anEnrichedMessageResponse: EnrichedMessage = {
+  ...aPublicExtendedMessage,
+  service_name: aSenderService.serviceName,
+  organization_name: aSenderService.organizationName,
+  message_title: aMessageContent.subject,
+  is_archived: aMessageStatus.isArchived,
+  is_read: aMessageStatus.isRead
 };
+
+const mockServiceModel = {};
 
 const findMessageForRecipientMock = jest
   .fn()
@@ -99,6 +108,23 @@ const mockMessageModel = {
   getContentFromBlob: getContentFromBlobMock
 };
 
+const findLastVersionByModelIdMessageStatusMock = jest
+  .fn()
+  .mockImplementation(() => TE.of(O.some(aMessageStatus)));
+const mockMessageStatusModel = {
+  findLastVersionByModelId: findLastVersionByModelIdMessageStatusMock
+};
+
+const aServiceCacheTTL = 3600 as NonNegativeInteger;
+
+const getOrCacheServiceMock = jest
+  .fn()
+  .mockImplementation(() => TE.of(aSenderService));
+
+jest
+  .spyOn(msgUtil, "getOrCacheService")
+  .mockImplementation(getOrCacheServiceMock);
+
 describe("GetMessageHandler", () => {
   afterEach(() => jest.clearAllMocks());
   it("should fail if any error occurs trying to retrieve the message content", async () => {
@@ -106,14 +132,18 @@ describe("GetMessageHandler", () => {
 
     const getMessageHandler = GetMessageHandler(
       mockMessageModel as any,
+      mockMessageStatusModel as any,
       {} as any,
-      mockServiceModel as any
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
     );
 
     const result = await getMessageHandler(
       contextMock as any,
       aFiscalCode,
-      aRetrievedMessageWithoutContent.id
+      aRetrievedMessageWithoutContent.id,
+      O.none
     );
 
     expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
@@ -126,17 +156,139 @@ describe("GetMessageHandler", () => {
     expect(result.kind).toBe("IResponseErrorInternal");
   });
 
-  it("should respond with a message", async () => {
+  it("should fail if any error occurs trying to retrieve message status while requesting an enriched message", async () => {
+    findLastVersionByModelIdMessageStatusMock.mockImplementationOnce(() =>
+      TE.left(
+        toCosmosErrorResponse(new Error("Cannot retrieve message status"))
+      )
+    );
+
     const getMessageHandler = GetMessageHandler(
       mockMessageModel as any,
+      mockMessageStatusModel as any,
       {} as any,
-      mockServiceModel as any
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
     );
 
     const result = await getMessageHandler(
       contextMock as any,
       aFiscalCode,
+      aRetrievedMessageWithoutContent.id,
+      O.some(true)
+    );
+
+    expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
+    expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledTimes(1);
+    expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledWith(
+      aRetrievedMessageWithoutContent.fiscalCode,
       aRetrievedMessageWithoutContent.id
+    );
+
+    expect(result.kind).toBe("IResponseErrorInternal");
+  });
+
+  it("should respond with an internal error if message sender cannot be retrieved for enriched message", async () => {
+    getOrCacheServiceMock.mockImplementationOnce(() =>
+      TE.left(new Error("Cannot query services"))
+    );
+
+    const getMessageHandler = GetMessageHandler(
+      mockMessageModel as any,
+      mockMessageStatusModel as any,
+      {} as any,
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
+    );
+
+    const result = await getMessageHandler(
+      contextMock as any,
+      aFiscalCode,
+      aRetrievedMessageWithoutContent.id,
+      O.some(true)
+    );
+
+    expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledTimes(1);
+    expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
+    expect(getOrCacheServiceMock).toHaveBeenCalledTimes(1);
+
+    expect(result.kind).toBe("IResponseErrorInternal");
+  });
+
+  it("should respond with an enriched message", async () => {
+    getContentFromBlobMock.mockImplementationOnce(() =>
+      TE.of(
+        O.some({
+          ...aMessageContent,
+          payment_data: aPaymentDataWithoutPayee
+        })
+      )
+    );
+    const getMessageHandler = GetMessageHandler(
+      mockMessageModel as any,
+      mockMessageStatusModel as any,
+      {} as any,
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
+    );
+
+    const result = await getMessageHandler(
+      contextMock as any,
+      aFiscalCode,
+      aRetrievedMessageWithoutContent.id,
+      O.some(true)
+    );
+
+    expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
+    expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledTimes(1);
+    expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledWith(
+      aRetrievedMessageWithoutContent.fiscalCode,
+      aRetrievedMessageWithoutContent.id
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        ...aPublicExtendedMessageResponse,
+        message: {
+          ...aPublicExtendedMessageResponse.message,
+          category: {
+            tag: "PAYMENT",
+            rptId: `${aSenderService.organizationFiscalCode}${aPaymentDataWithoutPayee.notice_number}`
+          },
+          content: {
+            ...aMessageContent,
+            payment_data: {
+              ...aPaymentDataWithoutPayee,
+              payee: {
+                fiscal_code: aSenderService.organizationFiscalCode
+              }
+            }
+          },
+          ...anEnrichedMessageResponse
+        }
+      });
+    }
+  });
+
+  it("should respond with a message", async () => {
+    const getMessageHandler = GetMessageHandler(
+      mockMessageModel as any,
+      mockMessageStatusModel as any,
+      {} as any,
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
+    );
+
+    const result = await getMessageHandler(
+      contextMock as any,
+      aFiscalCode,
+      aRetrievedMessageWithoutContent.id,
+      O.none
     );
 
     expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
@@ -179,14 +331,18 @@ describe("GetMessageHandler", () => {
 
     const getMessageHandler = GetMessageHandler(
       mockMessageModel as any,
+      mockMessageStatusModel as any,
       {} as any,
-      mockServiceModel as any
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
     );
 
     const result = await getMessageHandler(
       contextMock as any,
       aFiscalCode,
-      aRetrievedMessageWithEuCovidCert.id
+      aRetrievedMessageWithEuCovidCert.id,
+      O.none
     );
 
     expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
@@ -206,19 +362,23 @@ describe("GetMessageHandler", () => {
     }
   });
 
-  it("should respond with not found a message doesn not exist", async () => {
+  it("should respond with not found if a message does not exist", async () => {
     findMessageForRecipientMock.mockImplementationOnce(() => TE.of(O.none));
 
     const getMessageHandler = GetMessageHandler(
       mockMessageModel as any,
+      mockMessageStatusModel as any,
       {} as any,
-      mockServiceModel as any
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
     );
 
     const result = await getMessageHandler(
       contextMock as any,
       aFiscalCode,
-      aRetrievedMessageWithoutContent.id
+      aRetrievedMessageWithoutContent.id,
+      O.none
     );
 
     expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledTimes(1);
@@ -230,7 +390,7 @@ describe("GetMessageHandler", () => {
     getContentFromBlobMock.mockImplementationOnce(() =>
       TE.of(
         O.some({
-          ...aPaymentMessageContent,
+          ...aMessageContent,
           payment_data: aPaymentDataWithoutPayee
         })
       )
@@ -238,24 +398,28 @@ describe("GetMessageHandler", () => {
 
     const getMessageHandler = GetMessageHandler(
       mockMessageModel as any,
+      mockMessageStatusModel as any,
       {} as any,
-      mockServiceModel as any
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
     );
 
     const result = await getMessageHandler(
       contextMock as any,
       aFiscalCode,
-      aRetrievedMessageWithoutContent.id
+      aRetrievedMessageWithoutContent.id,
+      O.none
     );
 
     expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledTimes(1);
     expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
-    expect(mockServiceModel.findLastVersionByModelId).toHaveBeenCalledTimes(1);
+    expect(getOrCacheServiceMock).toHaveBeenCalledTimes(1);
 
     const expected = {
       ...aPublicExtendedMessage,
       content: {
-        ...aPaymentMessageContent,
+        ...aMessageContent,
         payment_data: {
           ...aPaymentDataWithoutPayee,
           payee: {
@@ -275,30 +439,35 @@ describe("GetMessageHandler", () => {
     getContentFromBlobMock.mockImplementationOnce(() =>
       TE.of(
         O.some({
-          ...aPaymentMessageContent,
+          ...aMessageContent,
           payment_data: aPaymentDataWithoutPayee
         })
       )
     );
-    serviceFindLastVersionByModelIdMock.mockImplementationOnce(() =>
+
+    getOrCacheServiceMock.mockImplementationOnce(() =>
       TE.left(new Error("Cannot query services"))
     );
 
     const getMessageHandler = GetMessageHandler(
       mockMessageModel as any,
+      mockMessageStatusModel as any,
       {} as any,
-      mockServiceModel as any
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
     );
 
     const result = await getMessageHandler(
       contextMock as any,
       aFiscalCode,
-      aRetrievedMessageWithoutContent.id
+      aRetrievedMessageWithoutContent.id,
+      O.none
     );
 
     expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledTimes(1);
     expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
-    expect(mockServiceModel.findLastVersionByModelId).toHaveBeenCalledTimes(1);
+    expect(getOrCacheServiceMock).toHaveBeenCalledTimes(1);
 
     expect(result.kind).toBe("IResponseErrorInternal");
   });
@@ -307,30 +476,34 @@ describe("GetMessageHandler", () => {
     getContentFromBlobMock.mockImplementationOnce(() =>
       TE.of(
         O.some({
-          ...aPaymentMessageContent,
+          ...aMessageContent,
           payment_data: aPaymentDataWithoutPayee
         })
       )
     );
-    serviceFindLastVersionByModelIdMock.mockImplementationOnce(() =>
-      TE.of(O.none)
+    getOrCacheServiceMock.mockImplementationOnce(() =>
+      TE.left(new Error("Cannot find service"))
     );
 
     const getMessageHandler = GetMessageHandler(
       mockMessageModel as any,
+      mockMessageStatusModel as any,
       {} as any,
-      mockServiceModel as any
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL
     );
 
     const result = await getMessageHandler(
       contextMock as any,
       aFiscalCode,
-      aRetrievedMessageWithoutContent.id
+      aRetrievedMessageWithoutContent.id,
+      O.none
     );
 
     expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledTimes(1);
     expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
-    expect(mockServiceModel.findLastVersionByModelId).toHaveBeenCalledTimes(1);
+    expect(getOrCacheServiceMock).toHaveBeenCalledTimes(1);
 
     expect(result.kind).toBe("IResponseErrorInternal");
   });

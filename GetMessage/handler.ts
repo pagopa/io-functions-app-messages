@@ -2,6 +2,7 @@ import * as express from "express";
 
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
+import * as A from "fp-ts/lib/Apply";
 
 import { BlobService } from "azure-storage";
 
@@ -39,10 +40,18 @@ import { pipe } from "fp-ts/lib/function";
 import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentDataWithRequiredPayee";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
 import { MessageResponseWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageResponseWithoutContent";
-import { CreatedMessageWithContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithContent";
-import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
+import { GetMessageResponse } from "@pagopa/io-functions-commons/dist/generated/definitions/GetMessageResponse";
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
-import { MessageResponseWithContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageResponseWithContent";
+import { OptionalQueryParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/optional_query_param";
+import { BooleanFromString } from "@pagopa/ts-commons/lib/booleans";
+import { RedisClient } from "redis";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import * as TE from "fp-ts/lib/TaskEither";
+import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
+import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import { getOrCacheService, mapMessageCategory } from "../utils/messages";
+import { CreatedMessageWithoutContent } from "../generated/backend/CreatedMessageWithoutContent";
+import { CreatedMessageWithContent } from "../generated/backend/CreatedMessageWithContent";
 
 /**
  * Type of a GetMessage handler.
@@ -54,11 +63,10 @@ import { MessageResponseWithContent } from "@pagopa/io-functions-commons/dist/ge
 type IGetMessageHandler = (
   context: Context,
   fiscalCode: FiscalCode,
-  messageId: string
+  messageId: string,
+  maybePublicMessage: O.Option<boolean>
 ) => Promise<
-  | IResponseSuccessJson<
-      MessageResponseWithContent | MessageResponseWithoutContent
-    >
+  | IResponseSuccessJson<GetMessageResponse | MessageResponseWithoutContent>
   | IResponseErrorNotFound
   | IResponseErrorQuery
   | IResponseErrorValidation
@@ -79,42 +87,40 @@ type IGetMessageHandler = (
 const getErrorOrPaymentData = async (
   context: Context,
   serviceModel: ServiceModel,
+  redisClient: RedisClient,
+  serviceCacheTtl: NonNegativeInteger,
   senderServiceId: ServiceId,
   maybePaymentData: O.Option<PaymentData>
+  // eslint-disable-next-line max-params
 ): Promise<E.Either<IResponseErrorInternal, O.Option<PaymentData>>> => {
   if (
     O.isSome(maybePaymentData) &&
     !PaymentDataWithRequiredPayee.is(maybePaymentData.value)
   ) {
-    const errorOrMaybeSenderService = await serviceModel.findLastVersionByModelId(
-      [senderServiceId]
+    const errorOrSenderService = await getOrCacheService(
+      senderServiceId,
+      serviceModel,
+      redisClient,
+      serviceCacheTtl
     )();
-    if (E.isLeft(errorOrMaybeSenderService)) {
+    if (E.isLeft(errorOrSenderService)) {
       context.log.error(
-        `GetMessageHandler|${JSON.stringify(errorOrMaybeSenderService.left)}`
+        `GetMessageHandler|${JSON.stringify(errorOrSenderService.left)}`
       );
       return E.left(
         ResponseErrorInternal(
           `Cannot get message Sender Service|ERROR=${
-            E.toError(errorOrMaybeSenderService.left).message
+            E.toError(errorOrSenderService.left).message
           }`
         )
       );
     }
-    const maybeSenderService = errorOrMaybeSenderService.right;
-    if (O.isNone(maybeSenderService)) {
-      // the message sender service does not exist
-      return E.left(
-        ResponseErrorInternal(
-          `Message Sender not found The message that you requested does not have a related sender service`
-        )
-      );
-    }
+    const senderService = errorOrSenderService.right;
     return E.right(
       O.some({
         ...maybePaymentData.value,
         payee: {
-          fiscal_code: maybeSenderService.value.organizationFiscalCode
+          fiscal_code: senderService.organizationFiscalCode
         }
       })
     );
@@ -124,14 +130,19 @@ const getErrorOrPaymentData = async (
 /**
  * Handles requests for getting a single message for a recipient.
  */
-// eslint-disable-next-line prefer-arrow/prefer-arrow-functions
+// eslint-disable-next-line prefer-arrow/prefer-arrow-functions, max-params
 export function GetMessageHandler(
   messageModel: MessageModel,
+  messageStatusModel: MessageStatusModel,
   blobService: BlobService,
-  serviceModel: ServiceModel
+  serviceModel: ServiceModel,
+  redisClient: RedisClient,
+  serviceCacheTtl: NonNegativeInteger
 ): IGetMessageHandler {
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-  return async (context, fiscalCode, messageId) => {
+  return async (context, fiscalCode, messageId, maybePublicMessage) => {
+    const returnPublicMessage = O.getOrElse(() => false)(maybePublicMessage);
+
     const [errorOrMaybeDocument, errorOrMaybeContent] = await Promise.all([
       messageModel.findMessageForRecipient(
         fiscalCode,
@@ -178,11 +189,79 @@ export function GetMessageHandler(
     const errorOrMaybePaymentData = await getErrorOrPaymentData(
       context,
       serviceModel,
+      redisClient,
+      serviceCacheTtl,
       retrievedMessage.senderServiceId,
       maybePaymentData
     );
     if (E.isLeft(errorOrMaybePaymentData)) {
       return errorOrMaybePaymentData.left;
+    }
+
+    const publicMessage = retrievedMessageToPublic(retrievedMessage);
+    const getErrorOrMaybePublicData = await pipe(
+      returnPublicMessage,
+      O.fromPredicate(isPublic => isPublic),
+      TE.of,
+      TE.chain(
+        O.fold(
+          () => TE.right(O.none),
+          _ =>
+            pipe(
+              A.sequenceS(TE.ApplicativePar)({
+                messageStatus: pipe(
+                  messageStatusModel.findLastVersionByModelId([
+                    retrievedMessage.id
+                  ]),
+                  TE.mapLeft(E.toError),
+                  TE.chain(
+                    TE.fromOption(
+                      () => new Error("Cannot find status for message")
+                    )
+                  )
+                ),
+                service: getOrCacheService(
+                  retrievedMessage.senderServiceId,
+                  serviceModel,
+                  redisClient,
+                  serviceCacheTtl
+                )
+              }),
+              TE.map(({ messageStatus, service }) =>
+                O.some({
+                  organization_name: service.organizationName,
+                  service_name: service.serviceName,
+                  ...pipe(
+                    maybeContent,
+                    O.map(content => ({
+                      category: mapMessageCategory(publicMessage, content),
+                      is_archived: messageStatus.isArchived,
+                      is_read: messageStatus.isRead,
+                      message_title: content.subject
+                    })),
+                    O.map(enriched =>
+                      enriched.category?.tag !== TagEnumPayment.PAYMENT
+                        ? { ...enriched }
+                        : {
+                            ...enriched,
+                            category: {
+                              rptId: `${service.organizationFiscalCode}${enriched.category.noticeNumber}`,
+                              tag: TagEnumPayment.PAYMENT
+                            }
+                          }
+                    ),
+                    O.toUndefined
+                  )
+                })
+              ),
+              TE.mapLeft(err => ResponseErrorInternal(err.message))
+            )
+        )
+      )
+    )();
+
+    if (E.isLeft(getErrorOrMaybePublicData)) {
+      return getErrorOrMaybePublicData.left;
     }
 
     const message:
@@ -196,11 +275,12 @@ export function GetMessageHandler(
         })),
         O.toUndefined
       ),
-      ...retrievedMessageToPublic(retrievedMessage)
+      ...publicMessage,
+      ...O.toUndefined(getErrorOrMaybePublicData.right)
     });
 
     const returnedMessage:
-      | MessageResponseWithContent
+      | GetMessageResponse
       | MessageResponseWithoutContent = {
       message
     };
@@ -212,17 +292,28 @@ export function GetMessageHandler(
 /**
  * Wraps a GetMessage handler inside an Express request handler.
  */
-// eslint-disable-next-line prefer-arrow/prefer-arrow-functions
+// eslint-disable-next-line prefer-arrow/prefer-arrow-functions, max-params
 export function GetMessage(
   messageModel: MessageModel,
+  messageStatusModel: MessageStatusModel,
   blobService: BlobService,
-  serviceModel: ServiceModel
+  serviceModel: ServiceModel,
+  redisClient: RedisClient,
+  serviceCacheTtl: NonNegativeInteger
 ): express.RequestHandler {
-  const handler = GetMessageHandler(messageModel, blobService, serviceModel);
+  const handler = GetMessageHandler(
+    messageModel,
+    messageStatusModel,
+    blobService,
+    serviceModel,
+    redisClient,
+    serviceCacheTtl
+  );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
     FiscalCodeMiddleware,
-    RequiredParamMiddleware("id", NonEmptyString)
+    RequiredParamMiddleware("id", NonEmptyString),
+    OptionalQueryParamMiddleware("public_message", BooleanFromString)
   );
   return wrapRequestHandler(middlewaresWrap(handler));
 }

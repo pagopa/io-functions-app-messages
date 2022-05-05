@@ -125,7 +125,7 @@ export const mapMessageCategory = (
     O.getOrElse(() => ({ tag: TagEnumBase.GENERIC }))
   );
 
-const getOrCacheService = (
+export const getOrCacheService = (
   serviceId: ServiceId,
   serviceModel: ServiceModel,
   redisClient: RedisClient,

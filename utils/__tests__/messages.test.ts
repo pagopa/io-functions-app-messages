@@ -150,15 +150,15 @@ const functionsContextMock = ({
   }
 } as unknown) as Context;
 
-const messages = [
+const messages: CreatedMessageWithoutContentWithStatus[] = [
   {
     ...retrievedMessageToPublic(aRetrievedMessageWithoutContent),
     is_archived: false,
     is_read: false
   }
-] as readonly CreatedMessageWithoutContentWithStatus[];
+];
 
-const messagesWithGenericContent: EnrichedMessageWithContent[] = messages.map(
+const messagesWithGenericContent: readonly EnrichedMessageWithContent[] = messages.map(
   m => ({
     ...m,
     id: m.id as NonEmptyString,

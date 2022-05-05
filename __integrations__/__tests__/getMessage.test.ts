@@ -135,15 +135,13 @@ describe("Get Message |> Success Results", () => {
       msgId,
       publicMessage
     );
+
     expect(response.status).toEqual(200);
 
     const body = (await response.json()) as GetMessageResponse;
+
     // strip away undefind properties by stringify/parsing to JSON
-    const expected = JSON.parse(
-      JSON.stringify({
-        expectedResult
-      })
-    );
+    const expected = JSON.parse(JSON.stringify(expectedResult));
 
     expect(body).toEqual(expected);
   });

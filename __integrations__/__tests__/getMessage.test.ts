@@ -125,30 +125,27 @@ const expectedGetMessageResponseWithPublicAttributes: GetMessageResponse = {
 
 describe("Get Message |> Success Results", () => {
   it.each`
-    title                                                      | fiscalCode                 | msgId          | publicMessage | expectedResult
-    ${"should return a message detail"}                        | ${aFiscalCodeWithMessages} | ${aMessage.id} | ${undefined}  | ${expectedGetMessageResponse}
-    ${"should return a message detail with public attributes"} | ${aFiscalCodeWithMessages} | ${aMessage.id} | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
-  `(
-    "$title, page size: $pageSize",
-    async ({ fiscalCode, msgId, publicMessage, expectedResult }) => {
-      const response = await getMessage(fetch, baseUrl)(
-        fiscalCode,
-        msgId,
-        publicMessage
-      );
-      expect(response.status).toEqual(200);
+    title                                                      | fiscalCode                 | msgId                 | publicMessage | expectedResult
+    ${"should return a message detail"}                        | ${aFiscalCodeWithMessages} | ${messagesList[0].id} | ${undefined}  | ${expectedGetMessageResponse}
+    ${"should return a message detail with public attributes"} | ${aFiscalCodeWithMessages} | ${messagesList[0].id} | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
+  `("$title", async ({ fiscalCode, msgId, publicMessage, expectedResult }) => {
+    const response = await getMessage(fetch, baseUrl)(
+      fiscalCode,
+      msgId,
+      publicMessage
+    );
+    expect(response.status).toEqual(200);
 
-      const body = (await response.json()) as GetMessageResponse;
-      // strip away undefind properties by stringify/parsing to JSON
-      const expected = JSON.parse(
-        JSON.stringify({
-          message: expectedResult
-        })
-      );
+    const body = (await response.json()) as GetMessageResponse;
+    // strip away undefind properties by stringify/parsing to JSON
+    const expected = JSON.parse(
+      JSON.stringify({
+        message: expectedResult
+      })
+    );
 
-      expect(body).toEqual(expected);
-    }
-  );
+    expect(body).toEqual(expected);
+  });
 });
 
 // -----------------------

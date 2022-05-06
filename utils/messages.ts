@@ -90,8 +90,10 @@ const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
   },
   {
     buildOtherCategoryProperties: (_, c): Record<string, string> => ({
-      // Notice Number only. Organization fiscal code will be added by enrichServiceData
-      noticeNumber: c.payment_data.notice_number
+      // Notice Number only. Organization fiscal code will be enriched by enrichServiceData
+      // based on payeeFiscalCode or service fiscaCode, if payee is not defined
+      noticeNumber: c.payment_data.notice_number,
+      payeeFiscalCode: c.payment_data.payee?.fiscal_code
     }),
     pattern: t.interface({ payment_data: PaymentData }),
     tag: TagEnumPayment.PAYMENT
@@ -274,12 +276,15 @@ TE.TaskEither<Error, ReadonlyArray<EnrichedMessage>> =>
             service
           }),
           ({ message, service }) =>
-            message.category?.tag !== "PAYMENT"
+            message.category?.tag !== TagEnumPayment.PAYMENT
               ? { ...message, category: message.category }
               : {
                   ...message,
                   category: {
-                    rptId: `${service.organizationFiscalCode}${message.category.noticeNumber}`,
+                    rptId: `${message.category.payeeFiscalCode ??
+                      service.organizationFiscalCode}${
+                      message.category.noticeNumber
+                    }`,
                     tag: TagEnumPayment.PAYMENT
                   }
                 }

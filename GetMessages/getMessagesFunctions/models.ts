@@ -2,10 +2,15 @@
 import * as t from "io-ts";
 
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import {
+  FiscalCode,
+  NonEmptyString,
+  OrganizationFiscalCode
+} from "@pagopa/ts-commons/lib/strings";
 import { DateFromTimestamp } from "@pagopa/ts-commons/lib/dates";
-import { withDefault } from "@pagopa/ts-commons/lib/types";
+import { enumType, withDefault } from "@pagopa/ts-commons/lib/types";
 
+import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { MessageCategoryBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TimeToLiveSeconds } from "../../generated/backend/TimeToLiveSeconds";
 
@@ -13,10 +18,15 @@ import { TimeToLiveSeconds } from "../../generated/backend/TimeToLiveSeconds";
 // ---------------------------------------
 
 export const InternalMessageCategoryPayment = t.exact(
-  t.interface({
-    tag: t.literal("PAYMENT"),
-    noticeNumber: NonEmptyString
-  }),
+  t.intersection([
+    t.interface({
+      tag: enumType<TagEnumPayment>(TagEnumPayment, "tag"),
+      noticeNumber: NonEmptyString
+    }),
+    t.partial({
+      payeeFiscalCode: OrganizationFiscalCode
+    })
+  ]),
   "MessageCategoryPayment"
 );
 

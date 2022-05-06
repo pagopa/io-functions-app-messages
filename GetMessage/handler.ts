@@ -232,28 +232,24 @@ export function GetMessageHandler(
                 ...pipe(
                   maybeContent,
                   O.map(content => ({
-                    content,
-                    enriched: {
-                      category: mapMessageCategory(publicMessage, content),
-                      is_archived: messageStatus.isArchived,
-                      is_read: messageStatus.isRead,
-                      message_title: content.subject
-                    }
+                    category: pipe(
+                      mapMessageCategory(publicMessage, content),
+                      category =>
+                        category?.tag !== TagEnumPayment.PAYMENT
+                          ? category
+                          : {
+                              rptId: `${content.payment_data.payee
+                                ?.fiscal_code ??
+                                service.organizationFiscalCode}${
+                                category.noticeNumber
+                              }`,
+                              tag: TagEnumPayment.PAYMENT
+                            }
+                    ),
+                    is_archived: messageStatus.isArchived,
+                    is_read: messageStatus.isRead,
+                    message_title: content.subject
                   })),
-                  O.map(({ content, enriched }) =>
-                    enriched.category?.tag !== TagEnumPayment.PAYMENT
-                      ? { ...enriched }
-                      : {
-                          ...enriched,
-                          category: {
-                            rptId: `${content.payment_data.payee?.fiscal_code ??
-                              service.organizationFiscalCode}${
-                              enriched.category.noticeNumber
-                            }`,
-                            tag: TagEnumPayment.PAYMENT
-                          }
-                        }
-                  ),
                   O.toUndefined
                 )
               })

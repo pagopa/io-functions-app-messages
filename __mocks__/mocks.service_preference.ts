@@ -46,7 +46,8 @@ export const aRetrievedService: RetrievedService = ({
   serviceId: aServiceId,
   isVisible: true,
   serviceName: "a Service",
-  organizationName: "a Organization"
+  organizationName: "a Organization",
+  organizationFiscalCode: "99999999999"
 } as any) as RetrievedService;
 
 export const anActiveActivation: Activation = {

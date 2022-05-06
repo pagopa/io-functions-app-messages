@@ -20,6 +20,7 @@ import * as AI from "../../utils/AsyncIterableTask";
 
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
 import { TagEnum } from "../../generated/backend/MessageCategoryBase";
+import { TagEnum as TagEnumPayment } from "../../generated/backend/MessageCategoryPayment";
 import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 
@@ -112,6 +113,6 @@ const toCategory = (itemComponents: Components): InternalMessageCategory =>
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         noticeNumber: itemComponents.payment.notice_number as NonEmptyString,
-        tag: "PAYMENT"
+        tag: TagEnumPayment.PAYMENT
       }
     : { tag: TagEnum.GENERIC };

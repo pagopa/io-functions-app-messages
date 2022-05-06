@@ -32,6 +32,7 @@ import {
   toCosmosErrorResponse
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { Context } from "@azure/functions";
+import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
@@ -42,6 +43,11 @@ import { createGetMessagesFunctionSelection } from "../getMessagesFunctions/getM
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
 import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import { toEnrichedMessageWithContent } from "../getMessagesFunctions/getMessages.view";
+import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
+import { PaymentAmount } from "../../generated/backend/PaymentAmount";
+import { PaymentNoticeNumber } from "../../generated/backend/PaymentNoticeNumber";
+import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentDataWithRequiredPayee";
+import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -69,6 +75,16 @@ const aNewMessageWithoutContent: NewMessageWithoutContent = {
   senderServiceId: aServiceId,
   senderUserId: "u123" as NonEmptyString,
   timeToLiveSeconds: 3600 as TimeToLiveSeconds
+};
+
+const aPaymentDataWithoutPayee: PaymentData = {
+  amount: 1000 as PaymentAmount,
+  notice_number: "177777777777777777" as PaymentNoticeNumber
+};
+
+const aPaymentDataWithPayee: PaymentDataWithRequiredPayee = {
+  ...aPaymentDataWithoutPayee,
+  payee: { fiscal_code: "12345699999" as OrganizationFiscalCode }
 };
 
 const aRetrievedMessageWithoutContent: RetrievedMessageWithoutContent = {
@@ -629,6 +645,152 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const expectedEnrichedMessage = {
       ...retrievedMessageToPublic(aSimpleList[0]),
       category: { tag: TagEnumBase.GENERIC },
+      has_attachments: false,
+      message_title: "a subject",
+      is_archived: false,
+      is_read: false,
+      organization_name: aRetrievedService.organizationName,
+      service_name: aRetrievedService.serviceName
+    };
+
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        items: [
+          { ...expectedEnrichedMessage, id: aSimpleList[0].id },
+          { ...expectedEnrichedMessage, id: aSimpleList[1].id }
+        ],
+        prev: aSimpleList[0].id,
+        next: aSimpleList[1].id
+      });
+    }
+
+    expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should respond with a payment message with rptId using payee fiscal code, when payee is defined", async () => {
+    const messageIterator = getMockIterator(aMessageList);
+    const messageModelMock = getMessageModelMock(messageIterator);
+
+    messageModelMock.getContentFromBlob = jest.fn().mockImplementation(() =>
+      TE.of(
+        O.some({
+          subject: "a subject",
+          markdown: "a markdown",
+          payment_data: aPaymentDataWithPayee
+        } as MessageContent)
+      )
+    );
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [],
+      "XYZ" as NonEmptyString,
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.none,
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+
+    const expectedEnrichedMessage = {
+      ...retrievedMessageToPublic(aSimpleList[0]),
+      category: {
+        tag: TagEnumPayment.PAYMENT,
+        rptId: `${aPaymentDataWithPayee.payee.fiscal_code}${aPaymentDataWithPayee.notice_number}`
+      },
+      has_attachments: false,
+      message_title: "a subject",
+      is_archived: false,
+      is_read: false,
+      organization_name: aRetrievedService.organizationName,
+      service_name: aRetrievedService.serviceName
+    };
+
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        items: [
+          { ...expectedEnrichedMessage, id: aSimpleList[0].id },
+          { ...expectedEnrichedMessage, id: aSimpleList[1].id }
+        ],
+        prev: aSimpleList[0].id,
+        next: aSimpleList[1].id
+      });
+    }
+
+    expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should respond with a payment message with rptId using service fiscal code, if payee is not defined", async () => {
+    const messageIterator = getMockIterator(aMessageList);
+    const messageModelMock = getMessageModelMock(messageIterator);
+
+    messageModelMock.getContentFromBlob = jest.fn().mockImplementation(() =>
+      TE.of(
+        O.some({
+          subject: "a subject",
+          markdown: "a markdown",
+          payment_data: aPaymentDataWithoutPayee
+        } as MessageContent)
+      )
+    );
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [],
+      "XYZ" as NonEmptyString,
+      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [messageViewModelMock]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.none,
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+
+    const expectedEnrichedMessage = {
+      ...retrievedMessageToPublic(aSimpleList[0]),
+      category: {
+        tag: TagEnumPayment.PAYMENT,
+        rptId: `${aRetrievedService.organizationFiscalCode}${aPaymentDataWithoutPayee.notice_number}`
+      },
       has_attachments: false,
       message_title: "a subject",
       is_archived: false,

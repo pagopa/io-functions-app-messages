@@ -14,7 +14,6 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/models/message";
 
 import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
-import { MessageResponseWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageResponseWithoutContent";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 
@@ -36,6 +35,7 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as msgUtil from "../../utils/messages";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
+import { InternalMessageResponseWithContent } from "@pagopa/io-functions-commons/dist/generated/definitions/InternalMessageResponseWithContent";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aDate = new Date();
@@ -67,8 +67,13 @@ const aPublicExtendedMessage: CreatedMessageWithoutContent = {
   time_to_live: 3600 as TimeToLiveSeconds
 };
 
-const aPublicExtendedMessageResponse: MessageResponseWithoutContent = {
-  message: aPublicExtendedMessage
+const aMessageContent: MessageContent = {
+  markdown: "a".repeat(81) as MessageBodyMarkdown,
+  subject: "sub".repeat(10) as MessageSubject
+};
+
+const aPublicExtendedMessageResponse = {
+  message: { ...aPublicExtendedMessage, content: aMessageContent }
 };
 
 const aSenderService: Service = {
@@ -78,11 +83,6 @@ const aSenderService: Service = {
 const aPaymentDataWithoutPayee: PaymentData = {
   amount: 1000 as PaymentAmount,
   notice_number: "177777777777777777" as PaymentNoticeNumber
-};
-
-const aMessageContent: MessageContent = {
-  markdown: "a".repeat(81) as MessageBodyMarkdown,
-  subject: "sub".repeat(10) as MessageSubject
 };
 
 const anEnrichedMessageResponse: EnrichedMessage = {
@@ -102,7 +102,7 @@ const findMessageForRecipientMock = jest
 
 const getContentFromBlobMock = jest
   .fn()
-  .mockImplementation(() => TE.of(O.none));
+  .mockImplementation(() => TE.of(O.some(aMessageContent)));
 const mockMessageModel = {
   findMessageForRecipient: findMessageForRecipientMock,
   getContentFromBlob: getContentFromBlobMock

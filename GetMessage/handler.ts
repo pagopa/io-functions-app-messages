@@ -37,11 +37,10 @@ import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/messa
 import { Context } from "@azure/functions";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { ServiceModel } from "@pagopa/io-functions-commons/dist/src/models/service";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentDataWithRequiredPayee";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
-import { MessageResponseWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageResponseWithoutContent";
-import { GetMessageResponse } from "@pagopa/io-functions-commons/dist/generated/definitions/GetMessageResponse";
+import { InternalMessageResponseWithContent } from "@pagopa/io-functions-commons/dist/generated/definitions/InternalMessageResponseWithContent";
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
 import { OptionalQueryParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/optional_query_param";
 import { BooleanFromString } from "@pagopa/ts-commons/lib/booleans";
@@ -51,8 +50,6 @@ import * as TE from "fp-ts/lib/TaskEither";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { getOrCacheService, mapMessageCategory } from "../utils/messages";
-import { CreatedMessageWithoutContent } from "../generated/backend/CreatedMessageWithoutContent";
-import { CreatedMessageWithContent } from "../generated/backend/CreatedMessageWithContent";
 
 /**
  * Type of a GetMessage handler.
@@ -67,7 +64,7 @@ type IGetMessageHandler = (
   messageId: string,
   maybePublicMessage: O.Option<boolean>
 ) => Promise<
-  | IResponseSuccessJson<GetMessageResponse | MessageResponseWithoutContent>
+  | IResponseSuccessJson<InternalMessageResponseWithContent>
   | IResponseErrorNotFound
   | IResponseErrorQuery
   | IResponseErrorValidation
@@ -92,42 +89,47 @@ const getErrorOrPaymentData = async (
   serviceCacheTtl: NonNegativeInteger,
   senderServiceId: ServiceId,
   maybePaymentData: O.Option<PaymentData>
+): Promise<E.Either<
+  IResponseErrorInternal,
+  O.Option<PaymentDataWithRequiredPayee>
   // eslint-disable-next-line max-params
-): Promise<E.Either<IResponseErrorInternal, O.Option<PaymentData>>> => {
-  if (
-    O.isSome(maybePaymentData) &&
-    !PaymentDataWithRequiredPayee.is(maybePaymentData.value)
-  ) {
-    const errorOrSenderService = await getOrCacheService(
-      senderServiceId,
-      serviceModel,
-      redisClient,
-      serviceCacheTtl
-    )();
-    if (E.isLeft(errorOrSenderService)) {
-      context.log.error(
-        `GetMessageHandler|${JSON.stringify(errorOrSenderService.left)}`
-      );
-      return E.left(
-        ResponseErrorInternal(
-          `Cannot get message Sender Service|ERROR=${
-            E.toError(errorOrSenderService.left).message
-          }`
-        )
-      );
-    }
-    const senderService = errorOrSenderService.right;
-    return E.right(
-      O.some({
-        ...maybePaymentData.value,
-        payee: {
-          fiscal_code: senderService.organizationFiscalCode
-        }
-      })
-    );
+>> => {
+  if (O.isNone(maybePaymentData)) {
+    return E.right(maybePaymentData);
   }
-  return E.right(maybePaymentData);
+  const paymentData = maybePaymentData.value;
+
+  return pipe(
+    O.fromNullable(paymentData.payee),
+    O.map(payee => ({ ...paymentData, payee })),
+    O.map(flow(O.some, TE.of)),
+    O.getOrElse(() =>
+      pipe(
+        getOrCacheService(
+          senderServiceId,
+          serviceModel,
+          redisClient,
+          serviceCacheTtl
+        ),
+        TE.mapLeft(err => {
+          context.log.error(`GetMessageHandler|${JSON.stringify(err)}`);
+          return ResponseErrorInternal(
+            `Cannot get message Sender Service|ERROR=${err.message}`
+          );
+        }),
+        TE.map(senderService =>
+          O.some({
+            ...paymentData,
+            payee: {
+              fiscal_code: senderService.organizationFiscalCode
+            }
+          })
+        )
+      )
+    )
+  )();
 };
+
 /**
  * Handles requests for getting a single message for a recipient.
  */
@@ -182,10 +184,12 @@ export function GetMessageHandler(
 
     const maybeContent = errorOrMaybeContent.right;
 
-    const maybePaymentData = pipe(
-      maybeContent,
-      O.chainNullableK(content => content.payment_data)
-    );
+    if (O.isNone(maybeContent)) {
+      return ResponseErrorNotFound("Not Found", "Message Content Not Found");
+    }
+    const messageContent = maybeContent.value;
+
+    const maybePaymentData = O.fromNullable(messageContent.payment_data);
 
     const errorOrMaybePaymentData = await getErrorOrPaymentData(
       context,
@@ -227,31 +231,24 @@ export function GetMessageHandler(
             }),
             TE.map(({ messageStatus, service }) =>
               O.some({
+                category: pipe(
+                  mapMessageCategory(publicMessage, messageContent),
+                  category =>
+                    category?.tag !== TagEnumPayment.PAYMENT
+                      ? category
+                      : {
+                          rptId: `${messageContent.payment_data.payee
+                            ?.fiscal_code ?? service.organizationFiscalCode}${
+                            category.noticeNumber
+                          }`,
+                          tag: TagEnumPayment.PAYMENT
+                        }
+                ),
+                is_archived: messageStatus.isArchived,
+                is_read: messageStatus.isRead,
+                message_title: messageContent.subject,
                 organization_name: service.organizationName,
-                service_name: service.serviceName,
-                ...pipe(
-                  maybeContent,
-                  O.map(content => ({
-                    category: pipe(
-                      mapMessageCategory(publicMessage, content),
-                      category =>
-                        category?.tag !== TagEnumPayment.PAYMENT
-                          ? category
-                          : {
-                              rptId: `${content.payment_data.payee
-                                ?.fiscal_code ??
-                                service.organizationFiscalCode}${
-                                category.noticeNumber
-                              }`,
-                              tag: TagEnumPayment.PAYMENT
-                            }
-                    ),
-                    is_archived: messageStatus.isArchived,
-                    is_read: messageStatus.isRead,
-                    message_title: content.subject
-                  })),
-                  O.toUndefined
-                )
+                service_name: service.serviceName
               })
             ),
             TE.mapLeft(err => ResponseErrorInternal(err.message))
@@ -263,24 +260,16 @@ export function GetMessageHandler(
       return getErrorOrMaybePublicData.left;
     }
 
-    const message:
-      | CreatedMessageWithContent
-      | CreatedMessageWithoutContent = withoutUndefinedValues({
-      content: pipe(
-        maybeContent,
-        O.map(content => ({
-          ...content,
-          payment_data: O.toUndefined(errorOrMaybePaymentData.right)
-        })),
-        O.toUndefined
-      ),
+    const message = withoutUndefinedValues({
+      content: {
+        ...messageContent,
+        payment_data: O.toUndefined(errorOrMaybePaymentData.right)
+      },
       ...publicMessage,
       ...O.toUndefined(getErrorOrMaybePublicData.right)
     });
 
-    const returnedMessage:
-      | GetMessageResponse
-      | MessageResponseWithoutContent = {
+    const returnedMessage: InternalMessageResponseWithContent = {
       message
     };
 

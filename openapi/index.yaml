@@ -100,7 +100,7 @@ paths:
         '200':
           description: Message found.
           schema:
-            $ref: '#/definitions/GetMessageResponse'
+            $ref: '#/definitions/InternalMessageResponseWithContent'
           examples:
             application/json:
               message:
@@ -1310,13 +1310,17 @@ definitions:
       - $ref: '#/definitions/MessageStatusReadingChange'
       - $ref: '#/definitions/MessageStatusArchivingChange'
       - $ref: '#/definitions/MessageStatusBulkChange'
-  GetMessageResponse:
-    x-one-of: true
-    allOf:
-      - type: object
-        properties:
-          message:
-            $ref: '#/definitions/EnrichedMessage'
-        required:
-          - message
-      - $ref: '#/definitions/MessageResponseWithContent'
+  InternalMessageResponseWithContent:
+    type: object
+    properties:
+      message:
+        x-one-of: true
+        allOf:
+          - $ref: '#/definitions/CreatedMessageWithContent'
+          - allOf:
+              - $ref: '#/definitions/CreatedMessageWithContent'
+              - $ref: '#/definitions/EnrichedMessage'
+      status:
+        $ref: '#/definitions/MessageStatusValue'
+    required:
+      - message

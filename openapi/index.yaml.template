@@ -95,7 +95,7 @@ paths:
         "200":
           description: Message found.
           schema:
-            $ref: "#/definitions/GetMessageResponse"
+            $ref: "#/definitions/InternalMessageResponseWithContent"
           examples:
             application/json:
               message:
@@ -398,5 +398,5 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatusBulkChange"
   MessageStatusChange:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatusChange"
-  GetMessageResponse:
-    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/GetMessageResponse"
+  InternalMessageResponseWithContent:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/InternalMessageResponseWithContent"

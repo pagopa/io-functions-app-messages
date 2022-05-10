@@ -1310,16 +1310,20 @@ definitions:
       - $ref: '#/definitions/MessageStatusReadingChange'
       - $ref: '#/definitions/MessageStatusArchivingChange'
       - $ref: '#/definitions/MessageStatusBulkChange'
+  CreatedMessageWithContentAndEnrichedData:
+    allOf:
+      - $ref: '#/definitions/CreatedMessageWithContent'
+      - $ref: '#/definitions/EnrichedMessage'
+  CreatedMessageWithContentResponse:
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/CreatedMessageWithContent'
+      - $ref: '#/definitions/CreatedMessageWithContentAndEnrichedData'
   InternalMessageResponseWithContent:
     type: object
     properties:
       message:
-        x-one-of: true
-        allOf:
-          - $ref: '#/definitions/CreatedMessageWithContent'
-          - allOf:
-              - $ref: '#/definitions/CreatedMessageWithContent'
-              - $ref: '#/definitions/EnrichedMessage'
+        $ref: '#/definitions/CreatedMessageWithContentResponse'
       status:
         $ref: '#/definitions/MessageStatusValue'
     required:

@@ -36,7 +36,7 @@ import {
   QueueStorageConnection,
   MESSAGE_CONTAINER_NAME
 } from "../env";
-import { GetMessageResponse } from "@pagopa/io-functions-commons/dist/generated/definitions/GetMessageResponse";
+import { InternalMessageResponseWithContent } from "@pagopa/io-functions-commons/dist/generated/definitions/InternalMessageResponseWithContent";
 
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { aMessageStatus } from "../__mocks__/mock.messages";
@@ -96,7 +96,7 @@ beforeEach(() => {
 
 const aMessage = messagesList[0];
 
-const expectedGetMessageResponse: GetMessageResponse = {
+const expectedGetMessageResponse: InternalMessageResponseWithContent = {
   message: {
     content: aMessage.content,
     created_at: aMessage.createdAt,
@@ -107,7 +107,7 @@ const expectedGetMessageResponse: GetMessageResponse = {
   }
 };
 
-const expectedGetMessageResponseWithPublicAttributes: GetMessageResponse = {
+const expectedGetMessageResponseWithPublicAttributes: InternalMessageResponseWithContent = {
   message: {
     ...expectedGetMessageResponse.message,
     is_archived: aMessageStatus.isArchived,
@@ -138,7 +138,7 @@ describe("Get Message |> Success Results", () => {
 
     expect(response.status).toEqual(200);
 
-    const body = (await response.json()) as GetMessageResponse;
+    const body = (await response.json()) as InternalMessageResponseWithContent;
 
     // strip away undefind properties by stringify/parsing to JSON
     const expected = JSON.parse(JSON.stringify(expectedResult));

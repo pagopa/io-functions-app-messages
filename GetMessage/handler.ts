@@ -93,42 +93,43 @@ const getErrorOrPaymentData = async (
   IResponseErrorInternal,
   O.Option<PaymentDataWithRequiredPayee>
   // eslint-disable-next-line max-params
->> => {
-  if (O.isNone(maybePaymentData)) {
-    return E.right(maybePaymentData);
-  }
-  const paymentData = maybePaymentData.value;
-
-  return pipe(
-    O.fromNullable(paymentData.payee),
-    O.map(payee => ({ ...paymentData, payee })),
-    O.map(flow(O.some, TE.of)),
-    O.getOrElse(() =>
-      pipe(
-        getOrCacheService(
-          senderServiceId,
-          serviceModel,
-          redisClient,
-          serviceCacheTtl
-        ),
-        TE.mapLeft(err => {
-          context.log.error(`GetMessageHandler|${JSON.stringify(err)}`);
-          return ResponseErrorInternal(
-            `Cannot get message Sender Service|ERROR=${err.message}`
-          );
-        }),
-        TE.map(senderService =>
-          O.some({
-            ...paymentData,
-            payee: {
-              fiscal_code: senderService.organizationFiscalCode
-            }
-          })
+>> =>
+  pipe(
+    maybePaymentData,
+    O.fold(
+      () => TE.right(O.none),
+      paymentData =>
+        pipe(
+          O.fromNullable(paymentData.payee),
+          O.map(payee => ({ ...paymentData, payee })),
+          O.map(flow(O.some, TE.of)),
+          O.getOrElse(() =>
+            pipe(
+              getOrCacheService(
+                senderServiceId,
+                serviceModel,
+                redisClient,
+                serviceCacheTtl
+              ),
+              TE.mapLeft(err => {
+                context.log.error(`GetMessageHandler|${JSON.stringify(err)}`);
+                return ResponseErrorInternal(
+                  `Cannot get message Sender Service|ERROR=${err.message}`
+                );
+              }),
+              TE.map(senderService =>
+                O.some({
+                  ...paymentData,
+                  payee: {
+                    fiscal_code: senderService.organizationFiscalCode
+                  }
+                })
+              )
+            )
+          )
         )
-      )
     )
   )();
-};
 
 /**
  * Handles requests for getting a single message for a recipient.

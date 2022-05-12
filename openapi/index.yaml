@@ -92,11 +92,15 @@ paths:
           type: string
           required: true
           description: The ID of the message.
+        - name: public_message
+          in: query
+          type: boolean
+          description: Discriminate when to return public message shape. Default to false.
       responses:
         '200':
           description: Message found.
           schema:
-            $ref: '#/definitions/MessageResponseWithContent'
+            $ref: '#/definitions/InternalMessageResponseWithContent'
           examples:
             application/json:
               message:
@@ -492,6 +496,13 @@ definitions:
             $ref: '#/definitions/EmailAddress'
       fiscal_code:
         $ref: '#/definitions/FiscalCode'
+      feature_level_type:
+        type: string
+        default: STANDARD
+        x-extensible-enum:
+          - STANDARD
+          - ADVANCED
+        example: STANDARD
     required:
       - content
   NewProfile:
@@ -1299,3 +1310,21 @@ definitions:
       - $ref: '#/definitions/MessageStatusReadingChange'
       - $ref: '#/definitions/MessageStatusArchivingChange'
       - $ref: '#/definitions/MessageStatusBulkChange'
+  CreatedMessageWithContentAndEnrichedData:
+    allOf:
+      - $ref: '#/definitions/CreatedMessageWithContent'
+      - $ref: '#/definitions/EnrichedMessage'
+  CreatedMessageWithContentResponse:
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/CreatedMessageWithContent'
+      - $ref: '#/definitions/CreatedMessageWithContentAndEnrichedData'
+  InternalMessageResponseWithContent:
+    type: object
+    properties:
+      message:
+        $ref: '#/definitions/CreatedMessageWithContentResponse'
+      status:
+        $ref: '#/definitions/MessageStatusValue'
+    required:
+      - message

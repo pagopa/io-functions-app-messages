@@ -18,8 +18,13 @@ import {
   ServiceModel,
   SERVICE_COLLECTION_NAME
 } from "@pagopa/io-functions-commons/dist/src/models/service";
+import {
+  MessageStatusModel,
+  MESSAGE_STATUS_COLLECTION_NAME
+} from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
+import { REDIS_CLIENT } from "../utils/redis";
 import { GetMessage } from "./handler";
 
 // Setup Express
@@ -33,6 +38,10 @@ const messageModel = new MessageModel(
   config.MESSAGE_CONTAINER_NAME
 );
 
+const messageStatusModel = new MessageStatusModel(
+  cosmosdbInstance.container(MESSAGE_STATUS_COLLECTION_NAME)
+);
+
 const blobService = createBlobService(config.QueueStorageConnection);
 
 const serviceModel = new ServiceModel(
@@ -40,7 +49,14 @@ const serviceModel = new ServiceModel(
 );
 app.get(
   "/api/v1/messages/:fiscalcode/:id",
-  GetMessage(messageModel, blobService, serviceModel)
+  GetMessage(
+    messageModel,
+    messageStatusModel,
+    blobService,
+    serviceModel,
+    REDIS_CLIENT,
+    config.SERVICE_CACHE_TTL_DURATION
+  )
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);

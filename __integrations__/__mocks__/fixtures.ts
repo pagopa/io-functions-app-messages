@@ -18,7 +18,6 @@ import {
 } from "./utils/cosmos";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { debugPort } from "process";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { Container } from "@azure/cosmos";
 import { BlobService } from "azure-storage";

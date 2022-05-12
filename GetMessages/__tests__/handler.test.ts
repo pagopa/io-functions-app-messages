@@ -43,6 +43,7 @@ import { createGetMessagesFunctionSelection } from "../getMessagesFunctions/getM
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
 import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import { toEnrichedMessageWithContent } from "../getMessagesFunctions/getMessages.view";
+import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
 import { PaymentAmount } from "../../generated/backend/PaymentAmount";
 import { PaymentNoticeNumber } from "../../generated/backend/PaymentNoticeNumber";
@@ -67,6 +68,7 @@ const aRetrievedMessageStatus: RetrievedMessageStatus = {
 
 const aNewMessageWithoutContent: NewMessageWithoutContent = {
   createdAt: new Date(),
+  featureLevelType: FeatureLevelTypeEnum.STANDARD,
   fiscalCode: aFiscalCode,
   id: aMessageId,
   indexedId: "A_MESSAGE_ID" as NonEmptyString,

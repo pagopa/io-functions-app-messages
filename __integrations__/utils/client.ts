@@ -1,6 +1,20 @@
 import { MessageStatusChange } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusChange";
 
 /**
+ * Get Message with or without public message shape
+ */
+export const getMessage = (nodeFetch: typeof fetch, baseUrl: string) => async (
+  fiscalCode?: string,
+  msgId?: string,
+  publicMessage?: boolean
+): Promise<Response> =>
+  nodeFetch(
+    `${baseUrl}/api/v1/messages/${fiscalCode}/${msgId}${
+      publicMessage ? `?public_message=${publicMessage}` : ``
+    }`
+  );
+
+/**
  * Get Messages
  */
 export const getMessages = (nodeFetch: typeof fetch, baseUrl: string) => async (

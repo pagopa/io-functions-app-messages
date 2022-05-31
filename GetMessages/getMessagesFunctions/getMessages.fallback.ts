@@ -18,12 +18,14 @@ import * as t from "io-ts";
 import { BlobService } from "azure-storage";
 
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import { MessageCategory } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategory";
 import {
   CreatedMessageWithoutContentWithStatus,
   enrichContentData,
   enrichMessagesStatus
 } from "../../utils/messages";
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
+import { ServiceId } from "../../generated/backend/ServiceId";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 import { EnrichedMessageWithContent } from "./models";
 
@@ -50,10 +52,18 @@ const filterMessages = (shouldGetArchivedMessages: boolean) => (
     )
   );
 
+export interface IThirdPartyDataWithCategory {
+  readonly category: MessageCategory["tag"];
+}
+export type ThirdPartyDataWithCategoryFetcher = (
+  serviceId: ServiceId
+) => IThirdPartyDataWithCategory;
+
 export const getMessagesFromFallback = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusExtendedQueryModel,
-  blobService: BlobService
+  blobService: BlobService,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): IGetMessagesFunction => ({
   context,
   fiscalCode,
@@ -100,7 +110,12 @@ export const getMessagesFromFallback = (
             ),
             ...pipe(
               A.rights(x),
-              enrichContentData(context, messageModel, blobService)
+              enrichContentData(
+                context,
+                messageModel,
+                blobService,
+                categoryFetcher
+              )
             )
           ])
         ),

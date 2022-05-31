@@ -25,6 +25,8 @@ import {
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { REDIS_CLIENT } from "../utils/redis";
+import { initTelemetryClient } from "../utils/appinsights";
+import { getThirdPartyDataWithCategoryFetcher } from "../utils/messages";
 import { GetMessage } from "./handler";
 
 // Setup Express
@@ -47,6 +49,9 @@ const blobService = createBlobService(config.QueueStorageConnection);
 const serviceModel = new ServiceModel(
   cosmosdbInstance.container(SERVICE_COLLECTION_NAME)
 );
+
+const telemetryClient = initTelemetryClient();
+
 app.get(
   "/api/v1/messages/:fiscalcode/:id",
   GetMessage(
@@ -55,7 +60,8 @@ app.get(
     blobService,
     serviceModel,
     REDIS_CLIENT,
-    config.SERVICE_CACHE_TTL_DURATION
+    config.SERVICE_CACHE_TTL_DURATION,
+    getThirdPartyDataWithCategoryFetcher(config, telemetryClient)
   )
 );
 

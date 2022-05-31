@@ -77,12 +77,16 @@ export type FeatureFlagType = t.TypeOf<typeof FeatureFlagType>;
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
   t.interface({
+    APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
+
     /* eslint-disable sort-keys */
     COSMOSDB_KEY: NonEmptyString,
     COSMOSDB_NAME: NonEmptyString,
     COSMOSDB_URI: NonEmptyString,
 
     MESSAGE_CONTAINER_NAME: NonEmptyString,
+
+    PN_SERVICE_ID: NonEmptyString,
 
     QueueStorageConnection: NonEmptyString,
 

@@ -28,15 +28,15 @@ import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/mo
 import { parse } from "fp-ts/lib/Json";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { LegalData } from "../generated/backend/LegalData";
+import { LegalData } from "@pagopa/io-functions-commons/dist/generated/definitions/LegalData";
 
+import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import * as AI from "../utils/AsyncIterableTask";
 import {
   EnrichedMessageWithContent,
   InternalMessageCategory
 } from "../GetMessages/getMessagesFunctions/models";
-import { EnrichedMessage } from "../generated/backend/EnrichedMessage";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";

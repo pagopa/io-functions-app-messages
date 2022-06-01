@@ -406,3 +406,5 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/CreatedMessageWithContentResponse"
   InternalMessageResponseWithContent:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/InternalMessageResponseWithContent"
+  ThirdPartyData:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/ThirdPartyData"

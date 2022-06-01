@@ -305,7 +305,7 @@ definitions:
           eu_covid_cert:
             $ref: '#/definitions/EUCovidCert'
           third_party_data:
-            $ref: '#/definitions/MessageCategoryPN/allOf/0'
+            $ref: '#/definitions/ThirdPartyData'
           legal_data:
             $ref: '#/definitions/LegalData'
   CIDR:
@@ -808,7 +808,7 @@ definitions:
           eu_covid_cert:
             $ref: '#/definitions/EUCovidCert'
           third_party_data:
-            $ref: '#/definitions/MessageCategoryPN/allOf/0'
+            $ref: '#/definitions/ThirdPartyData'
           due_date:
             $ref: '#/definitions/Timestamp'
   MessageContentBase:
@@ -1241,30 +1241,7 @@ definitions:
       - rptId
   MessageCategoryPN:
     allOf:
-      - type: object
-        description: >-
-          Payload containing all information needed to retrieve and visualize
-          third party message details
-        properties:
-          id:
-            type: string
-            description: >-
-              Unique id for retrieving third party enriched information about
-              the message
-          original_sender:
-            type: string
-            description: Either a ServiceId or a simple string representing the sender name
-            minLength: 1
-          original_receipt_date:
-            $ref: '#/definitions/Timestamp'
-          has_attachments:
-            type: boolean
-            default: false
-          summary:
-            type: string
-            minLength: 1
-        required:
-          - id
+      - $ref: '#/definitions/ThirdPartyData'
       - type: object
         properties:
           tag:
@@ -1367,3 +1344,28 @@ definitions:
         $ref: '#/definitions/MessageStatusValue'
     required:
       - message
+  ThirdPartyData:
+    type: object
+    description: >-
+      Payload containing all information needed to retrieve and visualize third
+      party message details
+    properties:
+      id:
+        type: string
+        description: >-
+          Unique id for retrieving third party enriched information about the
+          message
+      original_sender:
+        type: string
+        description: Either a ServiceId or a simple string representing the sender name
+        minLength: 1
+      original_receipt_date:
+        $ref: '#/definitions/Timestamp'
+      has_attachments:
+        type: boolean
+        default: false
+      summary:
+        type: string
+        minLength: 1
+    required:
+      - id

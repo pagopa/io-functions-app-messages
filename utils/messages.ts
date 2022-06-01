@@ -32,6 +32,7 @@ import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { TelemetryClient } from "applicationinsights";
 import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
+import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 import { LegalData } from "../generated/backend/LegalData";
 
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
@@ -40,7 +41,6 @@ import {
   EnrichedMessageWithContent,
   InternalMessageCategory
 } from "../GetMessages/getMessagesFunctions/models";
-import { EnrichedMessage } from "../generated/backend/EnrichedMessage";
 import { ThirdPartyDataWithCategoryFetcher } from "../GetMessages/getMessagesFunctions/getMessages.fallback";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";

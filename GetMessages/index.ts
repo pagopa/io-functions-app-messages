@@ -55,18 +55,18 @@ const blobService = createBlobService(config.QueueStorageConnection);
 
 const telemetryClient = initTelemetryClient();
 
+const thirdPartyCategoryFetcher = getThirdPartyDataWithCategoryFetcher(
+  config,
+  telemetryClient
+);
+
 const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
   config.USE_FALLBACK,
   config.FF_TYPE,
   config.FF_BETA_TESTER_LIST,
   config.FF_CANARY_USERS_REGEX,
-  [
-    messageModel,
-    messageStatusModel,
-    blobService,
-    getThirdPartyDataWithCategoryFetcher(config, telemetryClient)
-  ],
-  [messageViewModel]
+  [messageModel, messageStatusModel, blobService, thirdPartyCategoryFetcher],
+  [messageViewModel, thirdPartyCategoryFetcher]
 );
 
 app.get(

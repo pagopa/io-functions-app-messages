@@ -18,14 +18,13 @@ import * as t from "io-ts";
 import { BlobService } from "azure-storage";
 
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { MessageCategory } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategory";
 import {
   CreatedMessageWithoutContentWithStatus,
   enrichContentData,
   enrichMessagesStatus
 } from "../../utils/messages";
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
-import { ServiceId } from "../../generated/backend/ServiceId";
+import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 import { EnrichedMessageWithContent } from "./models";
 
@@ -51,13 +50,6 @@ const filterMessages = (shouldGetArchivedMessages: boolean) => (
       )
     )
   );
-
-export interface IThirdPartyDataWithCategory {
-  readonly category: MessageCategory["tag"];
-}
-export type ThirdPartyDataWithCategoryFetcher = (
-  serviceId: ServiceId
-) => IThirdPartyDataWithCategory;
 
 export const getMessagesFromFallback = (
   messageModel: MessageModel,

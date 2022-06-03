@@ -49,8 +49,11 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as TE from "fp-ts/lib/TaskEither";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
-import { getOrCacheService, mapMessageCategory } from "../utils/messages";
-import { ThirdPartyDataWithCategoryFetcher } from "../GetMessages/getMessagesFunctions/getMessages.fallback";
+import {
+  getOrCacheService,
+  mapMessageCategory,
+  ThirdPartyDataWithCategoryFetcher
+} from "../utils/messages";
 
 /**
  * Type of a GetMessage handler.

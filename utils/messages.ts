@@ -41,7 +41,6 @@ import {
   EnrichedMessageWithContent,
   InternalMessageCategory
 } from "../GetMessages/getMessagesFunctions/models";
-import { ThirdPartyDataWithCategoryFetcher } from "../GetMessages/getMessagesFunctions/getMessages.fallback";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
@@ -384,6 +383,13 @@ export const enrichMessagesStatus = (
     ),
     TE.toUnion
   );
+
+export interface IThirdPartyDataWithCategory {
+  readonly category: Exclude<MessageCategory["tag"], TagEnumPayment>;
+}
+export type ThirdPartyDataWithCategoryFetcher = (
+  serviceId: ServiceId
+) => IThirdPartyDataWithCategory;
 
 export const getThirdPartyDataWithCategoryFetcher: (
   config: IConfig,

@@ -12,7 +12,7 @@ import { enumType, withDefault } from "@pagopa/ts-commons/lib/types";
 
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { MessageCategoryBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
-import { TimeToLiveSeconds } from "../../generated/backend/TimeToLiveSeconds";
+import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 
 // ---------------------------------------
 // ---------------------------------------

@@ -49,8 +49,8 @@ import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/mode
 import { toEnrichedMessageWithContent } from "../getMessagesFunctions/getMessages.view";
 import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
-import { PaymentAmount } from "../../generated/backend/PaymentAmount";
-import { PaymentNoticeNumber } from "../../generated/backend/PaymentNoticeNumber";
+import { PaymentAmount } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentAmount";
+import { PaymentNoticeNumber } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentNoticeNumber";
 import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentDataWithRequiredPayee";
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";

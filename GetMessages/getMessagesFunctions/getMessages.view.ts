@@ -16,11 +16,11 @@ import {
   RetrievedMessageView
 } from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
+import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import * as AI from "../../utils/AsyncIterableTask";
 
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
-import { TagEnum } from "../../generated/backend/MessageCategoryBase";
-import { TagEnum as TagEnumPayment } from "../../generated/backend/MessageCategoryPayment";
 import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 

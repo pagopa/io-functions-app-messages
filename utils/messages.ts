@@ -34,8 +34,6 @@ import { TelemetryClient } from "applicationinsights";
 import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 import { LegalData } from "@pagopa/io-functions-commons/dist/generated/definitions/LegalData";
-
-import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import * as AI from "../utils/AsyncIterableTask";
 import {

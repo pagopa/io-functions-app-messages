@@ -53,8 +53,8 @@ import { PaymentAmount } from "../../generated/backend/PaymentAmount";
 import { PaymentNoticeNumber } from "../../generated/backend/PaymentNoticeNumber";
 import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentDataWithRequiredPayee";
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
-import { ThirdPartyDataWithCategoryFetcher } from "../getMessagesFunctions/getMessages.fallback";
 import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
+import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;

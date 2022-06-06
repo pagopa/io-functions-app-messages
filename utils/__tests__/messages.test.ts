@@ -23,7 +23,8 @@ import {
   CreatedMessageWithoutContentWithStatus,
   enrichContentData,
   enrichServiceData,
-  mapMessageCategory
+  mapMessageCategory,
+  ThirdPartyDataWithCategoryFetcher
 } from "../messages";
 import {
   MessageModel,
@@ -41,7 +42,6 @@ import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/gen
 import * as redis from "../redis_storage";
 import { EnrichedMessageWithContent } from "../../GetMessages/getMessagesFunctions/models";
 import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
-import { ThirdPartyDataWithCategoryFetcher } from "../../GetMessages/getMessagesFunctions/getMessages.fallback";
 
 const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
   .fn()

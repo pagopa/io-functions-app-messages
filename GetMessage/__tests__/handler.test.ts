@@ -41,7 +41,6 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as msgUtil from "../../utils/messages";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
-import { ThirdPartyDataWithCategoryFetcher } from "../../GetMessages/getMessagesFunctions/getMessages.fallback";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 
@@ -133,7 +132,7 @@ jest
   .spyOn(msgUtil, "getOrCacheService")
   .mockImplementation(getOrCacheServiceMock);
 
-const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
+const dummyThirdPartyDataWithCategoryFetcher: msgUtil.ThirdPartyDataWithCategoryFetcher = jest
   .fn()
   .mockImplementation(() => ({
     category: TagEnumBase.GENERIC

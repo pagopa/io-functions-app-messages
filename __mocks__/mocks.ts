@@ -167,7 +167,7 @@ export const aAbortedRetrievedUserDataProcessing: RetrievedUserDataProcessing = 
 };
 
 export const aPnThirdPartyData: ThirdPartyData = {
-  id: "a-pn-id",
+  id: "a-pn-id" as NonEmptyString,
   original_sender: "an-original-sender" as NonEmptyString,
   original_receipt_date: new Date(),
   has_attachments: true,

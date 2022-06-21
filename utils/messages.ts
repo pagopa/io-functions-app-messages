@@ -80,8 +80,6 @@ interface IMessageCategoryMapping {
     messageContent: MessageContent,
     categoryFetcher: ThirdPartyDataWithCategoryFetcher
   ) => MessageCategory["tag"];
-  // readonly pattern: t.Type<Partial<MessageContent>>;
-  // Partial<typeof ApiNewMessage._A["content"]>;
   readonly pattern: t.Type<
     Partial<typeof MessageContent._A>,
     Partial<typeof MessageContent._O>

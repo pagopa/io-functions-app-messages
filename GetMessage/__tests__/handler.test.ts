@@ -19,10 +19,16 @@ import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/d
 
 import * as TE from "fp-ts/lib/TaskEither";
 import { context as contextMock } from "../../__mocks__/durable-functions";
-import { aCosmosResourceMetadata } from "../../__mocks__/mocks";
+import {
+  aCosmosResourceMetadata,
+  aPnThirdPartyData
+} from "../../__mocks__/mocks";
 import { GetMessageHandler } from "../handler";
 import { Service } from "@pagopa/io-functions-commons/dist/src/models/service";
-import { aRetrievedService } from "../../__mocks__/mocks.service_preference";
+import {
+  aRetrievedService,
+  aServiceId
+} from "../../__mocks__/mocks.service_preference";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { PaymentData } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentData";
 import { PaymentAmount } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentAmount";
@@ -35,7 +41,8 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as msgUtil from "../../utils/messages";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
-import { InternalMessageResponseWithContent } from "@pagopa/io-functions-commons/dist/generated/definitions/InternalMessageResponseWithContent";
+import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
+import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aDate = new Date();
@@ -48,7 +55,7 @@ const aNewMessageWithoutContent: NewMessageWithoutContent = {
   indexedId: "A_MESSAGE_ID" as NonEmptyString,
   isPending: true,
   kind: "INewMessageWithoutContent",
-  senderServiceId: "test" as ServiceId,
+  senderServiceId: aServiceId,
   senderUserId: "u123" as NonEmptyString,
   timeToLiveSeconds: 3600 as TimeToLiveSeconds
 };
@@ -125,6 +132,12 @@ jest
   .spyOn(msgUtil, "getOrCacheService")
   .mockImplementation(getOrCacheServiceMock);
 
+const dummyThirdPartyDataWithCategoryFetcher: msgUtil.ThirdPartyDataWithCategoryFetcher = jest
+  .fn()
+  .mockImplementation(() => ({
+    category: TagEnumBase.GENERIC
+  }));
+
 describe("GetMessageHandler", () => {
   afterEach(() => jest.clearAllMocks());
   it("should fail if any error occurs trying to retrieve the message content", async () => {
@@ -136,7 +149,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -169,7 +183,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -200,7 +215,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -232,7 +248,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -274,6 +291,63 @@ describe("GetMessageHandler", () => {
     }
   });
 
+  it("should respond with an enriched message when a PN third-party-data is provided ", async () => {
+    const thirdPartyFetcherForAServiceId = serviceId => ({
+      category: serviceId == aServiceId ? TagEnumPN.PN : TagEnumBase.GENERIC
+    });
+
+    getContentFromBlobMock.mockImplementationOnce(() =>
+      TE.of(
+        O.some({
+          ...aMessageContent,
+          third_party_data: aPnThirdPartyData
+        })
+      )
+    );
+    const getMessageHandler = GetMessageHandler(
+      mockMessageModel as any,
+      mockMessageStatusModel as any,
+      {} as any,
+      mockServiceModel as any,
+      {} as any,
+      aServiceCacheTTL,
+      thirdPartyFetcherForAServiceId
+    );
+
+    const result = await getMessageHandler(
+      contextMock as any,
+      aFiscalCode,
+      aRetrievedMessageWithoutContent.id,
+      O.some(true)
+    );
+
+    expect(mockMessageModel.getContentFromBlob).toHaveBeenCalledTimes(1);
+    expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledTimes(1);
+    expect(mockMessageModel.findMessageForRecipient).toHaveBeenCalledWith(
+      aRetrievedMessageWithoutContent.fiscalCode,
+      aRetrievedMessageWithoutContent.id
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        ...aPublicExtendedMessageResponse,
+        message: {
+          ...aPublicExtendedMessageResponse.message,
+          category: {
+            tag: TagEnumPN.PN,
+            ...aPnThirdPartyData
+          },
+          content: {
+            ...aMessageContent,
+            third_party_data: aPnThirdPartyData
+          },
+          ...anEnrichedMessageResponse
+        }
+      });
+    }
+  });
+
   it("should respond with a message", async () => {
     const getMessageHandler = GetMessageHandler(
       mockMessageModel as any,
@@ -281,7 +355,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -335,7 +410,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -371,7 +447,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -402,7 +479,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -455,7 +533,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(
@@ -491,7 +570,8 @@ describe("GetMessageHandler", () => {
       {} as any,
       mockServiceModel as any,
       {} as any,
-      aServiceCacheTTL
+      aServiceCacheTTL,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const result = await getMessageHandler(

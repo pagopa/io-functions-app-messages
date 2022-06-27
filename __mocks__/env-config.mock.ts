@@ -7,6 +7,8 @@ const aBlacklistedFiscalCode = "AAAAAA00A00H501I" as FiscalCode;
 export const envConfig: IConfig = {
   isProduction: false,
 
+  APPINSIGHTS_INSTRUMENTATIONKEY: "an-appinsights-key" as NonEmptyString,
+
   COSMOSDB_KEY: "aKey" as NonEmptyString,
   COSMOSDB_NAME: "aName" as NonEmptyString,
   COSMOSDB_URI: "aUri" as NonEmptyString,
@@ -23,5 +25,7 @@ export const envConfig: IConfig = {
   FF_CANARY_USERS_REGEX: "XYZ" as NonEmptyString,
 
   NODE_ENV: "production",
-  REQ_SERVICE_ID: undefined
+  REQ_SERVICE_ID: undefined,
+
+  PN_SERVICE_ID: "a-pn-service-id" as NonEmptyString
 };

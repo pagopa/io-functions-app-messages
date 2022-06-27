@@ -24,6 +24,7 @@ import {
   enrichMessagesStatus
 } from "../../utils/messages";
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
+import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 import { EnrichedMessageWithContent } from "./models";
 
@@ -53,7 +54,8 @@ const filterMessages = (shouldGetArchivedMessages: boolean) => (
 export const getMessagesFromFallback = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusExtendedQueryModel,
-  blobService: BlobService
+  blobService: BlobService,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): IGetMessagesFunction => ({
   context,
   fiscalCode,
@@ -100,7 +102,12 @@ export const getMessagesFromFallback = (
             ),
             ...pipe(
               A.rights(x),
-              enrichContentData(context, messageModel, blobService)
+              enrichContentData(
+                context,
+                messageModel,
+                blobService,
+                categoryFetcher
+              )
             )
           ])
         ),

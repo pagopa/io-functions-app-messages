@@ -12,3 +12,5 @@ export const COSMOSDB_NAME = process.env.COSMOSDB_NAME;
 export const FF_TYPE = process.env.FF_TYPE;
 
 export const MESSAGE_CONTAINER_NAME = process.env.MESSAGE_CONTAINER_NAME;
+
+export const PN_SERVICE_ID = process.env.PN_SERVICE_ID;

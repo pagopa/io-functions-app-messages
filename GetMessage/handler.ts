@@ -49,7 +49,11 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as TE from "fp-ts/lib/TaskEither";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
-import { getOrCacheService, mapMessageCategory } from "../utils/messages";
+import {
+  getOrCacheService,
+  mapMessageCategory,
+  ThirdPartyDataWithCategoryFetcher
+} from "../utils/messages";
 
 /**
  * Type of a GetMessage handler.
@@ -141,7 +145,8 @@ export function GetMessageHandler(
   blobService: BlobService,
   serviceModel: ServiceModel,
   redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
+  serviceCacheTtl: NonNegativeInteger,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): IGetMessageHandler {
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   return async (context, fiscalCode, messageId, maybePublicMessage) => {
@@ -233,7 +238,11 @@ export function GetMessageHandler(
             TE.map(({ messageStatus, service }) =>
               O.some({
                 category: pipe(
-                  mapMessageCategory(publicMessage, messageContent),
+                  mapMessageCategory(
+                    publicMessage,
+                    messageContent,
+                    categoryFetcher
+                  ),
                   category =>
                     category?.tag !== TagEnumPayment.PAYMENT
                       ? category
@@ -288,7 +297,8 @@ export function GetMessage(
   blobService: BlobService,
   serviceModel: ServiceModel,
   redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
+  serviceCacheTtl: NonNegativeInteger,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): express.RequestHandler {
   const handler = GetMessageHandler(
     messageModel,
@@ -296,7 +306,8 @@ export function GetMessage(
     blobService,
     serviceModel,
     redisClient,
-    serviceCacheTtl
+    serviceCacheTtl,
+    categoryFetcher
   );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),

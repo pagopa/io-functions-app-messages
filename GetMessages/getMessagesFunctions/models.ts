@@ -12,6 +12,7 @@ import { enumType, withDefault } from "@pagopa/ts-commons/lib/types";
 
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { MessageCategoryBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
+import { MessageCategoryPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 
 // ---------------------------------------
@@ -38,7 +39,7 @@ export type InternalMessageCategoryPayment = t.TypeOf<
 // ---------------------------------------
 
 export const InternalMessageCategory = t.union(
-  [InternalMessageCategoryPayment, MessageCategoryBase],
+  [InternalMessageCategoryPayment, MessageCategoryBase, MessageCategoryPN],
   "MessageCategory"
 );
 

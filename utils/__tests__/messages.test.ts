@@ -23,14 +23,15 @@ import {
   CreatedMessageWithoutContentWithStatus,
   enrichContentData,
   enrichServiceData,
-  mapMessageCategory
+  getThirdPartyDataWithCategoryFetcher,
+  mapMessageCategory,
+  ThirdPartyDataWithCategoryFetcher
 } from "../messages";
 import {
   MessageModel,
   NewMessageWithoutContent,
   RetrievedMessageWithoutContent
 } from "@pagopa/io-functions-commons/dist/src/models/message";
-import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
@@ -42,6 +43,15 @@ import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/gen
 import * as redis from "../redis_storage";
 import { EnrichedMessageWithContent } from "../../GetMessages/getMessagesFunctions/models";
 import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
+import { TelemetryClient } from "applicationinsights";
+import { IConfig } from "../config";
+import { TagEnum as TagEnumPn } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
+
+const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
+  .fn()
+  .mockImplementation(_serviceId => ({
+    category: TagEnumBase.GENERIC
+  }));
 
 const anOrganizationFiscalCode = "01234567890" as OrganizationFiscalCode;
 
@@ -163,7 +173,11 @@ const messagesWithGenericContent: readonly EnrichedMessageWithContent[] = messag
     ...m,
     id: m.id as NonEmptyString,
     message_title: mockedGenericContent.subject,
-    category: mapMessageCategory(m, mockedGenericContent)
+    category: mapMessageCategory(
+      m,
+      mockedGenericContent,
+      dummyThirdPartyDataWithCategoryFetcher
+    )
   })
 );
 
@@ -172,7 +186,11 @@ const messagesWithPaymentContent: EnrichedMessageWithContent[] = messages.map(
     ...m,
     id: m.id as NonEmptyString,
     message_title: mockedPaymentContent.subject,
-    category: mapMessageCategory(m, mockedPaymentContent)
+    category: mapMessageCategory(
+      m,
+      mockedPaymentContent,
+      dummyThirdPartyDataWithCategoryFetcher
+    )
   })
 );
 
@@ -204,7 +222,8 @@ describe("enrichContentData", () => {
     const enrichMessages = enrichContentData(
       functionsContextMock,
       messageModelMock,
-      blobServiceMock
+      blobServiceMock,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -236,7 +255,8 @@ describe("enrichContentData", () => {
     const enrichMessages = enrichContentData(
       functionsContextMock,
       messageModelMock,
-      blobServiceMock
+      blobServiceMock,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -267,7 +287,8 @@ describe("enrichContentData", () => {
     const enrichMessages = enrichContentData(
       functionsContextMock,
       messageModelMock,
-      blobServiceMock
+      blobServiceMock,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -298,7 +319,8 @@ describe("enrichContentData", () => {
     const enrichMessages = enrichContentData(
       functionsContextMock,
       messageModelMock,
-      blobServiceMock
+      blobServiceMock,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -335,7 +357,8 @@ describe("enrichContentData", () => {
     const enrichMessages = enrichContentData(
       functionsContextMock,
       messageModelMock,
-      blobServiceMock
+      blobServiceMock,
+      dummyThirdPartyDataWithCategoryFetcher
     );
 
     const enrichedMessagesPromises = enrichMessages(messages);
@@ -549,5 +572,37 @@ describe("enrichServiceData", () => {
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
       `Cannot enrich service data | Error: EMPTY_SERVICE, ServiceId=${aRetrievedMessageWithoutContent.senderServiceId}`
     );
+  });
+});
+
+const mockTelemetryClient = ({
+  trackEvent: jest.fn(),
+  trackException: jest.fn()
+} as unknown) as TelemetryClient;
+const aPnServiceId = "a-pn-service-id" as NonEmptyString;
+const dummyConfig = { PN_SERVICE_ID: aPnServiceId } as IConfig;
+
+describe("getThirdPartyDataWithCategoryFetcher", () => {
+  it("GIVEN a pn service id WHEN get category fetcher is called THEN return PN category", () => {
+    const result = getThirdPartyDataWithCategoryFetcher(
+      dummyConfig,
+      mockTelemetryClient
+    )(aPnServiceId);
+    expect(result.category).toEqual(TagEnumPn.PN);
+    expect(mockTelemetryClient.trackException).toBeCalledTimes(0);
+  });
+
+  it("GIVEN a generic service id WHEN get category fetcher is called THEN return GENERIC category", () => {
+    const result = getThirdPartyDataWithCategoryFetcher(
+      dummyConfig,
+      mockTelemetryClient
+    )(aService.serviceId);
+    expect(result.category).toEqual(TagEnumBase.GENERIC);
+    expect(mockTelemetryClient.trackException).toBeCalledTimes(1);
+    expect(mockTelemetryClient.trackException).toBeCalledWith({
+      exception: Error(
+        `Missing third-party service configuration for ${aService.serviceId}`
+      )
+    });
   });
 });

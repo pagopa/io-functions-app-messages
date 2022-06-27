@@ -24,6 +24,7 @@ import {
   UserDataProcessingId
 } from "@pagopa/io-functions-commons/dist/src/models/user_data_processing";
 import { CosmosResource } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 
 export const aEmail = "email@example.com" as EmailString;
 export const aEmailChanged = "email.changed@example.com" as EmailString;
@@ -163,4 +164,12 @@ export const aWipRetrievedUserDataProcessing: RetrievedUserDataProcessing = {
 export const aAbortedRetrievedUserDataProcessing: RetrievedUserDataProcessing = {
   ...aRetrievedUserDataProcessing,
   status: aAbortedUserDataProcessingStatus
+};
+
+export const aPnThirdPartyData: ThirdPartyData = {
+  id: "a-pn-id" as NonEmptyString,
+  original_sender: "an-original-sender" as NonEmptyString,
+  original_receipt_date: new Date(),
+  has_attachments: true,
+  summary: "a-summary" as NonEmptyString
 };

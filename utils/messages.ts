@@ -1,8 +1,10 @@
+/* eslint-disable @typescript-eslint/explicit-function-return-type */
 import { Context } from "@azure/functions";
 import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { EUCovidCert } from "@pagopa/io-functions-commons/dist/generated/definitions/EUCovidCert";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
+import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/message";
 import {
   RetrievedService,
@@ -28,9 +30,10 @@ import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/mo
 import { parse } from "fp-ts/lib/Json";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { LegalData } from "@pagopa/io-functions-commons/dist/generated/definitions/LegalData";
-
+import { TelemetryClient } from "applicationinsights";
+import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
+import { LegalData } from "@pagopa/io-functions-commons/dist/generated/definitions/LegalData";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import * as AI from "../utils/AsyncIterableTask";
 import {
@@ -40,6 +43,7 @@ import {
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
+import { IConfig } from "./config";
 
 const trackErrorAndContinue = (
   context: Context,
@@ -71,22 +75,40 @@ export type CreatedMessageWithoutContentWithStatus = CreatedMessageWithoutConten
 };
 
 interface IMessageCategoryMapping {
-  readonly tag: MessageCategory["tag"];
-  readonly pattern: t.Type<Partial<MessageContent>>;
+  readonly tag: (
+    message: CreatedMessageWithoutContent,
+    messageContent: MessageContent,
+    categoryFetcher: ThirdPartyDataWithCategoryFetcher
+  ) => MessageCategory["tag"];
+  readonly pattern: t.Type<
+    Partial<typeof MessageContent._A>,
+    Partial<typeof MessageContent._O>
+  >;
   readonly buildOtherCategoryProperties?: (
     m: CreatedMessageWithoutContent,
     c: MessageContent
-  ) => Record<string, string>;
+  ) => Record<string, unknown>;
 }
 
 const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
   {
     pattern: t.interface({ eu_covid_cert: EUCovidCert }),
-    tag: TagEnumBase.EU_COVID_CERT
+    tag: () => TagEnumBase.EU_COVID_CERT
   },
   {
     pattern: t.interface({ legal_data: LegalData }),
-    tag: TagEnumBase.LEGAL_MESSAGE
+    tag: () => TagEnumBase.LEGAL_MESSAGE
+  },
+  {
+    buildOtherCategoryProperties: (_, c): Record<string, unknown> => ({
+      has_attachments: c.third_party_data.has_attachments,
+      id: c.third_party_data.id,
+      original_receipt_date: c.third_party_data.original_receipt_date,
+      original_sender: c.third_party_data.original_sender,
+      summary: c.third_party_data.summary
+    }),
+    pattern: t.interface({ third_party_data: ThirdPartyData }),
+    tag: (metadata, _, fetcher) => fetcher(metadata.sender_service_id).category
   },
   {
     buildOtherCategoryProperties: (_, c): Record<string, string> => ({
@@ -96,13 +118,14 @@ const messageCategoryMappings: ReadonlyArray<IMessageCategoryMapping> = [
       payeeFiscalCode: c.payment_data.payee?.fiscal_code
     }),
     pattern: t.interface({ payment_data: PaymentData }),
-    tag: TagEnumPayment.PAYMENT
+    tag: () => TagEnumPayment.PAYMENT
   }
 ];
 
 export const mapMessageCategory = (
   message: CreatedMessageWithoutContent,
-  messageContent: MessageContent
+  messageContent: MessageContent,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): InternalMessageCategory =>
   pipe(
     messageCategoryMappings,
@@ -111,7 +134,7 @@ export const mapMessageCategory = (
         messageContent,
         mapping.pattern.decode,
         E.fold(constVoid, () => ({
-          tag: mapping.tag,
+          tag: mapping.tag(message, messageContent, categoryFetcher),
           ...pipe(
             O.fromNullable(mapping.buildOtherCategoryProperties),
             O.fold(
@@ -185,7 +208,8 @@ export const getOrCacheService = (
 export const enrichContentData = (
   context: Context,
   messageModel: MessageModel,
-  blobService: BlobService
+  blobService: BlobService,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ) => (
   messages: ReadonlyArray<CreatedMessageWithoutContentWithStatus>
   // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
@@ -210,7 +234,7 @@ export const enrichContentData = (
       A.sequenceS(TE.ApplicativePar),
       TE.map(({ content }) => ({
         ...message,
-        category: mapMessageCategory(message, content),
+        category: mapMessageCategory(message, content, categoryFetcher),
         has_attachments: content.legal_data?.has_attachment ?? false,
         id: message.id as NonEmptyString,
         message_title: content.subject
@@ -355,4 +379,33 @@ export const enrichMessagesStatus = (
       )
     ),
     TE.toUnion
+  );
+
+export interface IThirdPartyDataWithCategory {
+  readonly category: Exclude<MessageCategory["tag"], TagEnumPayment>;
+}
+export type ThirdPartyDataWithCategoryFetcher = (
+  serviceId: ServiceId
+) => IThirdPartyDataWithCategory;
+
+export const getThirdPartyDataWithCategoryFetcher: (
+  config: IConfig,
+  telemetryClient: TelemetryClient
+) => ThirdPartyDataWithCategoryFetcher = (
+  config,
+  telemetryClient
+) => serviceId =>
+  pipe(
+    serviceId,
+    E.fromPredicate(
+      id => id === config.PN_SERVICE_ID,
+      id => Error(`Missing third-party service configuration for ${id}`)
+    ),
+    E.map(() => TagEnumPN.PN),
+    E.mapLeft(e => telemetryClient.trackException({ exception: e })),
+    E.mapLeft(() => TagEnumBase.GENERIC),
+    E.toUnion,
+    category => ({
+      category
+    })
   );

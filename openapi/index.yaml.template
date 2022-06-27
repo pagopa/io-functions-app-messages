@@ -384,6 +384,8 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageCategoryBase"
   MessageCategoryPayment:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageCategoryPayment"
+  MessageCategoryPN:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageCategoryPN"
   MessageStatus:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/MessageStatus"
   MessageStatusAttributes:
@@ -404,3 +406,5 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/CreatedMessageWithContentResponse"
   InternalMessageResponseWithContent:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/InternalMessageResponseWithContent"
+  ThirdPartyData:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/ThirdPartyData"

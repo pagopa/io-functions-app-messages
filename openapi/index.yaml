@@ -304,6 +304,8 @@ definitions:
             $ref: '#/definitions/PrescriptionData'
           eu_covid_cert:
             $ref: '#/definitions/EUCovidCert'
+          third_party_data:
+            $ref: '#/definitions/ThirdPartyData'
           legal_data:
             $ref: '#/definitions/LegalData'
   CIDR:
@@ -805,6 +807,8 @@ definitions:
             $ref: '#/definitions/LegalData'
           eu_covid_cert:
             $ref: '#/definitions/EUCovidCert'
+          third_party_data:
+            $ref: '#/definitions/ThirdPartyData'
           due_date:
             $ref: '#/definitions/Timestamp'
   MessageContentBase:
@@ -1190,6 +1194,7 @@ definitions:
     allOf:
       - $ref: '#/definitions/MessageCategoryPayment'
       - $ref: '#/definitions/MessageCategoryBase'
+      - $ref: '#/definitions/MessageCategoryPN'
   LegalData:
     type: object
     properties:
@@ -1234,6 +1239,17 @@ definitions:
     required:
       - tag
       - rptId
+  MessageCategoryPN:
+    allOf:
+      - $ref: '#/definitions/ThirdPartyData'
+      - type: object
+        properties:
+          tag:
+            type: string
+            enum:
+              - PN
+        required:
+          - tag
   MessageStatus:
     type: object
     properties:
@@ -1328,3 +1344,29 @@ definitions:
         $ref: '#/definitions/MessageStatusValue'
     required:
       - message
+  ThirdPartyData:
+    type: object
+    description: >-
+      Payload containing all information needed to retrieve and visualize third
+      party message details
+    properties:
+      id:
+        type: string
+        description: >-
+          Unique id for retrieving third party enriched information about the
+          message
+        minLength: 1
+      original_sender:
+        type: string
+        description: Either a ServiceId or a simple string representing the sender name
+        minLength: 1
+      original_receipt_date:
+        $ref: '#/definitions/Timestamp'
+      has_attachments:
+        type: boolean
+        default: false
+      summary:
+        type: string
+        minLength: 1
+    required:
+      - id

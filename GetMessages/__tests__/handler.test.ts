@@ -15,7 +15,10 @@ import {
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { aCosmosResourceMetadata } from "../../__mocks__/mocks";
+import {
+  aCosmosResourceMetadata,
+  aPnThirdPartyData
+} from "../../__mocks__/mocks";
 import {
   aRetrievedService,
   aServiceId
@@ -33,6 +36,7 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { Context } from "@azure/functions";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
+import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
@@ -49,6 +53,8 @@ import { PaymentAmount } from "@pagopa/io-functions-commons/dist/generated/defin
 import { PaymentNoticeNumber } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentNoticeNumber";
 import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentDataWithRequiredPayee";
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
+import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
+import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -250,6 +256,12 @@ jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
 const aRedisClient = {} as any;
 const aServiceCacheTtl = 10 as NonNegativeInteger;
 
+const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
+  .fn()
+  .mockImplementation(() => ({
+    category: TagEnumBase.GENERIC
+  }));
+
 // ---------------------
 // Tests
 // ---------------------
@@ -273,7 +285,12 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [errorMessageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        errorMessageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -307,7 +324,12 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -345,7 +367,12 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -388,7 +415,12 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -437,7 +469,12 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -485,7 +522,12 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -538,7 +580,12 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -619,7 +666,12 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -689,7 +741,12 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -743,6 +800,88 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
+  it("should respond with a pn message when third_party_data is defined", async () => {
+    const thirdPartyFetcherForAServiceId = serviceId => ({
+      category: serviceId == aServiceId ? TagEnumPN.PN : TagEnumBase.GENERIC
+    });
+
+    const messageIterator = getMockIterator(aMessageList);
+    const messageModelMock = getMessageModelMock(messageIterator);
+
+    messageModelMock.getContentFromBlob = jest.fn().mockImplementation(() =>
+      TE.of(
+        O.some({
+          subject: "a subject",
+          markdown: "a markdown",
+          third_party_data: aPnThirdPartyData
+        } as MessageContent)
+      )
+    );
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [],
+      "XYZ" as NonEmptyString,
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        thirdPartyFetcherForAServiceId
+      ],
+      [messageViewModelMock]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.none,
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+
+    const expectedEnrichedMessage = {
+      ...retrievedMessageToPublic(aSimpleList[0]),
+      category: {
+        tag: TagEnumPN.PN,
+        ...aPnThirdPartyData
+      },
+      has_attachments: false,
+      message_title: "a subject",
+      is_archived: false,
+      is_read: false,
+      organization_name: aRetrievedService.organizationName,
+      service_name: aRetrievedService.serviceName
+    };
+
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        items: [
+          { ...expectedEnrichedMessage, id: aSimpleList[0].id },
+          { ...expectedEnrichedMessage, id: aSimpleList[1].id }
+        ],
+        prev: aSimpleList[0].id,
+        next: aSimpleList[1].id
+      });
+    }
+
+    expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
   it("should respond with a payment message with rptId using service fiscal code, if payee is not defined", async () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
@@ -762,7 +901,12 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -825,7 +969,12 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -882,7 +1031,12 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -943,7 +1097,12 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -996,7 +1155,12 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       "none",
       [],
       "XYZ" as NonEmptyString,
-      [messageModelMock, messageStatusModelMock, blobServiceMock],
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
       [messageViewModelMock]
     );
 
@@ -1060,7 +1224,8 @@ describe("GetMessagesHandler |> Message View", () => {
     [
       {} as MessageModel,
       {} as MessageStatusExtendedQueryModel,
-      {} as BlobService
+      {} as BlobService,
+      dummyThirdPartyDataWithCategoryFetcher
     ],
     [messageViewModelMock]
   );

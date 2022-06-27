@@ -24,6 +24,8 @@ import { getConfigOrThrow } from "../utils/config";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import { REDIS_CLIENT } from "../utils/redis";
 import { MessageViewExtendedQueryModel } from "../model/message_view_query";
+import { initTelemetryClient } from "../utils/appinsights";
+import { getThirdPartyDataWithCategoryFetcher } from "../utils/messages";
 import { GetMessages } from "./handler";
 import { createGetMessagesFunctionSelection } from "./getMessagesFunctions/getMessages.selector";
 
@@ -51,12 +53,19 @@ const messageViewModel = new MessageViewExtendedQueryModel(
 
 const blobService = createBlobService(config.QueueStorageConnection);
 
+const telemetryClient = initTelemetryClient();
+
 const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
   config.USE_FALLBACK,
   config.FF_TYPE,
   config.FF_BETA_TESTER_LIST,
   config.FF_CANARY_USERS_REGEX,
-  [messageModel, messageStatusModel, blobService],
+  [
+    messageModel,
+    messageStatusModel,
+    blobService,
+    getThirdPartyDataWithCategoryFetcher(config, telemetryClient)
+  ],
   [messageViewModel]
 );
 

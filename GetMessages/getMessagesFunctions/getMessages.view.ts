@@ -11,21 +11,20 @@ import {
   CosmosErrors,
   toCosmosErrorResponse
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import {
-  Components,
-  RetrievedMessageView
-} from "@pagopa/io-functions-commons/dist/src/models/message_view";
+import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import * as AI from "../../utils/AsyncIterableTask";
 
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
+import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
 import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 
 export const getMessagesFromView = (
-  messageViewModel: MessageViewExtendedQueryModel
+  messageViewModel: MessageViewExtendedQueryModel,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): IGetMessagesFunction => ({
   context,
   fiscalCode,
@@ -66,7 +65,7 @@ export const getMessagesFromView = (
             RetrievedMessageView
           >).map(
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
-            toEnrichedMessageWithContent
+            toEnrichedMessageWithContent(categoryFetcher)
           )
         })),
         TE.mapLeft(err => {
@@ -84,10 +83,10 @@ export const getMessagesFromView = (
  * Map `RetrievedMessageView` to `EnrichedMessageWithContent`
  */
 export const toEnrichedMessageWithContent = (
-  item: RetrievedMessageView
-): EnrichedMessageWithContent => ({
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
+) => (item: RetrievedMessageView): EnrichedMessageWithContent => ({
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  category: toCategory(item.components),
+  category: toCategory(categoryFetcher)(item),
   created_at: item.createdAt,
   fiscal_code: item.fiscalCode,
   has_attachments: item.components.attachments.has,
@@ -102,17 +101,28 @@ export const toEnrichedMessageWithContent = (
 /**
  * Map components to `InternalMessageCategory`
  */
-const toCategory = (itemComponents: Components): InternalMessageCategory =>
-  itemComponents.euCovidCert.has
+const toCategory = (categoryFetcher: ThirdPartyDataWithCategoryFetcher) => ({
+  components,
+  senderServiceId
+}: RetrievedMessageView): InternalMessageCategory =>
+  components.euCovidCert.has
     ? { tag: TagEnum.EU_COVID_CERT }
-    : itemComponents.legalData.has
+    : components.legalData.has
     ? { tag: TagEnum.LEGAL_MESSAGE }
-    : itemComponents.payment.has
+    : components.thirdParty.has
+    ? {
+        has_attachments: components.thirdParty.has_attachments,
+        id: components.thirdParty.id,
+        original_receipt_date: components.thirdParty.original_receipt_date,
+        original_sender: components.thirdParty.original_sender,
+        summary: components.thirdParty.summary,
+        tag: categoryFetcher(senderServiceId).category
+      }
+    : components.payment.has
     ? {
         // Ignore ts error since we've already checked payment.has to be true
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        noticeNumber: itemComponents.payment.notice_number as NonEmptyString,
+        noticeNumber: (components.payment
+          .notice_number as unknown) as NonEmptyString,
         tag: TagEnumPayment.PAYMENT
       }
     : { tag: TagEnum.GENERIC };

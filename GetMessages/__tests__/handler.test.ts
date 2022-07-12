@@ -55,6 +55,7 @@ import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
+import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -256,7 +257,7 @@ jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
 const aRedisClient = {} as any;
 const aServiceCacheTtl = 10 as NonNegativeInteger;
 
-const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
+const dummyThirdPartyDataWithCategoryFetcher = jest
   .fn()
   .mockImplementation(() => ({
     category: TagEnumBase.GENERIC
@@ -291,7 +292,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -330,7 +331,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -373,7 +374,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -421,7 +422,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -475,7 +476,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -528,7 +529,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -586,7 +587,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -672,7 +673,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -747,7 +748,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -829,7 +830,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         blobServiceMock,
         thirdPartyFetcherForAServiceId
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -907,7 +908,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -975,7 +976,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1037,7 +1038,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1103,7 +1104,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1161,7 +1162,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock]
+      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1227,7 +1228,7 @@ describe("GetMessagesHandler |> Message View", () => {
       {} as BlobService,
       dummyThirdPartyDataWithCategoryFetcher
     ],
-    [messageViewModelMock]
+    [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -1265,7 +1266,9 @@ describe("GetMessagesHandler |> Message View", () => {
     expect(result.kind).toBe("IResponseSuccessJson");
 
     const expectedEnrichedMessage = {
-      ...toEnrichedMessageWithContent(aSimpleList[0]),
+      ...toEnrichedMessageWithContent(dummyThirdPartyDataWithCategoryFetcher)(
+        aSimpleList[0]
+      ),
       category: {
         rptId: `${aRetrievedService.organizationFiscalCode}177777777777777777`,
         tag: "PAYMENT"
@@ -1286,6 +1289,75 @@ describe("GetMessagesHandler |> Message View", () => {
     }
 
     expect(iteratorCalls).toEqual(1);
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should respond with a page with a PN message if the sender service id match PN one", async () => {
+    const aPnMessageList: ReadonlyArray<RetrievedMessageView> = pipe(
+      RA.makeBy(5, i => ({
+        ...aRetrievedMessageView,
+        id: `aMessageId_${i + 1}` as NonEmptyString,
+        senderServiceId: aServiceId,
+        components: {
+          ...aRetrievedMessageView.components,
+          thirdParty: { has: true, ...aPnThirdPartyData }
+        }
+      })),
+      RA.map(RetrievedMessageView.decode),
+      RA.rights
+    );
+    expect(aPnMessageList.length).toBe(5);
+
+    let iteratorCalls = 0;
+    dummyThirdPartyDataWithCategoryFetcher.mockImplementationOnce(
+      serviceId => ({
+        category: serviceId == aServiceId ? TagEnumPN.PN : TagEnumBase.GENERIC
+      })
+    );
+    mockQueryPage.mockImplementationOnce(_ => {
+      return TE.of(
+        buildIterator(RetrievedMessageView, aPnMessageList, _ => {
+          iteratorCalls++;
+        })
+      );
+    });
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      aRedisClient,
+      aServiceCacheTtl
+    );
+
+    const pageSize = 1 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.none,
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual(
+        expect.objectContaining({
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              category: {
+                ...aPnThirdPartyData,
+                tag: TagEnumPN.PN
+              }
+            })
+          ])
+        })
+      );
+    }
+
+    expect(dummyThirdPartyDataWithCategoryFetcher).toBeCalledWith(aServiceId);
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
@@ -1373,7 +1445,9 @@ describe("GetMessagesHandler |> Message View", () => {
     expect(result.kind).toBe("IResponseSuccessJson");
 
     const expectedEnrichedMessage = {
-      ...toEnrichedMessageWithContent(aSimpleList[0]),
+      ...toEnrichedMessageWithContent(dummyThirdPartyDataWithCategoryFetcher)(
+        aSimpleList[0]
+      ),
       category: {
         rptId: `${aRetrievedService.organizationFiscalCode}177777777777777777`,
         tag: "PAYMENT"

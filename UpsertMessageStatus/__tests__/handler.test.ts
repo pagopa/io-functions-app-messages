@@ -3,7 +3,7 @@
 import * as TE from "fp-ts/TaskEither";
 import * as O from "fp-ts/Option";
 
-import { context as contextMock } from "../../__mocks__/durable-functions";
+import { context as contextMock } from "../../__mocks__/context";
 import { aFiscalCode } from "../../__mocks__/mocks";
 import { UpsertMessageStatusHandler } from "../handler";
 import {

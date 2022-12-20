@@ -18,7 +18,7 @@ import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitio
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 
 import * as TE from "fp-ts/lib/TaskEither";
-import { context as contextMock } from "../../__mocks__/durable-functions";
+import { context as contextMock } from "../../__mocks__/context";
 import {
   aCosmosResourceMetadata,
   aPnThirdPartyData

@@ -1,4 +1,4 @@
-# IO Functions for IO App Messages
+# IO Functions for IO App
 
 This project implements the APIs to enable the functionalities implemented in
 the IO app. The APIs are called by the app backend.

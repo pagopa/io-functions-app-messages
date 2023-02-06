@@ -459,8 +459,12 @@ definitions:
         $ref: '#/definitions/IsEmailEnabled'
       is_email_validated:
         $ref: '#/definitions/IsEmailValidated'
+      reminder_status:
+        $ref: '#/definitions/ReminderStatus'
       is_test_profile:
         $ref: '#/definitions/IsTestProfile'
+      last_app_version:
+        $ref: '#/definitions/AppVersion'
       version:
         type: integer
     required:
@@ -646,6 +650,10 @@ definitions:
         $ref: '#/definitions/IsWebhookEnabled'
       is_email_enabled:
         $ref: '#/definitions/IsEmailEnabled'
+      reminder_status:
+        $ref: '#/definitions/ReminderStatus'
+      last_app_version:
+        $ref: '#/definitions/AppVersion'
       version:
         type: integer
     required:
@@ -923,7 +931,10 @@ definitions:
       webhook:
         $ref: '#/definitions/NotificationChannelStatusValue'
   MessageStatusValue:
-    type: string
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/RejectedMessageStatusValue'
+      - $ref: '#/definitions/NotRejectedMessageStatusValue'
     description: >-
       The processing status of a message.
 
@@ -941,13 +952,6 @@ definitions:
         we'll try to send a notification for each of the selected channels
       "REJECTED": either the recipient does not exist, or the sender has been
       blocked
-    x-extensible-enum:
-      - ACCEPTED
-      - THROTTLED
-      - FAILED
-      - PROCESSED
-      - REJECTED
-    example: ACCEPTED
   ServiceTupleCollection:
     description: A collection of services tuples (service and version)
     type: object
@@ -1073,27 +1077,37 @@ definitions:
       - AUTO
       - MANUAL
   ServicePreference:
-    description: >-
-      Define a set of preferences of a Citizen for a given Service.
+    description: |-
+      Return the set of preferences of a Citizen for a given Service.
+      It's needed by Citizens to read previoulsy expressed preferences.
+    allOf:
+      - description: >-
+          Define a set of required preferences of a Citizen for a given Service.
 
-      It's needed by Citizens to express how they want Services to get in touch
-      with them.
-    type: object
-    properties:
-      is_email_enabled:
-        type: boolean
-      is_inbox_enabled:
-        type: boolean
-      is_webhook_enabled:
-        type: boolean
-      settings_version:
-        type: integer
-        minimum: 0
-    required:
-      - is_email_enabled
-      - is_inbox_enabled
-      - is_webhook_enabled
-      - settings_version
+          It's needed by Citizens to express how they want Services to get in
+          touch with them.
+        type: object
+        properties:
+          is_email_enabled:
+            type: boolean
+          is_inbox_enabled:
+            type: boolean
+          is_webhook_enabled:
+            type: boolean
+          settings_version:
+            type: integer
+            minimum: 0
+        required:
+          - is_email_enabled
+          - is_inbox_enabled
+          - is_webhook_enabled
+          - settings_version
+      - type: object
+        properties:
+          can_access_message_read_status:
+            type: boolean
+        required:
+          - can_access_message_read_status
   MessageResponseWithoutContent:
     type: object
     properties:
@@ -1370,3 +1384,26 @@ definitions:
         minLength: 1
     required:
       - id
+  ReminderStatus:
+    type: string
+    x-extensible-enum:
+      - ENABLED
+      - DISABLED
+    example: ENABLED
+    description: Api definition of reminder opt-in status
+  AppVersion:
+    type: string
+    pattern: ^((0|[1-9]\\d*)\\.){2}(0|[1-9]\\d*)(\\.(0|[1-9]\\d*)){0,1}$
+    description: A string field in Semantic Versioning format
+    example: 1.10.11
+  NotRejectedMessageStatusValue:
+    type: string
+    x-extensible-enum:
+      - ACCEPTED
+      - THROTTLED
+      - FAILED
+      - PROCESSED
+  RejectedMessageStatusValue:
+    type: string
+    x-extensible-enum:
+      - REJECTED

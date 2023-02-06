@@ -1,4 +1,4 @@
-import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
+import { NotRejectedMessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/NotRejectedMessageStatusValue";
 import {
   MessageStatus,
   RetrievedMessageStatus
@@ -20,7 +20,7 @@ export const aCosmosResourceMetadata: Omit<CosmosResource, "id"> = {
 
 export const aMessageStatus: MessageStatus = {
   messageId: aMessageId,
-  status: MessageStatusValueEnum.PROCESSED,
+  status: NotRejectedMessageStatusValueEnum.PROCESSED,
   updatedAt: new Date(),
   isArchived: false,
   isRead: false

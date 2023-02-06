@@ -39,7 +39,7 @@ import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/gen
 import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
-import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
+import { NotRejectedMessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/NotRejectedMessageStatusValue";
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
 import { pipe } from "fp-ts/lib/function";
 import * as redis from "../../utils/redis_storage";
@@ -65,7 +65,7 @@ const aRetrievedMessageStatus: RetrievedMessageStatus = {
   ...aCosmosResourceMetadata,
   id: "1" as NonEmptyString,
   messageId: "1" as NonEmptyString,
-  status: MessageStatusValueEnum.PROCESSED,
+  status: NotRejectedMessageStatusValueEnum.PROCESSED,
   updatedAt: new Date(),
   version: 2 as NonNegativeInteger,
   isRead: false,

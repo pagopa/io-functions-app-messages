@@ -10,7 +10,7 @@
     "prestart": "npm run build && func extensions install --javascript",
     "start:host": "func start --javascript",
     "start": "npm-run-all --parallel start:host watch",
-    "test": "jest",
+    "test": "jest --maxWorkers=3",
     "test:coverage": "jest --coverage",
     "lint": "eslint . -c .eslintrc.js --ext .ts,.tsx",
     "openapi:bundle": "bundle-api-spec -i openapi/index.yaml.template -o openapi/index.yaml -V $npm_package_version",

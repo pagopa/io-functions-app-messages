@@ -229,7 +229,10 @@ describe("enrichContentData", () => {
     const enrichedMessagesPromises = enrichMessages(messages);
 
     const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.tryCatch(
+        async () => Promise.all(enrichedMessagesPromises),
+        () => {}
+      ),
       TE.getOrElse(() => {
         throw Error();
       })
@@ -262,7 +265,10 @@ describe("enrichContentData", () => {
     const enrichedMessagesPromises = enrichMessages(messages);
 
     const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.tryCatch(
+        async () => Promise.all(enrichedMessagesPromises),
+        () => {}
+      ),
       TE.getOrElse(() => {
         throw Error();
       })
@@ -294,7 +300,10 @@ describe("enrichContentData", () => {
     const enrichedMessagesPromises = enrichMessages(messages);
 
     const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.tryCatch(
+        async () => Promise.all(enrichedMessagesPromises),
+        () => {}
+      ),
       TE.getOrElse(() => {
         throw Error();
       })
@@ -326,7 +335,10 @@ describe("enrichContentData", () => {
     const enrichedMessagesPromises = enrichMessages(messages);
 
     const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.tryCatch(
+        async () => Promise.all(enrichedMessagesPromises),
+        () => {}
+      ),
       TE.getOrElse(() => {
         throw Error();
       })
@@ -338,7 +350,7 @@ describe("enrichContentData", () => {
         expect(EnrichedMessageWithContent.is(enrichedMessage.right)).toBe(true);
         expect(enrichedMessage.right.category).toEqual({
           tag: TagEnumPayment.PAYMENT,
-          noticeNumber: mockedPaymentContent.payment_data.notice_number
+          noticeNumber: mockedPaymentContent.payment_data?.notice_number
         });
       }
     });
@@ -364,7 +376,10 @@ describe("enrichContentData", () => {
     const enrichedMessagesPromises = enrichMessages(messages);
 
     const enrichedMessages = await pipe(
-      TE.tryCatch(async () => Promise.all(enrichedMessagesPromises), void 0),
+      TE.tryCatch(
+        async () => Promise.all(enrichedMessagesPromises),
+        () => {}
+      ),
       TE.getOrElse(() => {
         throw Error();
       })
@@ -493,7 +508,7 @@ describe("enrichServiceData", () => {
         expect(EnrichedMessage.is(enrichedMessage)).toBe(true);
         expect(enrichedMessage.category).toEqual({
           tag: TagEnumPayment.PAYMENT,
-          rptId: `${aRetrievedService.organizationFiscalCode}${mockedPaymentContent.payment_data.notice_number}`
+          rptId: `${aRetrievedService.organizationFiscalCode}${mockedPaymentContent.payment_data?.notice_number}`
         });
       });
     }

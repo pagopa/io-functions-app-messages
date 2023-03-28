@@ -96,8 +96,8 @@ export const mockEnrichMessage = (
     has_attachments: false,
     time_to_live: message.timeToLiveSeconds,
     message_title: message.content.subject,
-    service_name: service.serviceName,
-    organization_name: service.organizationName,
+    service_name: service!.serviceName,
+    organization_name: service!.organizationName,
     category: { tag: TagEnumBase.GENERIC },
     is_archived: false,
     is_read: false

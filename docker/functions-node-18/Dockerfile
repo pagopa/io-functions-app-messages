@@ -15,6 +15,6 @@ RUN apt-get update
 RUN apt-get install -y dotnet-sdk-6.0
 
 ENV AzureWebJobsScriptRoot=/usr/src/app \
-    AzureFunctionsJobHost__Logging__Console__IsEnabled=true
+  AzureFunctionsJobHost__Logging__Console__IsEnabled=true
 
 CMD ["func", "start", "--javascript"]

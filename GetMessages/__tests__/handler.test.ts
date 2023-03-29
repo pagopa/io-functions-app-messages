@@ -1086,20 +1086,36 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
   });
 
   it("should respond with internal error when messages cannot be enriched with content", async () => {
-    const messageIterator = getMockIterator(aMessageList);
-    const messageModelMock = getMessageModelMock(messageIterator);
-
-    messageModelMock.getContentFromBlob = jest
+    const getContentFromBlob = jest
       .fn()
-      .mockImplementationOnce(() => TE.left(new Error("GENERIC_ERROR")));
-
+      .mockReturnValue(
+        TE.of(
+          O.some({
+            subject: "a subject",
+            markdown: "a markdown"
+          } as MessageContent)
+        )
+      )
+      .mockReturnValueOnce(TE.left(new Error("GENERIC_ERROR")));
+    const messagesIter = {
+      next: jest
+        .fn()
+        .mockImplementationOnce(async () => ({
+          value: aMessageList
+        }))
+        .mockImplementationOnce(async () => ({ done: true }))
+    };
+    const messageModelMock = {
+      getContentFromBlob,
+      findMessages: jest.fn().mockReturnValue(TE.of(messagesIter))
+    };
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
       [],
       "XYZ" as NonEmptyString,
       [
-        messageModelMock,
+        messageModelMock as any,
         messageStatusModelMock,
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
@@ -1127,7 +1143,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     );
 
     expect(result.kind).toBe("IResponseErrorInternal");
-    expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(messagesIter.next).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
       `Cannot enrich message "${aSimpleList[0].id}" | Error: GENERIC_ERROR`

@@ -14,7 +14,6 @@
     "__mocks__",
     "docker",
     "**/__tests__",
-    "**/__integrations__",
-    "Dangerfile.ts"
+    "**/__integrations__"
   ]
 }

@@ -1,4 +1,4 @@
-FROM node:14.16.0
+FROM node:18.13.0
 
 WORKDIR /usr/src/app
 
@@ -15,6 +15,6 @@ RUN apt-get update
 RUN apt-get install -y dotnet-sdk-6.0
 
 ENV AzureWebJobsScriptRoot=/usr/src/app \
-    AzureFunctionsJobHost__Logging__Console__IsEnabled=true
+  AzureFunctionsJobHost__Logging__Console__IsEnabled=true
 
 CMD ["func", "start", "--javascript"]

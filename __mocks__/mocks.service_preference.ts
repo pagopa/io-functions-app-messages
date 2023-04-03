@@ -4,6 +4,7 @@ import { ServicePreference } from "@pagopa/io-functions-commons/dist/generated/d
 import { Activation } from "@pagopa/io-functions-commons/dist/src/models/activation";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import {
+  AccessReadMessageStatusEnum,
   makeServicesPreferencesDocumentId,
   NewServicePreference,
   RetrievedServicePreference
@@ -19,6 +20,7 @@ export const aNewServicePreference: NewServicePreference = {
   isInboxEnabled: true,
   isWebhookEnabled: true,
   settingsVersion: aServicePreferenceVersion,
+  accessReadMessageStatus: AccessReadMessageStatusEnum.ALLOW,
   fiscalCode: aFiscalCode,
   serviceId: aServiceId,
   kind: "INewServicePreference",
@@ -38,6 +40,7 @@ export const aServicePreference: ServicePreference = {
   is_email_enabled: true,
   is_inbox_enabled: true,
   is_webhook_enabled: true,
+  can_access_message_read_status: true,
   settings_version: aServicePreferenceVersion
 };
 

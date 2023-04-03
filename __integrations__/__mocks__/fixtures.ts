@@ -293,10 +293,10 @@ export const fillMessagesView = async (
           messageTitle: m.content.subject,
           status: {
             archived: messageStatuses.find(ms => ms.messageId === m.id)
-              .isArchived,
+              ?.isArchived,
             processing: messageStatuses.find(ms => ms.messageId === m.id)
-              .status,
-            read: messageStatuses.find(ms => ms.messageId === m.id).isRead
+              ?.status,
+            read: messageStatuses.find(ms => ms.messageId === m.id)?.isRead
           },
           version: 0
         })),

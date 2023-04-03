@@ -408,3 +408,13 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/InternalMessageResponseWithContent"
   ThirdPartyData:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/ThirdPartyData"
+  ReminderStatus:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/ReminderStatus"
+  AppVersion:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/AppVersion"
+  NotRejectedMessageStatusValue:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/NotRejectedMessageStatusValue"
+  RejectedMessageStatusValue:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RejectedMessageStatusValue"
+  PushNotificationsContentType:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/PushNotificationsContentType"

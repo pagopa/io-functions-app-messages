@@ -39,7 +39,7 @@ import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/gen
 import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { RetrievedMessageStatus } from "@pagopa/io-functions-commons/dist/src/models/message_status";
-import { MessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageStatusValue";
+import { NotRejectedMessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/NotRejectedMessageStatusValue";
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
 import { pipe } from "fp-ts/lib/function";
 import * as redis from "../../utils/redis_storage";
@@ -65,7 +65,7 @@ const aRetrievedMessageStatus: RetrievedMessageStatus = {
   ...aCosmosResourceMetadata,
   id: "1" as NonEmptyString,
   messageId: "1" as NonEmptyString,
-  status: MessageStatusValueEnum.PROCESSED,
+  status: NotRejectedMessageStatusValueEnum.PROCESSED,
   updatedAt: new Date(),
   version: 2 as NonNegativeInteger,
   isRead: false,
@@ -1086,20 +1086,36 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
   });
 
   it("should respond with internal error when messages cannot be enriched with content", async () => {
-    const messageIterator = getMockIterator(aMessageList);
-    const messageModelMock = getMessageModelMock(messageIterator);
-
-    messageModelMock.getContentFromBlob = jest
+    const getContentFromBlob = jest
       .fn()
-      .mockImplementationOnce(() => TE.left(new Error("GENERIC_ERROR")));
-
+      .mockReturnValue(
+        TE.of(
+          O.some({
+            subject: "a subject",
+            markdown: "a markdown"
+          } as MessageContent)
+        )
+      )
+      .mockReturnValueOnce(TE.left(new Error("GENERIC_ERROR")));
+    const messagesIter = {
+      next: jest
+        .fn()
+        .mockImplementationOnce(async () => ({
+          value: aMessageList
+        }))
+        .mockImplementationOnce(async () => ({ done: true }))
+    };
+    const messageModelMock = {
+      getContentFromBlob,
+      findMessages: jest.fn().mockReturnValue(TE.of(messagesIter))
+    };
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
       [],
       "XYZ" as NonEmptyString,
       [
-        messageModelMock,
+        messageModelMock as any,
         messageStatusModelMock,
         blobServiceMock,
         dummyThirdPartyDataWithCategoryFetcher
@@ -1127,7 +1143,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     );
 
     expect(result.kind).toBe("IResponseErrorInternal");
-    expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(messagesIter.next).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
       `Cannot enrich message "${aSimpleList[0].id}" | Error: GENERIC_ERROR`

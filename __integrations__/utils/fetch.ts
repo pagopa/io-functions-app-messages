@@ -7,7 +7,10 @@ const customHeaders = {};
 export const getNodeFetch = (
   headers: Partial<typeof customHeaders> = customHeaders,
   showLogs: boolean = false
-) => async (input: RequestInfo, init?: RequestInit): Promise<Response> => {
+) => async (
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> => {
   const headersToAdd = {
     ...(init?.headers ?? {}),
     ...customHeaders,

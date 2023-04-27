@@ -311,7 +311,11 @@ TE.TaskEither<Error, ReadonlyArray<EnrichedMessage>> =>
                     }`,
                     tag: TagEnumPayment.PAYMENT
                   }
-                }
+                },
+          message =>
+            message.category?.tag === TagEnumPN.PN
+              ? { ...message, has_precondition: true }
+              : message
         )
       )
     )

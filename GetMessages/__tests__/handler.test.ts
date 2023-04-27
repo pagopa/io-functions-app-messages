@@ -860,6 +860,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         tag: TagEnumPN.PN,
         ...aPnThirdPartyData
       },
+      has_precondition: true,
       has_attachments: false,
       message_title: "a subject",
       is_archived: false,
@@ -1363,6 +1364,7 @@ describe("GetMessagesHandler |> Message View", () => {
         expect.objectContaining({
           items: expect.arrayContaining([
             expect.objectContaining({
+              has_precondition: true,
               category: {
                 ...aPnThirdPartyData,
                 tag: TagEnumPN.PN

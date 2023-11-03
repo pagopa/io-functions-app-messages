@@ -46,6 +46,7 @@ import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generate
 import { TelemetryClient } from "applicationinsights";
 import { IConfig } from "../config";
 import { TagEnum as TagEnumPn } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
+import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
 
 const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
   .fn()
@@ -619,5 +620,84 @@ describe("getThirdPartyDataWithCategoryFetcher", () => {
         `Missing third-party service configuration for ${aService.serviceId}`
       )
     });
+  });
+});
+
+export const aMessageBodyMarkdown = "test".repeat(80);
+export const aMessageContent = {
+  markdown: aMessageBodyMarkdown,
+  subject: "test".repeat(10)
+};
+
+const aPublicExtendedMessage: CreatedMessageWithoutContent = {
+  created_at: aDate,
+  fiscal_code: aNewMessageWithoutContent.fiscalCode,
+  id: "A_MESSAGE_ID",
+  sender_service_id: aNewMessageWithoutContent.senderServiceId,
+  time_to_live: 3600 as TimeToLiveSeconds
+};
+
+describe("mapMessageCategory", () => {
+  test("should return GENERIC with a message containing that does not conain any category", () => {
+    const r = mapMessageCategory(
+      aPublicExtendedMessage,
+      aMessageContent as MessageContent,
+      getThirdPartyDataWithCategoryFetcher(dummyConfig, mockTelemetryClient)
+    );
+    expect(r.tag).toBe("GENERIC");
+  });
+
+  test("should return EU_COVID_CERT with a message containing a valid eu_covid_cert payload", () => {
+    const r = mapMessageCategory(
+      aPublicExtendedMessage,
+      {
+        ...aMessageContent,
+        eu_covid_cert: { auth_code: "aCode" }
+      } as MessageContent,
+      getThirdPartyDataWithCategoryFetcher(dummyConfig, mockTelemetryClient)
+    );
+    expect(r.tag).toBe("EU_COVID_CERT");
+  });
+
+  test("should return GENERIC with a message containing a valid third_party_data payload with a non PN id", () => {
+    const r = mapMessageCategory(
+      aPublicExtendedMessage,
+      {
+        ...aMessageContent,
+        third_party_data: { id: "aValidId" }
+      } as MessageContent,
+      getThirdPartyDataWithCategoryFetcher(dummyConfig, mockTelemetryClient)
+    );
+    expect(r.tag).toBe("GENERIC");
+  });
+
+  test("should return PN with a message sent from PN serviceId", () => {
+    const r = mapMessageCategory(
+      { ...aPublicExtendedMessage, sender_service_id: aPnServiceId },
+      {
+        ...aMessageContent,
+        third_party_data: { id: "aMessageId" }
+      } as MessageContent,
+      getThirdPartyDataWithCategoryFetcher(dummyConfig, mockTelemetryClient)
+    );
+    expect(r.tag).toBe("PN");
+  });
+
+  //NB: this case should never exist, this test has been added to show that at the time of writing
+  //a message can have more than one category during the CreateMessage flow but when is sent to the
+  //app the first category pattern that match is used.
+  //This can be a problem in the future if a service that send third-party messages will send for example
+  //a payment_data payload, the app will never see that message as a payment message.
+  test("should return EUCOVID_CERT with a message sent from PN that has a valid eu_covid_cert payload", () => {
+    const r = mapMessageCategory(
+      { ...aPublicExtendedMessage, sender_service_id: aPnServiceId },
+      {
+        ...aMessageContent,
+        third_party_data: { id: "aMessageId" },
+        eu_covid_cert: { auth_code: "aCode" }
+      } as MessageContent,
+      getThirdPartyDataWithCategoryFetcher(dummyConfig, mockTelemetryClient)
+    );
+    expect(r.tag).toBe("EU_COVID_CERT");
   });
 });

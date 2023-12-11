@@ -459,6 +459,12 @@ definitions:
         $ref: '#/definitions/IsEmailEnabled'
       is_email_validated:
         $ref: '#/definitions/IsEmailValidated'
+      is_email_already_taken:
+        type: boolean
+        default: false
+        description: |-
+          True if the user email has been validated by another user.
+          If so, the user must provide a new email.
       reminder_status:
         $ref: '#/definitions/ReminderStatus'
       is_test_profile:
@@ -472,6 +478,7 @@ definitions:
     required:
       - is_email_enabled
       - is_email_validated
+      - is_email_already_taken
       - is_inbox_enabled
       - is_webhook_enabled
       - service_preferences_settings
@@ -550,6 +557,9 @@ definitions:
           category:
             $ref: '#/definitions/MessageCategory'
           has_attachments:
+            type: boolean
+            default: false
+          has_precondition:
             type: boolean
             default: false
         required:
@@ -830,6 +840,9 @@ definitions:
         $ref: '#/definitions/MessageSubject'
       markdown:
         $ref: '#/definitions/MessageBodyMarkdown'
+      require_secure_channels:
+        type: boolean
+        description: When true, messages won't trigger email notifications (only push).
     required:
       - subject
       - markdown
@@ -1383,6 +1396,15 @@ definitions:
       has_attachments:
         type: boolean
         default: false
+      has_remote_content:
+        type: boolean
+        default: false
+      has_precondition:
+        type: string
+        x-extensible-enum:
+          - ALWAYS
+          - ONCE
+          - NEVER
       summary:
         type: string
         minLength: 1

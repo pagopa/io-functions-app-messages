@@ -4,7 +4,10 @@ import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { EUCovidCert } from "@pagopa/io-functions-commons/dist/generated/definitions/EUCovidCert";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
-import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
+import {
+  Has_preconditionEnum,
+  ThirdPartyData
+} from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/message";
 import {
   RetrievedService,
@@ -16,7 +19,7 @@ import * as AR from "fp-ts/lib/Array";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as A from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
-import { constVoid, flow, pipe } from "fp-ts/lib/function";
+import { constVoid, flow, identity, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as T from "fp-ts/lib/Task";
@@ -44,6 +47,7 @@ import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
 import { IConfig } from "./config";
+import { getOrCacheRemoteServiceConfig } from "./remoteContentConfig";
 
 const trackErrorAndContinue = (
   context: Context,
@@ -196,6 +200,26 @@ export const getOrCacheService = (
     )
   );
 
+const computeFlagFromHasPrecondition = (
+  has_precondition: Has_preconditionEnum,
+  is_read: boolean
+): boolean =>
+  has_precondition === Has_preconditionEnum.ALWAYS ||
+  (has_precondition === Has_preconditionEnum.ONCE && !is_read)
+    ? true
+    : false;
+
+export const getHasPreconditionFlag = (
+  is_read: boolean,
+  service_id: NonEmptyString,
+  has_precondition?: Has_preconditionEnum
+): boolean =>
+  pipe(
+    O.fromNullable(has_precondition),
+    O.fold(() => getOrCacheRemoteServiceConfig(service_id), identity),
+    precondition => computeFlagFromHasPrecondition(precondition, is_read)
+  );
+
 /**
  * This function enrich a CreatedMessageWithoutContent with
  * service's details and message's subject.
@@ -236,6 +260,13 @@ export const enrichContentData = (
         ...message,
         category: mapMessageCategory(message, content, categoryFetcher),
         has_attachments: content.legal_data?.has_attachment ?? false,
+        has_precondition: getHasPreconditionFlag(
+          message.is_read,
+          message.sender_service_id,
+          content.third_party_data?.has_precondition
+        ),
+        has_remote_content:
+          content.third_party_data?.has_remote_content ?? false,
         id: message.id as NonEmptyString,
         message_title: content.subject
       }))

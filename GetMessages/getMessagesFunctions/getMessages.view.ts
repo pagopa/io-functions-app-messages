@@ -18,7 +18,10 @@ import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/gen
 import * as AI from "../../utils/AsyncIterableTask";
 
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
-import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
+import {
+  ThirdPartyDataWithCategoryFetcher,
+  getHasPreconditionFlag
+} from "../../utils/messages";
 import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 
@@ -89,7 +92,19 @@ export const toEnrichedMessageWithContent = (
   category: toCategory(categoryFetcher)(item),
   created_at: item.createdAt,
   fiscal_code: item.fiscalCode,
-  has_attachments: item.components.attachments.has,
+  has_attachments: item.components.thirdParty.has
+    ? item.components.thirdParty.has_attachments
+    : false,
+  has_precondition: getHasPreconditionFlag(
+    item.status.read,
+    item.senderServiceId,
+    item.components.thirdParty.has
+      ? item.components.thirdParty.has_precondition
+      : undefined
+  ),
+  has_remote_content: item.components.thirdParty.has
+    ? item.components.thirdParty.has_remote_content
+    : false,
   id: item.id,
   is_archived: item.status.archived,
   is_read: item.status.read,

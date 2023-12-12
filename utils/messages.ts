@@ -210,14 +210,40 @@ const computeFlagFromHasPrecondition = (
     : false;
 
 export const getHasPreconditionFlag = (
-  is_read: boolean,
-  service_id: NonEmptyString,
+  isRead: boolean,
+  serviceId: NonEmptyString,
+  redisClient: RedisClient,
+  remoteContentConfigurationModel: RemoteContentConfigurationModel,
+  remoteContentConfigCacheTtl: NonNegativeInteger,
   has_precondition?: Has_preconditionEnum
-): boolean =>
+  // eslint-disable-next-line max-params
+): TE.TaskEither<Error, boolean> =>
   pipe(
-    O.fromNullable(has_precondition),
-    O.fold(() => getOrCacheRemoteServiceConfig(service_id), identity),
-    precondition => computeFlagFromHasPrecondition(precondition, is_read)
+    TE.fromNullable(has_precondition),
+    O.fold(
+      () =>
+        pipe(
+          getOrCacheRemoteServiceConfig(
+            redisClient,
+            remoteContentConfigurationModel,
+            remoteContentConfigCacheTtl,
+            serviceId
+          ),
+          TE.map(_ => Has_preconditionEnum.ONCE),
+          TE.mapLeft(e => {
+            trackErrorAndContinue(
+              context,
+              e,
+              "SERVICE",
+              message.fiscal_code,
+              message.id
+            );
+            return e;
+          })
+        ),
+      TE.of(identity)
+    ),
+    precondition => computeFlagFromHasPrecondition(precondition, isRead)
   );
 
 /**
@@ -233,7 +259,11 @@ export const enrichContentData = (
   context: Context,
   messageModel: MessageModel,
   blobService: BlobService,
+  redisClient: RedisClient,
+  remoteContentConfigurationModel: RemoteContentConfigurationModel,
+  remoteContentConfigCacheTtl: NonNegativeInteger,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
+  // eslint-disable-next-line max-params
 ) => (
   messages: ReadonlyArray<CreatedMessageWithoutContentWithStatus>
   // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
@@ -256,15 +286,14 @@ export const enrichContentData = (
         )
       },
       A.sequenceS(TE.ApplicativePar),
-      TE.map(({ content }) => ({
+      TE.bind("hasPrecondition", ({ content }) =>
+        getHasPreconditionFlag()
+      ),
+      TE.map(({ content, hasPrecondition }) => ({
         ...message,
         category: mapMessageCategory(message, content, categoryFetcher),
         has_attachments: content.legal_data?.has_attachment ?? false,
-        has_precondition: getHasPreconditionFlag(
-          message.is_read,
-          message.sender_service_id,
-          content.third_party_data?.has_precondition
-        ),
+        has_precondition: hasPrecondition,
         has_remote_content:
           content.third_party_data?.has_remote_content ?? false,
         id: message.id as NonEmptyString,

@@ -51,6 +51,10 @@ const messageViewModel = new MessageViewExtendedQueryModel(
   cosmosdbInstance.container(MESSAGE_VIEW_COLLECTION_NAME)
 );
 
+const remoteContentConfigurationModel = new RemoteContentConfigurationModel(
+  cosmosdbInstance.container(REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME)
+);
+
 const blobService = createBlobService(config.QueueStorageConnection);
 
 const telemetryClient = initTelemetryClient();
@@ -64,18 +68,27 @@ const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
   config.FF_TYPE,
   config.FF_BETA_TESTER_LIST,
   config.FF_CANARY_USERS_REGEX,
-  [messageModel, messageStatusModel, blobService, categoryFecther],
-  [messageViewModel, categoryFecther]
+  [
+    messageModel,
+    messageStatusModel,
+    blobService,
+    remoteContentConfigurationModel,
+    REDIS_CLIENT,
+    config.SERVICE_CONFIG_CACHE_TTL_DURATION,
+    categoryFecther
+  ],
+  [
+    messageViewModel,
+    remoteContentConfigurationModel,
+    REDIS_CLIENT,
+    config.SERVICE_CONFIG_CACHE_TTL_DURATION,
+    categoryFecther
+  ]
 );
 
 app.get(
   "/api/v1/messages/:fiscalcode",
-  GetMessages(
-    getMessagesFunctionSelector,
-    serviceModel,
-    REDIS_CLIENT,
-    config.SERVICE_CACHE_TTL_DURATION
-  )
+  GetMessages(getMessagesFunctionSelector, serviceModel, REDIS_CLIENT, config)
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);

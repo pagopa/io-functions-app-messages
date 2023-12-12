@@ -33,6 +33,7 @@ import { Context } from "@azure/functions";
 import { RedisClient } from "redis";
 import { enrichServiceData } from "../utils/messages";
 import { IGetMessagesFunctionSelector } from "./getMessagesFunctions/getMessages.selector";
+import { IConfig } from "../utils/config";
 
 type IGetMessagesHandlerResponse =
   | IResponseSuccessJson<PageResults>
@@ -64,7 +65,7 @@ export const GetMessagesHandler = (
   functionSelector: IGetMessagesFunctionSelector,
   serviceModel: ServiceModel,
   redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
+  config: IConfig
   // eslint-disable-next-line max-params
 ): IGetMessagesHandler => async (
   context,
@@ -118,7 +119,7 @@ export const GetMessagesHandler = (
                     context,
                     serviceModel,
                     redisClient,
-                    serviceCacheTtl
+                    config.SERVICE_CACHE_TTL_DURATION
                   ),
                   TE.map((items: PageResults["items"]) => ({
                     ...paginatedItems,
@@ -146,14 +147,14 @@ export const GetMessages = (
   functionSelector: IGetMessagesFunctionSelector,
   serviceModel: ServiceModel,
   redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
+  config: IConfig
   // eslint-disable-next-line max-params
 ): express.RequestHandler => {
   const handler = GetMessagesHandler(
     functionSelector,
     serviceModel,
     redisClient,
-    serviceCacheTtl
+    config
   );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),

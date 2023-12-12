@@ -91,6 +91,7 @@ export const IConfig = t.intersection([
     QueueStorageConnection: NonEmptyString,
 
     SERVICE_CACHE_TTL_DURATION: NonNegativeInteger,
+    SERVICE_CONFIG_CACHE_TTL_DURATION: NonNegativeInteger,
 
     FF_TYPE: withDefault(t.string, "none").pipe(FeatureFlagType),
     USE_FALLBACK: withDefault(t.string, "false").pipe(BooleanFromString),

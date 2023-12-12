@@ -15,6 +15,8 @@ import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/mode
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
+import { RedisClient } from "redis";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as AI from "../../utils/AsyncIterableTask";
 
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
@@ -27,6 +29,9 @@ import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 
 export const getMessagesFromView = (
   messageViewModel: MessageViewExtendedQueryModel,
+  remoteContentConfigurationModel: RemoteContentConfigurationModel,
+  redisClient: RedisClient,
+  remoteContentConfigurationTtl: NonNegativeInteger,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): IGetMessagesFunction => ({
   context,
@@ -68,7 +73,7 @@ export const getMessagesFromView = (
             RetrievedMessageView
           >).map(
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
-            toEnrichedMessageWithContent(categoryFetcher)
+            toEnrichedMessageWithContent(redisClient, remoteContentConfigurationModel, remoteContentConfigurationTtl, categoryFetcher)
           )
         })),
         TE.mapLeft(err => {
@@ -86,6 +91,9 @@ export const getMessagesFromView = (
  * Map `RetrievedMessageView` to `EnrichedMessageWithContent`
  */
 export const toEnrichedMessageWithContent = (
+  redisClient: RedisClient,
+  remoteContentConfigurationModel: RemoteContentConfigurationModel,
+  remoteContentConfigCacheTtl: NonNegativeInteger,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ) => (item: RetrievedMessageView): EnrichedMessageWithContent => ({
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -98,6 +106,9 @@ export const toEnrichedMessageWithContent = (
   has_precondition: getHasPreconditionFlag(
     item.status.read,
     item.senderServiceId,
+    redisClient,
+    remoteContentConfigurationModel,
+    remoteContentConfigCacheTtl,
     item.components.thirdParty.has
       ? item.components.thirdParty.has_precondition
       : undefined

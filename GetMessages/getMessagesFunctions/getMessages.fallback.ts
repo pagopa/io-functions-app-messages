@@ -18,6 +18,8 @@ import * as t from "io-ts";
 import { BlobService } from "azure-storage";
 
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
+import { RedisClient } from "redis";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import {
   CreatedMessageWithoutContentWithStatus,
   enrichContentData,
@@ -55,7 +57,11 @@ export const getMessagesFromFallback = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusExtendedQueryModel,
   blobService: BlobService,
+  remoteContentConfigurationModel: RemoteContentConfigurationModel,
+  redisClient: RedisClient,
+  remoteContentConfigurationTtl: NonNegativeInteger,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
+  // eslint-disable-next-line max-params
 ): IGetMessagesFunction => ({
   context,
   fiscalCode,
@@ -106,6 +112,9 @@ export const getMessagesFromFallback = (
                 context,
                 messageModel,
                 blobService,
+                redisClient,
+                remoteContentConfigurationModel,
+                remoteContentConfigurationTtl,
                 categoryFetcher
               )
             )

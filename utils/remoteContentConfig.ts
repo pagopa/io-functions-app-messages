@@ -1,10 +1,16 @@
 import * as TE from "fp-ts/TaskEither";
+import * as E from "fp-ts/lib/Either";
 import { flow, pipe } from "fp-ts/lib/function";
+import { parse } from "fp-ts/lib/Json";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { getTask, setWithExpirationTask } from "./redis_storage";
+import {
+  RemoteContentConfigurationModel,
+  RetrievedRemoteContentConfiguration
+} from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 
 export const getOrCacheRemoteServiceConfig = (
   redisClient: RedisClient,
@@ -38,7 +44,7 @@ export const getOrCacheRemoteServiceConfig = (
     ),
     TE.orElse(() =>
       pipe(
-        remoteContentConfigurationModel.find([serviceId]),
+        remoteContentConfigurationModel.find([serviceId, serviceId]),
         TE.mapLeft(e => new Error(`${e.kind}, ServiceId=${serviceId}`)),
         TE.chain(
           TE.fromOption(

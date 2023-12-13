@@ -28,6 +28,10 @@ import { initTelemetryClient } from "../utils/appinsights";
 import { getThirdPartyDataWithCategoryFetcher } from "../utils/messages";
 import { GetMessages } from "./handler";
 import { createGetMessagesFunctionSelection } from "./getMessagesFunctions/getMessages.selector";
+import {
+  RemoteContentConfigurationModel,
+  REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
+} from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 
 // Setup Express
 const app = express();
@@ -74,14 +78,14 @@ const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
     blobService,
     remoteContentConfigurationModel,
     REDIS_CLIENT,
-    config.SERVICE_CONFIG_CACHE_TTL_DURATION,
+    config.SERVICE_CACHE_TTL_DURATION,
     categoryFecther
   ],
   [
     messageViewModel,
     remoteContentConfigurationModel,
     REDIS_CLIENT,
-    config.SERVICE_CONFIG_CACHE_TTL_DURATION,
+    config.SERVICE_CACHE_TTL_DURATION,
     categoryFecther
   ]
 );

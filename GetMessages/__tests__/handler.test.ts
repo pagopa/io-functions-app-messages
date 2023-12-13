@@ -53,9 +53,12 @@ import { PaymentAmount } from "@pagopa/io-functions-commons/dist/generated/defin
 import { PaymentNoticeNumber } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentNoticeNumber";
 import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/generated/definitions/PaymentDataWithRequiredPayee";
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
-import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
-import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
-import { readableReport } from "@pagopa/ts-commons/lib/reporters";
+import { IConfig } from "../../utils/config";
+import {
+  mockRemoteContentConfigurationModel,
+  mockRemoteContentConfigurationTtl
+} from "../../__mocks__/remote-content";
+import { redisClientMock } from "../../__mocks__/redis";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -255,13 +258,14 @@ const getTaskMock = jest.fn(() =>
 jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
 
 const aRedisClient = {} as any;
-const aServiceCacheTtl = 10 as NonNegativeInteger;
 
 const dummyThirdPartyDataWithCategoryFetcher = jest
   .fn()
   .mockImplementation(() => ({
     category: TagEnumBase.GENERIC
   }));
+
+const mockConfig = {} as IConfig;
 
 // ---------------------
 // Tests
@@ -290,16 +294,25 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         errorMessageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const result = await getMessagesHandler(
@@ -329,16 +342,25 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const result = await getMessagesHandler(
@@ -372,16 +394,26 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const result = await getMessagesHandler(
@@ -420,16 +452,26 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -474,16 +516,26 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -527,16 +579,26 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -585,16 +647,26 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -671,16 +743,26 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -746,16 +828,26 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -828,16 +920,26 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         thirdPartyFetcherForAServiceId
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -907,16 +1009,26 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -975,16 +1087,26 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1037,16 +1159,26 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1119,16 +1251,26 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         messageModelMock as any,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1177,16 +1319,26 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         messageModelMock,
         messageStatusModelMock,
         blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
         dummyThirdPartyDataWithCategoryFetcher
       ],
-      [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
     );
 
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1243,9 +1395,19 @@ describe("GetMessagesHandler |> Message View", () => {
       {} as MessageModel,
       {} as MessageStatusExtendedQueryModel,
       {} as BlobService,
+      mockRemoteContentConfigurationModel,
+      redisClientMock,
+      mockRemoteContentConfigurationTtl,
       dummyThirdPartyDataWithCategoryFetcher
     ],
-    [messageViewModelMock, dummyThirdPartyDataWithCategoryFetcher]
+    [
+      messageViewModelMock,
+
+      mockRemoteContentConfigurationModel,
+      redisClientMock,
+      mockRemoteContentConfigurationTtl,
+      dummyThirdPartyDataWithCategoryFetcher
+    ]
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -1265,7 +1427,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1284,7 +1446,8 @@ describe("GetMessagesHandler |> Message View", () => {
 
     const expectedEnrichedMessage = {
       ...toEnrichedMessageWithContent(dummyThirdPartyDataWithCategoryFetcher)(
-        aSimpleList[0]
+        aSimpleList[0],
+        false
       ),
       category: {
         rptId: `${aRetrievedService.organizationFiscalCode}177777777777777777`,
@@ -1343,7 +1506,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 1 as NonNegativeInteger;
@@ -1394,7 +1557,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1445,7 +1608,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1464,7 +1627,8 @@ describe("GetMessagesHandler |> Message View", () => {
 
     const expectedEnrichedMessage = {
       ...toEnrichedMessageWithContent(dummyThirdPartyDataWithCategoryFetcher)(
-        aSimpleList[0]
+        aSimpleList[0],
+        false
       ),
       category: {
         rptId: `${aRetrievedService.organizationFiscalCode}177777777777777777`,
@@ -1519,7 +1683,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1552,7 +1716,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const result = await getMessagesHandler(
@@ -1586,7 +1750,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       aRedisClient,
-      aServiceCacheTtl
+      mockConfig
     );
 
     const result = await getMessagesHandler(

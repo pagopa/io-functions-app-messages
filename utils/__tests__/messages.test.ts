@@ -21,7 +21,6 @@ import { BlobService } from "azure-storage";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import {
   CreatedMessageWithoutContentWithStatus,
-  enrichContentData,
   enrichServiceData,
   getThirdPartyDataWithCategoryFetcher,
   mapMessageCategory,
@@ -47,6 +46,14 @@ import { TelemetryClient } from "applicationinsights";
 import { IConfig } from "../config";
 import { TagEnum as TagEnumPn } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
+import { enrichContentData } from "../../GetMessages/getMessagesFunctions/getMessages.fallback";
+import {
+  aRetrievedRemoteContentConfiguration,
+  mockFind,
+  mockRemoteContentConfigurationModel,
+  mockRemoteContentConfigurationTtl
+} from "../../__mocks__/remote-content";
+import { getMock, redisClientMock } from "../../__mocks__/redis";
 
 const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
   .fn()
@@ -220,10 +227,16 @@ describe("enrichContentData", () => {
   });
 
   it("should return right when message blob is retrieved", async () => {
+    getTaskMock.mockReturnValueOnce(
+      TE.of(O.of(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+    );
     const enrichMessages = enrichContentData(
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
+      redisClientMock,
+      mockRemoteContentConfigurationModel,
+      mockRemoteContentConfigurationTtl,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -253,6 +266,9 @@ describe("enrichContentData", () => {
   });
 
   it("should return right with right message EU_COVID_CERT category when message content is retrieved", async () => {
+    getTaskMock.mockReturnValueOnce(
+      TE.of(O.of(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+    );
     getContentFromBlobMock.mockImplementationOnce(() =>
       TE.of(O.some(mockedGreenPassContent))
     );
@@ -260,6 +276,9 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
+      redisClientMock,
+      mockRemoteContentConfigurationModel,
+      mockRemoteContentConfigurationTtl,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -288,6 +307,9 @@ describe("enrichContentData", () => {
   });
 
   it("GIVEN a message with a valid legal_data WHEN a message retrieved from cosmos is enriched THEN the message category must be LEGAL_MESSAGE", async () => {
+    getTaskMock.mockReturnValueOnce(
+      TE.of(O.of(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+    );
     getContentFromBlobMock.mockImplementationOnce(() =>
       TE.of(O.some(mockedLegalDataContent))
     );
@@ -295,6 +317,9 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
+      redisClientMock,
+      mockRemoteContentConfigurationModel,
+      mockRemoteContentConfigurationTtl,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -323,6 +348,9 @@ describe("enrichContentData", () => {
   });
 
   it("should return right with right PAYMENT category when message content is retrieved", async () => {
+    getTaskMock.mockReturnValueOnce(
+      TE.of(O.of(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+    );
     getContentFromBlobMock.mockImplementationOnce(() =>
       TE.of(O.some(mockedPaymentContent))
     );
@@ -330,6 +358,9 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
+      redisClientMock,
+      mockRemoteContentConfigurationModel,
+      mockRemoteContentConfigurationTtl,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -371,6 +402,9 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
+      redisClientMock,
+      mockRemoteContentConfigurationModel,
+      mockRemoteContentConfigurationTtl,
       dummyThirdPartyDataWithCategoryFetcher
     );
 

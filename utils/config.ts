@@ -84,6 +84,10 @@ export const IConfig = t.intersection([
     COSMOSDB_NAME: NonEmptyString,
     COSMOSDB_URI: NonEmptyString,
 
+    REMOTE_CONTENT_COSMOSDB_KEY: NonEmptyString,
+    REMOTE_CONTENT_COSMOSDB_NAME: NonEmptyString,
+    REMOTE_CONTENT_COSMOSDB_URI: NonEmptyString,
+
     MESSAGE_CONTAINER_NAME: NonEmptyString,
 
     PN_SERVICE_ID: NonEmptyString,
@@ -91,7 +95,6 @@ export const IConfig = t.intersection([
     QueueStorageConnection: NonEmptyString,
 
     SERVICE_CACHE_TTL_DURATION: NonNegativeInteger,
-    SERVICE_CONFIG_CACHE_TTL_DURATION: NonNegativeInteger,
 
     FF_TYPE: withDefault(t.string, "none").pipe(FeatureFlagType),
     USE_FALLBACK: withDefault(t.string, "false").pipe(BooleanFromString),

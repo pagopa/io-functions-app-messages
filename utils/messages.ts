@@ -48,6 +48,7 @@ import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
 import { IConfig } from "./config";
 import { getOrCacheRemoteServiceConfig } from "./remoteContentConfig";
+import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 
 const trackErrorAndContinue = (
   context: Context,
@@ -215,11 +216,12 @@ export const getHasPreconditionFlag = (
   redisClient: RedisClient,
   remoteContentConfigurationModel: RemoteContentConfigurationModel,
   remoteContentConfigCacheTtl: NonNegativeInteger,
+  itemId: NonEmptyString,
   has_precondition?: Has_preconditionEnum
   // eslint-disable-next-line max-params
-): TE.TaskEither<Error, boolean> =>
+): TE.TaskEither<Error, { itemId: NonEmptyString; hasPrecondition: boolean }> =>
   pipe(
-    TE.fromNullable(has_precondition),
+    O.fromNullable(has_precondition),
     O.fold(
       () =>
         pipe(
@@ -229,21 +231,17 @@ export const getHasPreconditionFlag = (
             remoteContentConfigCacheTtl,
             serviceId
           ),
-          TE.map(_ => Has_preconditionEnum.ONCE),
-          TE.mapLeft(e => {
-            trackErrorAndContinue(
-              context,
-              e,
-              "SERVICE",
-              message.fiscal_code,
-              message.id
-            );
-            return e;
-          })
+          TE.map(serviceConfig => serviceConfig.hasPrecondition)
         ),
-      TE.of(identity)
+      hasPrecondition => TE.of(hasPrecondition)
     ),
-    precondition => computeFlagFromHasPrecondition(precondition, isRead)
+    TE.map(hasPrecondition =>
+      computeFlagFromHasPrecondition(hasPrecondition, isRead)
+    ),
+    TE.map(hasPrecondition => ({
+      itemId,
+      hasPrecondition
+    }))
   );
 
 /**
@@ -286,9 +284,7 @@ export const enrichContentData = (
         )
       },
       A.sequenceS(TE.ApplicativePar),
-      TE.bind("hasPrecondition", ({ content }) =>
-        getHasPreconditionFlag()
-      ),
+      TE.bind("hasPrecondition", ({ content }) => getHasPreconditionFlag()),
       TE.map(({ content, hasPrecondition }) => ({
         ...message,
         category: mapMessageCategory(message, content, categoryFetcher),

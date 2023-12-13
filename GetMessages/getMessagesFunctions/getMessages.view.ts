@@ -1,6 +1,7 @@
 import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as RA from "fp-ts/lib/ReadonlyArray";
+import * as O from "fp-ts/lib/Option";
 
 import { flattenAsyncIterable } from "@pagopa/io-functions-commons/dist/src/utils/async";
 
@@ -22,12 +23,60 @@ import * as AI from "../../utils/AsyncIterableTask";
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
 import {
   ThirdPartyDataWithCategoryFetcher,
-  getHasPreconditionFlag
+  computeFlagFromHasPrecondition
 } from "../../utils/messages";
 import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
-import { throwError } from "fp-ts/lib/Option";
+import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
+
+export const getHasPreconditionFlagForMessagesFromView = (
+  retrievedMessagesFromView: ReadonlyArray<RetrievedMessageView>,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher,
+  redisClient: RedisClient,
+  remoteContentConfigurationModel: RemoteContentConfigurationModel,
+  remoteContentConfigurationTtl: NonNegativeInteger
+  // eslint-disable-next-line max-params
+): TE.TaskEither<Error, ReadonlyArray<EnrichedMessageWithContent>> =>
+  pipe(
+    retrievedMessagesFromView,
+    RA.map(message => {
+      return pipe(
+        O.fromNullable(
+          message.components.thirdParty?.has
+            ? message.components.thirdParty.has_precondition
+            : undefined
+        ),
+        O.fold(
+          () =>
+            pipe(
+              getOrCacheRemoteServiceConfig(
+                redisClient,
+                remoteContentConfigurationModel,
+                remoteContentConfigurationTtl,
+                message.senderServiceId
+              ),
+              TE.map(serviceConfig => serviceConfig.hasPrecondition)
+            ),
+          hasPrecondition => TE.of(hasPrecondition)
+        ),
+        TE.map(hasPrecondition =>
+          pipe(
+            computeFlagFromHasPrecondition(
+              hasPrecondition,
+              message.status.read
+            ),
+            hasPrecondition =>
+              toEnrichedMessageWithContent(categoryFetcher)(
+                message,
+                hasPrecondition
+              )
+          )
+        )
+      );
+    }),
+    TE.sequenceArray
+  );
 
 export const getMessagesFromView = (
   messageViewModel: MessageViewExtendedQueryModel,
@@ -68,47 +117,27 @@ export const getMessagesFromView = (
         TE.map(({ hasMoreResults, results }) =>
           toPageResults(results, hasMoreResults)
         ),
-        TE.map(paginatedItems => ({
-          ...paginatedItems,
-          items: (paginatedItems.items as ReadonlyArray<
-            RetrievedMessageView
-          >).map(
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define
-            toEnrichedMessageWithContent(categoryFetcher)
-          )
-        })),
-        TE.mapLeft(err => {
-          context.log.error(
-            `getMessagesFromView|Error retrieving page data from cosmos|${err.error.message}`
-          );
-
-          return err;
-        }),
-        // FIX: Pass has_precondition here
-        TE.chainW(enrichedPaginatedItems =>
+        TE.chainW(pageResult =>
           pipe(
-            enrichedPaginatedItems.items,
-            RA.map(item =>
-              getHasPreconditionFlag(
-                item.is_read,
-                item.sender_service_id,
-                redisClient,
-                remoteContentConfigurationModel,
-                remoteContentConfigurationTtl,
-                item.id
-              )
+            getHasPreconditionFlagForMessagesFromView(
+              pageResult.items as ReadonlyArray<RetrievedMessageView>,
+              categoryFetcher,
+              redisClient,
+              remoteContentConfigurationModel,
+              remoteContentConfigurationTtl
             ),
-            TE.sequenceArray,
-            TE.map(setList => ({
-              ...enrichedPaginatedItems,
-              items: enrichedPaginatedItems.items.map(item => ({
-                ...item,
-                has_precondition: setList.find(set => set.itemId === item.id)
-                  .hasPrecondition
-              }))
+            TE.map(items => ({
+              ...pageResult,
+              items: items 
             }))
           )
-        )
+        ),
+        TE.mapLeft(err => {
+          context.log.error(
+            `getMessagesFromView|Error retrieving page data from cosmos|${JSON.stringify(err)}`
+          );
+          return err;
+        })
       )
     )
   );
@@ -118,7 +147,10 @@ export const getMessagesFromView = (
  */
 export const toEnrichedMessageWithContent = (
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
-) => (item: RetrievedMessageView): EnrichedMessageWithContent => ({
+) => (
+  item: RetrievedMessageView,
+  hasPrecondition: boolean
+): EnrichedMessageWithContent => ({
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
   category: toCategory(categoryFetcher)(item),
   created_at: item.createdAt,
@@ -129,6 +161,7 @@ export const toEnrichedMessageWithContent = (
   has_remote_content: item.components.thirdParty.has
     ? item.components.thirdParty.has_remote_content
     : false,
+  has_precondition: hasPrecondition ?? false,
   id: item.id,
   is_archived: item.status.archived,
   is_read: item.status.read,

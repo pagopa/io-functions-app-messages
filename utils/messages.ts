@@ -8,16 +8,13 @@ import {
   Has_preconditionEnum,
   ThirdPartyData
 } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
-import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/message";
 import {
   RetrievedService,
   ServiceModel
 } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { BlobService } from "azure-storage";
 import * as AR from "fp-ts/lib/Array";
 import * as RA from "fp-ts/lib/ReadonlyArray";
-import * as A from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
 import { constVoid, flow, identity, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
@@ -47,10 +44,8 @@ import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
 import { IConfig } from "./config";
-import { getOrCacheRemoteServiceConfig } from "./remoteContentConfig";
-import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 
-const trackErrorAndContinue = (
+export const trackErrorAndContinue = (
   context: Context,
   error: Error,
   kind: "SERVICE" | "CONTENT" | "STATUS",
@@ -201,7 +196,7 @@ export const getOrCacheService = (
     )
   );
 
-const computeFlagFromHasPrecondition = (
+export const computeFlagFromHasPrecondition = (
   has_precondition: Has_preconditionEnum,
   is_read: boolean
 ): boolean =>
@@ -209,94 +204,6 @@ const computeFlagFromHasPrecondition = (
   (has_precondition === Has_preconditionEnum.ONCE && !is_read)
     ? true
     : false;
-
-export const getHasPreconditionFlag = (
-  isRead: boolean,
-  serviceId: NonEmptyString,
-  redisClient: RedisClient,
-  remoteContentConfigurationModel: RemoteContentConfigurationModel,
-  remoteContentConfigCacheTtl: NonNegativeInteger,
-  itemId: NonEmptyString,
-  has_precondition?: Has_preconditionEnum
-  // eslint-disable-next-line max-params
-): TE.TaskEither<Error, { itemId: NonEmptyString; hasPrecondition: boolean }> =>
-  pipe(
-    O.fromNullable(has_precondition),
-    O.fold(
-      () =>
-        pipe(
-          getOrCacheRemoteServiceConfig(
-            redisClient,
-            remoteContentConfigurationModel,
-            remoteContentConfigCacheTtl,
-            serviceId
-          ),
-          TE.map(serviceConfig => serviceConfig.hasPrecondition)
-        ),
-      hasPrecondition => TE.of(hasPrecondition)
-    ),
-    TE.map(hasPrecondition =>
-      computeFlagFromHasPrecondition(hasPrecondition, isRead)
-    ),
-    TE.map(hasPrecondition => ({
-      itemId,
-      hasPrecondition
-    }))
-  );
-
-/**
- * This function enrich a CreatedMessageWithoutContent with
- * service's details and message's subject.
- *
- * @param messageModel
- * @param serviceModel
- * @param blobService
- * @returns
- */
-export const enrichContentData = (
-  context: Context,
-  messageModel: MessageModel,
-  blobService: BlobService,
-  redisClient: RedisClient,
-  remoteContentConfigurationModel: RemoteContentConfigurationModel,
-  remoteContentConfigCacheTtl: NonNegativeInteger,
-  categoryFetcher: ThirdPartyDataWithCategoryFetcher
-  // eslint-disable-next-line max-params
-) => (
-  messages: ReadonlyArray<CreatedMessageWithoutContentWithStatus>
-  // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
-): Promise<E.Either<Error, EnrichedMessageWithContent>>[] =>
-  messages.map(message =>
-    pipe(
-      {
-        content: pipe(
-          messageModel.getContentFromBlob(blobService, message.id),
-          TE.map(O.toUndefined),
-          TE.mapLeft(e =>
-            trackErrorAndContinue(
-              context,
-              e,
-              "CONTENT",
-              message.fiscal_code,
-              message.id
-            )
-          )
-        )
-      },
-      A.sequenceS(TE.ApplicativePar),
-      TE.bind("hasPrecondition", ({ content }) => getHasPreconditionFlag()),
-      TE.map(({ content, hasPrecondition }) => ({
-        ...message,
-        category: mapMessageCategory(message, content, categoryFetcher),
-        has_attachments: content.legal_data?.has_attachment ?? false,
-        has_precondition: hasPrecondition,
-        has_remote_content:
-          content.third_party_data?.has_remote_content ?? false,
-        id: message.id as NonEmptyString,
-        message_title: content.subject
-      }))
-    )()
-  );
 
 /**
  * This function enrich a CreatedMessageWithoutContent with

@@ -19,7 +19,7 @@ export const getOrCacheRemoteServiceConfig = (
   serviceId: NonEmptyString
 ): TE.TaskEither<Error, RetrievedRemoteContentConfiguration> =>
   pipe(
-    getTask(redisClient, serviceId),
+    getTask(redisClient, `REMOTE-CONTENT-CONFIGURATION-${serviceId}`),
     TE.chain(
       TE.fromOption(
         () => new Error("Cannot Get Remote Content Configuration from Redis")
@@ -28,7 +28,7 @@ export const getOrCacheRemoteServiceConfig = (
     TE.chainEitherK(
       flow(
         parse,
-        E.mapLeft(() => new Error("Cannot parse Service Json from Redis")),
+        E.mapLeft(() => new Error("Cannot parse Remote Content Configuration Json from Redis")),
         E.chain(
           flow(
             RetrievedRemoteContentConfiguration.decode,
@@ -45,7 +45,7 @@ export const getOrCacheRemoteServiceConfig = (
     TE.orElse(() =>
       pipe(
         remoteContentConfigurationModel.find([serviceId, serviceId]),
-        TE.mapLeft(e => new Error(`${e.kind}, ServiceId=${serviceId}`)),
+        TE.mapLeft(e => new Error(`${e.kind}, Remote Content Configuration ServiceId=${serviceId}`)),
         TE.chain(
           TE.fromOption(
             () =>
@@ -58,7 +58,7 @@ export const getOrCacheRemoteServiceConfig = (
           pipe(
             setWithExpirationTask(
               redisClient,
-              serviceId,
+              `REMOTE-CONTENT-CONFIGURATION-${serviceId}`,
               JSON.stringify(remoteContentConfiguration),
               remoteContentConfigCacheTtl
             ),

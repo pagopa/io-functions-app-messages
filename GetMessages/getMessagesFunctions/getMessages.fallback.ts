@@ -1,3 +1,7 @@
+import { Context } from "@azure/functions";
+import { BlobService } from "azure-storage";
+import * as AP from "fp-ts/lib/Apply";
+import * as O from "fp-ts/lib/Option";
 import {
   asyncIteratorToPageArray,
   flattenAsyncIterator,
@@ -15,20 +19,25 @@ import * as E from "fp-ts/lib/Either";
 import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as t from "io-ts";
-import { BlobService } from "azure-storage";
 
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import {
   CreatedMessageWithoutContentWithStatus,
-  enrichContentData,
-  enrichMessagesStatus
+  computeFlagFromHasPrecondition,
+  enrichMessagesStatus,
+  mapMessageCategory,
+  trackErrorAndContinue
 } from "../../utils/messages";
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
 import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 import { EnrichedMessageWithContent } from "./models";
+import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
+import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
 
 type RetrievedNotPendingMessage = t.TypeOf<typeof RetrievedNotPendingMessage>;
 const RetrievedNotPendingMessage = t.intersection([
@@ -51,6 +60,102 @@ const filterMessages = (shouldGetArchivedMessages: boolean) => (
         E.toUnion
       )
     )
+  );
+
+export const getHasPreconditionFlagForMessagesFallback = (
+  content: MessageContent,
+  message: EnrichedMessageWithContent,
+  redisClient: RedisClient,
+  remoteContentConfigurationModel: RemoteContentConfigurationModel,
+  remoteContentConfigCacheTtl: NonNegativeInteger
+  // eslint-disable-next-line max-params
+): TE.TaskEither<Error, EnrichedMessageWithContent> =>
+  pipe(
+    O.fromNullable(content.third_party_data?.has_precondition),
+    O.fold(
+      () =>
+        pipe(
+          getOrCacheRemoteServiceConfig(
+            redisClient,
+            remoteContentConfigurationModel,
+            remoteContentConfigCacheTtl,
+            message.sender_service_id
+          ),
+          TE.map(serviceConfig => serviceConfig.hasPrecondition)
+        ),
+      hasPrecondition => TE.of(hasPrecondition)
+    ),
+    TE.map(hasPrecondition =>
+      computeFlagFromHasPrecondition(hasPrecondition, message.is_read)
+    ),
+    TE.map(hasPrecondition => ({
+      ...message,
+      has_precondition: hasPrecondition
+    }))
+  );
+
+/**
+ * This function enrich a CreatedMessageWithoutContent with
+ * service's details and message's subject.
+ *
+ * @param messageModel
+ * @param serviceModel
+ * @param blobService
+ * @returns
+ */
+export const enrichContentData = (
+  context: Context,
+  messageModel: MessageModel,
+  blobService: BlobService,
+  redisClient: RedisClient,
+  remoteContentConfigurationModel: RemoteContentConfigurationModel,
+  remoteContentConfigurationTtl: NonNegativeInteger,
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
+  // eslint-disable-next-line max-params
+) => (
+  messages: ReadonlyArray<CreatedMessageWithoutContentWithStatus>
+  // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
+): Promise<E.Either<Error, EnrichedMessageWithContent>>[] =>
+  messages.map(message =>
+    pipe(
+      {
+        content: pipe(
+          messageModel.getContentFromBlob(blobService, message.id),
+          TE.map(O.toUndefined),
+          TE.mapLeft(e =>
+            trackErrorAndContinue(
+              context,
+              e,
+              "CONTENT",
+              message.fiscal_code,
+              message.id
+            )
+          )
+        )
+      },
+      AP.sequenceS(TE.ApplicativePar),
+      TE.map(({ content }) => ({
+        content,
+        enrichedMessage: {
+          ...message,
+          category: mapMessageCategory(message, content, categoryFetcher),
+          has_attachments: content.legal_data?.has_attachment ?? false,
+          has_remote_content:
+            content.third_party_data?.has_remote_content ?? false,
+          id: message.id as NonEmptyString,
+          message_title: content.subject
+        }
+      })),
+      TE.chain(({ content, enrichedMessage }) =>
+        getHasPreconditionFlagForMessagesFallback(
+          content,
+          enrichedMessage,
+          redisClient,
+          remoteContentConfigurationModel,
+          remoteContentConfigurationTtl
+        )
+      )
+    )()
   );
 
 export const getMessagesFromFallback = (

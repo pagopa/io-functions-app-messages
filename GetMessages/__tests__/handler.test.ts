@@ -265,7 +265,7 @@ const dummyThirdPartyDataWithCategoryFetcher = jest
     category: TagEnumBase.GENERIC
   }));
 
-const mockConfig = {} as IConfig;
+const mockConfig = { SERVICE_CACHE_TTL_DURATION: 3600 } as IConfig;
 
 // ---------------------
 // Tests

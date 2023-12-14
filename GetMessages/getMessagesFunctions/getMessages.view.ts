@@ -12,7 +12,10 @@ import {
   CosmosErrors,
   toCosmosErrorResponse
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/models/message_view";
+import {
+  RetrievedMessageView,
+  ThirdPartyComponent
+} from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
@@ -29,6 +32,7 @@ import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
+import { Has_preconditionEnum } from "../../generated/definitions/ThirdPartyData";
 
 export const getHasPreconditionFlagForMessagesFromView = (
   retrievedMessagesFromView: ReadonlyArray<RetrievedMessageView>,
@@ -40,41 +44,47 @@ export const getHasPreconditionFlagForMessagesFromView = (
 ): TE.TaskEither<Error, ReadonlyArray<EnrichedMessageWithContent>> =>
   pipe(
     retrievedMessagesFromView,
-    RA.map(message => {
-      return pipe(
-        O.fromNullable(
-          message.components.thirdParty?.has
-            ? message.components.thirdParty.has_precondition
-            : undefined
-        ),
-        O.fold(
-          () =>
-            pipe(
-              getOrCacheRemoteServiceConfig(
-                redisClient,
-                remoteContentConfigurationModel,
-                remoteContentConfigurationTtl,
-                message.senderServiceId
-              ),
-              TE.map(serviceConfig => serviceConfig.hasPrecondition)
-            ),
-          hasPrecondition => TE.of(hasPrecondition)
-        ),
-        TE.map(hasPrecondition =>
+    RA.map(message =>
+      pipe(
+        message.components.thirdParty,
+        O.fromPredicate(thirdParty => thirdParty.has === true),
+        O.map(thirdParty =>
           pipe(
-            computeFlagFromHasPrecondition(
-              hasPrecondition,
-              message.status.read
+            thirdParty.has ? thirdParty.has_precondition : Has_preconditionEnum.NEVER, // ugly, but O.fromPredicate cannot infer disjointed unions
+            O.fromNullable,
+            O.fold(
+              () =>
+                pipe(
+                  getOrCacheRemoteServiceConfig(
+                    redisClient,
+                    remoteContentConfigurationModel,
+                    remoteContentConfigurationTtl,
+                    message.senderServiceId
+                  ),
+                  TE.map(serviceConfig => serviceConfig.hasPrecondition)
+                ),
+              hasPrecondition => TE.of(hasPrecondition)
             ),
-            hasPrecondition =>
-              toEnrichedMessageWithContent(categoryFetcher)(
-                message,
-                hasPrecondition
+            TE.map(hasPrecondition =>
+              pipe(
+                computeFlagFromHasPrecondition(
+                  hasPrecondition,
+                  message.status.read
+                ),
+                hasPrecondition =>
+                  toEnrichedMessageWithContent(categoryFetcher)(
+                    message,
+                    hasPrecondition
+                  )
               )
+            )
           )
+        ),
+        O.getOrElse(() =>
+          TE.of(toEnrichedMessageWithContent(categoryFetcher)(message, false))
         )
-      );
-    }),
+      )
+    ),
     TE.sequenceArray
   );
 
@@ -128,13 +138,15 @@ export const getMessagesFromView = (
             ),
             TE.map(items => ({
               ...pageResult,
-              items: items 
+              items: items
             }))
           )
         ),
         TE.mapLeft(err => {
           context.log.error(
-            `getMessagesFromView|Error retrieving page data from cosmos|${JSON.stringify(err)}`
+            `getMessagesFromView|Error retrieving page data from cosmos|${JSON.stringify(
+              err
+            )}`
           );
           return err;
         })

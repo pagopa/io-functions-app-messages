@@ -71,27 +71,38 @@ export const getHasPreconditionFlagForMessagesFallback = (
   // eslint-disable-next-line max-params
 ): TE.TaskEither<Error, EnrichedMessageWithContent> =>
   pipe(
-    O.fromNullable(content.third_party_data?.has_precondition),
-    O.fold(
-      () =>
-        pipe(
-          getOrCacheRemoteServiceConfig(
-            redisClient,
-            remoteContentConfigurationModel,
-            remoteContentConfigCacheTtl,
-            message.sender_service_id
-          ),
-          TE.map(serviceConfig => serviceConfig.hasPrecondition)
+    O.fromNullable(content.third_party_data),
+    O.map(thirdPartyData =>
+      pipe(
+        O.fromNullable(thirdPartyData.has_precondition),
+        O.fold(
+          () =>
+            pipe(
+              getOrCacheRemoteServiceConfig(
+                redisClient,
+                remoteContentConfigurationModel,
+                remoteContentConfigCacheTtl,
+                message.sender_service_id
+              ),
+              TE.map(serviceConfig => serviceConfig.hasPrecondition)
+            ),
+          hasPrecondition => TE.of(hasPrecondition)
         ),
-      hasPrecondition => TE.of(hasPrecondition)
+        TE.map(hasPrecondition =>
+          computeFlagFromHasPrecondition(hasPrecondition, message.is_read)
+        ),
+        TE.map(hasPrecondition => ({
+          ...message,
+          has_precondition: hasPrecondition
+        }))
+      )
     ),
-    TE.map(hasPrecondition =>
-      computeFlagFromHasPrecondition(hasPrecondition, message.is_read)
-    ),
-    TE.map(hasPrecondition => ({
-      ...message,
-      has_precondition: hasPrecondition
-    }))
+    O.getOrElse(() =>
+      TE.of({
+        ...message,
+        has_precondition: false
+      })
+    )
   );
 
 /**

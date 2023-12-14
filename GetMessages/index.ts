@@ -19,6 +19,10 @@ import {
   SERVICE_COLLECTION_NAME
 } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { MESSAGE_VIEW_COLLECTION_NAME } from "@pagopa/io-functions-commons/dist/src/models/message_view";
+import {
+  RemoteContentConfigurationModel,
+  REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
+} from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
@@ -28,10 +32,6 @@ import { initTelemetryClient } from "../utils/appinsights";
 import { getThirdPartyDataWithCategoryFetcher } from "../utils/messages";
 import { GetMessages } from "./handler";
 import { createGetMessagesFunctionSelection } from "./getMessagesFunctions/getMessages.selector";
-import {
-  RemoteContentConfigurationModel,
-  REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
-} from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 
 // Setup Express
 const app = express();

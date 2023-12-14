@@ -12,15 +12,13 @@ import {
   CosmosErrors,
   toCosmosErrorResponse
 } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import {
-  RetrievedMessageView,
-  ThirdPartyComponent
-} from "@pagopa/io-functions-commons/dist/src/models/message_view";
+import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import * as AI from "../../utils/AsyncIterableTask";
 
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
@@ -28,11 +26,38 @@ import {
   ThirdPartyDataWithCategoryFetcher,
   computeFlagFromHasPrecondition
 } from "../../utils/messages";
-import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
-import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
-import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
 import { Has_preconditionEnum } from "../../generated/definitions/ThirdPartyData";
+import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
+import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
+
+/**
+ * Map `RetrievedMessageView` to `EnrichedMessageWithContent`
+ */
+export const toEnrichedMessageWithContent = (
+  categoryFetcher: ThirdPartyDataWithCategoryFetcher
+) => (
+  item: RetrievedMessageView,
+  hasPrecondition: boolean
+): EnrichedMessageWithContent => ({
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define
+  category: toCategory(categoryFetcher)(item),
+  created_at: item.createdAt,
+  fiscal_code: item.fiscalCode,
+  has_attachments: item.components.thirdParty.has
+    ? item.components.thirdParty.has_attachments
+    : false,
+  has_precondition: hasPrecondition ?? false,
+  has_remote_content: item.components.thirdParty.has
+    ? item.components.thirdParty.has_remote_content
+    : false,
+  id: item.id,
+  is_archived: item.status.archived,
+  is_read: item.status.read,
+  message_title: item.messageTitle,
+  sender_service_id: item.senderServiceId,
+  time_to_live: item.timeToLive
+});
 
 export const getHasPreconditionFlagForMessagesFromView = (
   retrievedMessagesFromView: ReadonlyArray<RetrievedMessageView>,
@@ -50,7 +75,9 @@ export const getHasPreconditionFlagForMessagesFromView = (
         O.fromPredicate(thirdParty => thirdParty.has === true),
         O.map(thirdParty =>
           pipe(
-            thirdParty.has ? thirdParty.has_precondition : Has_preconditionEnum.NEVER, // ugly, but O.fromPredicate cannot infer disjointed unions
+            thirdParty.has
+              ? thirdParty.has_precondition
+              : Has_preconditionEnum.NEVER, // ugly, but O.fromPredicate cannot infer disjointed unions
             O.fromNullable,
             O.fold(
               () =>
@@ -65,10 +92,10 @@ export const getHasPreconditionFlagForMessagesFromView = (
                 ),
               hasPrecondition => TE.of(hasPrecondition)
             ),
-            TE.map(hasPrecondition =>
+            TE.map(hasPreconditionEnum =>
               pipe(
                 computeFlagFromHasPrecondition(
-                  hasPrecondition,
+                  hasPreconditionEnum,
                   message.status.read
                 ),
                 hasPrecondition =>
@@ -138,7 +165,7 @@ export const getMessagesFromView = (
             ),
             TE.map(items => ({
               ...pageResult,
-              items: items
+              items
             }))
           )
         ),
@@ -153,34 +180,6 @@ export const getMessagesFromView = (
       )
     )
   );
-
-/**
- * Map `RetrievedMessageView` to `EnrichedMessageWithContent`
- */
-export const toEnrichedMessageWithContent = (
-  categoryFetcher: ThirdPartyDataWithCategoryFetcher
-) => (
-  item: RetrievedMessageView,
-  hasPrecondition: boolean
-): EnrichedMessageWithContent => ({
-  // eslint-disable-next-line @typescript-eslint/no-use-before-define
-  category: toCategory(categoryFetcher)(item),
-  created_at: item.createdAt,
-  fiscal_code: item.fiscalCode,
-  has_attachments: item.components.thirdParty.has
-    ? item.components.thirdParty.has_attachments
-    : false,
-  has_remote_content: item.components.thirdParty.has
-    ? item.components.thirdParty.has_remote_content
-    : false,
-  has_precondition: hasPrecondition ?? false,
-  id: item.id,
-  is_archived: item.status.archived,
-  is_read: item.status.read,
-  message_title: item.messageTitle,
-  sender_service_id: item.senderServiceId,
-  time_to_live: item.timeToLive
-});
 
 /**
  * Map components to `InternalMessageCategory`

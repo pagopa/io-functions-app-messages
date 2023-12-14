@@ -6,11 +6,11 @@ import { parse } from "fp-ts/lib/Json";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { getTask, setWithExpirationTask } from "./redis_storage";
 import {
   RemoteContentConfigurationModel,
   RetrievedRemoteContentConfiguration
 } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
+import { getTask, setWithExpirationTask } from "./redis_storage";
 
 export const getOrCacheRemoteServiceConfig = (
   redisClient: RedisClient,

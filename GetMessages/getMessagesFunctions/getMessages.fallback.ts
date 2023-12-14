@@ -23,6 +23,9 @@ import * as t from "io-ts";
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import {
   CreatedMessageWithoutContentWithStatus,
   computeFlagFromHasPrecondition,
@@ -32,12 +35,9 @@ import {
 } from "../../utils/messages";
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
 import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
+import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 import { EnrichedMessageWithContent } from "./models";
-import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
-import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
 
 type RetrievedNotPendingMessage = t.TypeOf<typeof RetrievedNotPendingMessage>;
 const RetrievedNotPendingMessage = t.intersection([

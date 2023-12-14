@@ -32,8 +32,8 @@ import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/m
 import { Context } from "@azure/functions";
 import { RedisClient } from "redis";
 import { enrichServiceData } from "../utils/messages";
-import { IGetMessagesFunctionSelector } from "./getMessagesFunctions/getMessages.selector";
 import { IConfig } from "../utils/config";
+import { IGetMessagesFunctionSelector } from "./getMessagesFunctions/getMessages.selector";
 
 type IGetMessagesHandlerResponse =
   | IResponseSuccessJson<PageResults>

@@ -10,7 +10,9 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { aCosmosResourceMetadata, aFiscalCode } from "./mocks";
 
-export const mockFind = jest.fn(TE.of(O.some({})));
+export const mockFind = jest.fn(() =>
+  TE.of(O.some(aRetrievedRemoteContentConfiguration))
+);
 
 export const mockRemoteContentConfigurationModel = ({
   find: mockFind

@@ -55,10 +55,10 @@ import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { IConfig } from "../../utils/config";
 import {
+  aRetrievedRemoteContentConfiguration,
   mockRemoteContentConfigurationModel,
   mockRemoteContentConfigurationTtl
 } from "../../__mocks__/remote-content";
-import { redisClientMock } from "../../__mocks__/redis";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -154,7 +154,14 @@ const aRetrievedMessageView: RetrievedMessageView = pipe(
 //----------------------------
 
 const blobServiceMock = ({
-  getBlobToText: jest.fn()
+  getBlobToText: jest.fn().mockReturnValue(
+    TE.of(
+      O.some({
+        subject: "a subject",
+        markdown: "a markdown"
+      } as MessageContent)
+    )
+  )
 } as unknown) as BlobService;
 
 const getMockIterator = values => ({
@@ -166,21 +173,26 @@ const getMockIterator = values => ({
     .mockImplementationOnce(async () => ({ done: true }))
 });
 
+const getContentFromBlobMock = jest.fn().mockImplementation(() =>
+  TE.of(
+    O.some({
+      subject: "a subject",
+      markdown: "a markdown"
+    } as MessageContent)
+  )
+);
+
 const getMessageModelMock = messageIterator =>
   (({
-    getContentFromBlob: () =>
-      TE.of(
-        O.some({
-          subject: "a subject",
-          markdown: "a markdown"
-        } as MessageContent)
-      ),
+    getContentFromBlob: getContentFromBlobMock,
     findMessages: jest.fn(() => TE.of(messageIterator))
   } as unknown) as MessageModel);
 
 const errorMessageModelMock = ({
   getContentFromBlob: jest.fn(() => TE.left("Error blob")),
-  findMessages: jest.fn(() => TE.left(toCosmosErrorResponse("Not found")))
+  findMessages: jest.fn(() => {
+    return TE.left(toCosmosErrorResponse("Not found"));
+  })
 } as unknown) as MessageModel;
 
 const mockFindLastVersionByModelId = jest.fn(() =>
@@ -257,7 +269,7 @@ const getTaskMock = jest.fn(() =>
 );
 jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
 
-const aRedisClient = {} as any;
+const redisClientMock = {} as any;
 
 const dummyThirdPartyDataWithCategoryFetcher = jest
   .fn()
@@ -284,7 +296,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  it("should respond with query error if it cannot retrieve messages", async () => {
+  it("should respond with a query error if it cannot retrieve messages", async () => {
     const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
       false,
       "none",
@@ -311,7 +323,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -359,7 +371,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -412,7 +424,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -470,7 +482,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -534,7 +546,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -597,7 +609,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -665,7 +677,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -761,7 +773,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -786,6 +798,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       message_title: "a subject",
       is_archived: false,
       is_read: false,
+      has_precondition: false,
+      has_remote_content: false,
       organization_name: aRetrievedService.organizationName,
       service_name: aRetrievedService.serviceName
     };
@@ -846,7 +860,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -871,6 +885,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         rptId: `${aPaymentDataWithPayee.payee.fiscal_code}${aPaymentDataWithPayee.notice_number}`
       },
       has_attachments: false,
+      has_precondition: false,
+      has_remote_content: false,
       message_title: "a subject",
       is_archived: false,
       is_read: false,
@@ -898,10 +914,14 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       category: serviceId == aServiceId ? TagEnumPN.PN : TagEnumBase.GENERIC
     });
 
-    const messageIterator = getMockIterator(aMessageList);
+    getTaskMock.mockReturnValueOnce(
+      TE.of(O.some(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+    );
+
+    const messageIterator = getMockIterator([aMessageList[0]]);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    messageModelMock.getContentFromBlob = jest.fn().mockImplementation(() =>
+    getContentFromBlobMock.mockReturnValueOnce(
       TE.of(
         O.some({
           subject: "a subject",
@@ -938,7 +958,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -964,6 +984,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       },
       has_precondition: true,
       has_attachments: false,
+      has_remote_content: false,
       message_title: "a subject",
       is_archived: false,
       is_read: false,
@@ -973,16 +994,12 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
 
     if (result.kind === "IResponseSuccessJson") {
       expect(result.value).toEqual({
-        items: [
-          { ...expectedEnrichedMessage, id: aSimpleList[0].id },
-          { ...expectedEnrichedMessage, id: aSimpleList[1].id }
-        ],
-        prev: aSimpleList[0].id,
-        next: aSimpleList[1].id
+        items: [{ ...expectedEnrichedMessage, id: aSimpleList[0].id }],
+        prev: aSimpleList[0].id
       });
     }
 
-    expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(messageIterator.next).toHaveBeenCalledTimes(2);
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
@@ -1027,7 +1044,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1052,6 +1069,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
         rptId: `${aRetrievedService.organizationFiscalCode}${aPaymentDataWithoutPayee.notice_number}`
       },
       has_attachments: false,
+      has_remote_content: false,
+      has_precondition: false,
       message_title: "a subject",
       is_archived: false,
       is_read: false,
@@ -1105,7 +1124,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1177,7 +1196,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1199,6 +1218,8 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       ...retrievedMessageToPublic(aSimpleList[0]),
       category: { tag: TagEnumBase.GENERIC },
       has_attachments: false,
+      has_remote_content: false,
+      has_precondition: false,
       message_title: "a subject",
       is_archived: true,
       is_read: false,
@@ -1269,7 +1290,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1337,7 +1358,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1426,7 +1447,7 @@ describe("GetMessagesHandler |> Message View", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1488,6 +1509,10 @@ describe("GetMessagesHandler |> Message View", () => {
     );
     expect(aPnMessageList.length).toBe(5);
 
+    getTaskMock.mockReturnValueOnce(
+      TE.of(O.some(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+    );
+
     let iteratorCalls = 0;
     dummyThirdPartyDataWithCategoryFetcher.mockImplementationOnce(
       serviceId => ({
@@ -1505,7 +1530,7 @@ describe("GetMessagesHandler |> Message View", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1556,7 +1581,7 @@ describe("GetMessagesHandler |> Message View", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1607,7 +1632,7 @@ describe("GetMessagesHandler |> Message View", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1682,7 +1707,7 @@ describe("GetMessagesHandler |> Message View", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1715,7 +1740,7 @@ describe("GetMessagesHandler |> Message View", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1749,7 +1774,7 @@ describe("GetMessagesHandler |> Message View", () => {
     const getMessagesHandler = GetMessagesHandler(
       getMessagesFunctionSelector,
       serviceModelMock,
-      aRedisClient,
+      redisClientMock,
       mockConfig
     );
 
@@ -1764,7 +1789,7 @@ describe("GetMessagesHandler |> Message View", () => {
     );
     expect(result.kind).toBe("IResponseErrorQuery");
     expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      "getMessagesFromView|Error retrieving page data from cosmos|IterationError"
+      `getMessagesFromView|Error retrieving page data from cosmos|{\"error\":{},\"kind\":\"COSMOS_ERROR_RESPONSE\"}`
     );
   });
 });

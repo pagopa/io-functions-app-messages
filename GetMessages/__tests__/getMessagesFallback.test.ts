@@ -89,7 +89,7 @@ const functionsContextMock = ({
   }
 } as unknown) as Context;
 
-const getMockIterator = values => ({
+const getMockIterator = (values: any) => ({
   next: jest
     .fn()
     .mockImplementationOnce(async () => ({
@@ -104,7 +104,7 @@ const getContentFromBlobMock = jest
   .fn()
   .mockImplementation(() => TE.of(O.some(aMessageContent)));
 
-const getMessageModelMock = messageIterator =>
+const getMessageModelMock = (messageIterator: any) =>
   (({
     getContentFromBlob: getContentFromBlobMock,
     findMessages: jest.fn(() => TE.of(messageIterator))

@@ -134,6 +134,7 @@ export const getMessagesFromView = (
 > =>
   pipe(
     messageViewModel.queryPage(fiscalCode, maximumId, minimumId, pageSize),
+
     TE.mapLeft(err => {
       context.log.error(
         `getMessagesFromView|Error building queryPage iterator`

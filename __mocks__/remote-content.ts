@@ -1,3 +1,6 @@
+import * as TE from "fp-ts/lib/TaskEither";
+import * as O from "fp-ts/lib/Option";
+
 import { Has_preconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 import {
   RemoteContentConfigurationModel,
@@ -7,14 +10,11 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { aCosmosResourceMetadata, aFiscalCode } from "./mocks";
 
-export const mockFind = jest.fn();
+export const mockFind = jest.fn(TE.of(O.some({})));
 
 export const mockRemoteContentConfigurationModel = ({
   find: mockFind
 } as unknown) as RemoteContentConfigurationModel;
-export const setMock = jest
-  .fn()
-  .mockImplementation((_, __, ___, ____, cb) => cb(undefined, "OK"));
 
 export const mockRemoteContentConfigurationTtl = 100 as NonNegativeInteger;
 

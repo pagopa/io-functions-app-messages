@@ -56,9 +56,11 @@ import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { IConfig } from "../../utils/config";
 import {
   aRetrievedRemoteContentConfiguration,
+  mockFind,
   mockRemoteContentConfigurationModel,
   mockRemoteContentConfigurationTtl
 } from "../../__mocks__/remote-content";
+import { Has_preconditionEnum } from "../../generated/definitions/ThirdPartyData";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -264,8 +266,9 @@ jest
   .spyOn(redis, "setWithExpirationTask")
   .mockImplementation(setWithExpirationTaskMock);
 
-const getTaskMock = jest.fn(() =>
-  TE.of(O.some(JSON.stringify(aRetrievedService)))
+const getTaskMock = jest.fn(
+  (): TE.TaskEither<Error, O.Option<string>> =>
+    TE.of(O.some(JSON.stringify(aRetrievedService)))
 );
 jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
 
@@ -816,6 +819,118 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     }
 
     expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    // if the getTask correctly retrieve the service, the RC model is not called
+    expect(mockFind).not.toHaveBeenCalled();
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should call the RC model if the redis cache does not works", async () => {
+    const messageIterator = getMockIterator(aMessageList);
+    const messageModelMock = getMessageModelMock(messageIterator);
+
+    getTaskMock.mockReturnValueOnce(TE.left(new Error("Error")));
+
+    // we expect for 2 messages to have remote_content and preconditions
+    getContentFromBlobMock.mockReturnValueOnce(
+      TE.of(
+        O.some({
+          subject: "a subject",
+          markdown: "a markdown",
+          third_party_data: {
+            has_remote_content: true,
+            has_precondition: Has_preconditionEnum.ALWAYS
+          }
+        })
+      )
+    );
+
+    getContentFromBlobMock.mockReturnValueOnce(
+      TE.of(
+        O.some({
+          subject: "a subject",
+          markdown: "a markdown",
+          third_party_data: {
+            has_remote_content: true,
+            has_precondition: Has_preconditionEnum.ALWAYS
+          }
+        })
+      )
+    );
+
+    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
+      false,
+      "none",
+      [],
+      "XYZ" as NonEmptyString,
+      [
+        messageModelMock,
+        messageStatusModelMock,
+        blobServiceMock,
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ],
+      [
+        messageViewModelMock,
+
+        mockRemoteContentConfigurationModel,
+        redisClientMock,
+        mockRemoteContentConfigurationTtl,
+        dummyThirdPartyDataWithCategoryFetcher
+      ]
+    );
+
+    const getMessagesHandler = GetMessagesHandler(
+      getMessagesFunctionSelector,
+      serviceModelMock,
+      redisClientMock,
+      mockConfig
+    );
+
+    const pageSize = 2 as NonNegativeInteger;
+
+    const result = await getMessagesHandler(
+      functionsContextMock,
+      aFiscalCode,
+      O.some(pageSize),
+      O.some(true),
+      O.none,
+      O.none,
+      O.none
+    );
+
+    expect(result.kind).toBe("IResponseSuccessJson");
+
+    const expectedEnrichedMessage = {
+      ...retrievedMessageToPublic(aSimpleList[0]),
+      category: { tag: TagEnumBase.GENERIC },
+      has_attachments: false,
+      message_title: "a subject",
+      is_archived: false,
+      is_read: false,
+      has_precondition: true,
+      has_remote_content: true,
+      organization_name: aRetrievedService.organizationName,
+      service_name: aRetrievedService.serviceName
+    };
+
+    if (result.kind === "IResponseSuccessJson") {
+      expect(result.value).toEqual({
+        items: [
+          { ...expectedEnrichedMessage, id: aSimpleList[0].id },
+          { ...expectedEnrichedMessage, id: aSimpleList[1].id }
+        ],
+        prev: aSimpleList[0].id,
+        next: aSimpleList[1].id
+      });
+    }
+
+    expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    // if the getTask correctly retrieve the service, the RC model is not called
+    expect(mockFind).not.toHaveBeenCalled();
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
@@ -906,6 +1021,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     }
 
     expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    // if the getTask correctly retrieve the service, the RC model is not called
+    expect(mockFind).not.toHaveBeenCalled();
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
@@ -1000,6 +1118,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     }
 
     expect(messageIterator.next).toHaveBeenCalledTimes(2);
+    expect(getTaskMock).toHaveBeenCalledTimes(2);
+    // if the getTask correctly retrieve the service, the RC model is not called
+    expect(mockFind).not.toHaveBeenCalled();
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
@@ -1090,6 +1211,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     }
 
     expect(messageIterator.next).toHaveBeenCalledTimes(1);
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    // if the getTask correctly retrieve the service, the RC model is not called
+    expect(mockFind).not.toHaveBeenCalled();
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
@@ -1475,6 +1599,8 @@ describe("GetMessagesHandler |> Message View", () => {
         tag: "PAYMENT"
       },
       organization_name: aRetrievedService.organizationName,
+      has_remote_content: false,
+      has_precondition: false,
       service_name: aRetrievedService.serviceName
     };
 
@@ -1659,6 +1785,8 @@ describe("GetMessagesHandler |> Message View", () => {
         rptId: `${aRetrievedService.organizationFiscalCode}177777777777777777`,
         tag: "PAYMENT"
       },
+      has_remote_content: false,
+      has_precondition: false,
       organization_name: aRetrievedService.organizationName,
       service_name: aRetrievedService.serviceName
     };

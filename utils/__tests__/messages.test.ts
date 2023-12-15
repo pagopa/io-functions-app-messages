@@ -20,6 +20,7 @@ import * as E from "fp-ts/lib/Either";
 import { BlobService } from "azure-storage";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import {
+  computeFlagFromHasPrecondition,
   CreatedMessageWithoutContentWithStatus,
   enrichServiceData,
   getThirdPartyDataWithCategoryFetcher,
@@ -45,6 +46,7 @@ import { TelemetryClient } from "applicationinsights";
 import { IConfig } from "../config";
 import { TagEnum as TagEnumPn } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
+import { Has_preconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 
 const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
   .fn()
@@ -514,5 +516,43 @@ describe("mapMessageCategory", () => {
       getThirdPartyDataWithCategoryFetcher(dummyConfig, mockTelemetryClient)
     );
     expect(r.tag).toBe("EU_COVID_CERT");
+  });
+});
+
+describe("computeFlagFromHasPrecondition ", () => {
+  it("should return false if the has_precondition is NEVER an the message has not been readed", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.NEVER, false)
+    ).toBeFalsy();
+  });
+
+  it("should return false if the has_precondition is NEVER an the message has been readed", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.NEVER, true)
+    ).toBeFalsy();
+  });
+
+  it("should return false if the has_precondition is ONCE but it has been readed", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.ONCE, true)
+    ).toBeFalsy();
+  });
+
+  it("should return true if the has_precondition is ONCE and it has not been readed", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.ONCE, false)
+    ).toBeTruthy();
+  });
+
+  it("should return true if the has_precondition is ALWAYS and it has not been readed", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.ALWAYS, false)
+    ).toBeTruthy();
+  });
+
+  it("should return true if the has_precondition is ALWAYS and it has been readed", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.ALWAYS, true)
+    ).toBeTruthy();
   });
 });

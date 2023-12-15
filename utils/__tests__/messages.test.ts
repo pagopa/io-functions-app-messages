@@ -17,7 +17,6 @@ import { aCosmosResourceMetadata } from "../../__mocks__/mocks";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
-import { BlobService } from "azure-storage";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import {
   computeFlagFromHasPrecondition,
@@ -28,7 +27,6 @@ import {
   ThirdPartyDataWithCategoryFetcher
 } from "../messages";
 import {
-  MessageModel,
   NewMessageWithoutContent,
   RetrievedMessageWithoutContent
 } from "@pagopa/io-functions-commons/dist/src/models/message";
@@ -104,31 +102,9 @@ const aRetrievedMessageWithoutContent: RetrievedMessageWithoutContent = {
   kind: "IRetrievedMessageWithoutContent"
 };
 
-const blobServiceMock = ({
-  getBlobToText: jest.fn()
-} as unknown) as BlobService;
-
 const mockedGenericContent = {
   subject: "a subject",
   markdown: "a markdown"
-} as MessageContent;
-
-const mockedGreenPassContent = {
-  subject: "a subject".repeat(10),
-  markdown: "a markdown".repeat(80),
-  eu_covid_cert: {
-    auth_code: "an_auth_code"
-  }
-} as MessageContent;
-
-const mockedLegalDataContent = {
-  subject: "a subject".repeat(10),
-  markdown: "a markdown".repeat(80),
-  legal_data: {
-    has_attachment: false,
-    message_unique_id: "dummy_mvl_id",
-    sender_mail_from: "dummy@sender.it"
-  }
 } as MessageContent;
 
 const mockedPaymentContent = {
@@ -139,14 +115,6 @@ const mockedPaymentContent = {
     notice_number: "012345678901234567"
   }
 } as MessageContent;
-
-const getContentFromBlobMock = jest
-  .fn()
-  .mockImplementation(() => TE.of(O.some(mockedGenericContent)));
-
-const messageModelMock = ({
-  getContentFromBlob: getContentFromBlobMock
-} as unknown) as MessageModel;
 
 const findLastVersionByModelIdMock = jest
   .fn()

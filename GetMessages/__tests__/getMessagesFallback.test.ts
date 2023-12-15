@@ -31,6 +31,8 @@ import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/
 import { pipe } from "fp-ts/lib/function";
 import { EnrichedMessageWithContent } from "../getMessagesFunctions/models";
 import { aMessageContent } from "../../utils/__tests__/messages.test";
+import * as redis from "../../utils/redis_storage";
+import { Has_preconditionEnum } from "../../generated/definitions/ThirdPartyData";
 
 const aDate = new Date();
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
@@ -161,7 +163,6 @@ describe("enrichContentData", () => {
 
     const enrichedMessagesPromises = enrichMessages(messageList);
 
-    pipe;
     const enrichedMessages = await pipe(
       TE.tryCatch(
         async () => Promise.all(enrichedMessagesPromises),
@@ -179,6 +180,8 @@ describe("enrichContentData", () => {
         expect(enrichedMessage.right.category).toEqual({
           tag: TagEnumBase.GENERIC
         });
+        expect(enrichedMessage.right.has_remote_content).toBeFalsy();
+        expect(enrichedMessage.right.has_precondition).toBeFalsy();
       }
     });
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
@@ -218,6 +221,8 @@ describe("enrichContentData", () => {
         expect(enrichedMessage.right.category).toEqual({
           tag: TagEnumBase.EU_COVID_CERT
         });
+        expect(enrichedMessage.right.has_remote_content).toBeFalsy();
+        expect(enrichedMessage.right.has_precondition).toBeFalsy();
       }
     });
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
@@ -257,6 +262,59 @@ describe("enrichContentData", () => {
           tag: TagEnumPayment.PAYMENT,
           noticeNumber: mockedPaymentContent.payment_data?.notice_number
         });
+        expect(enrichedMessage.right.has_remote_content).toBeFalsy();
+        expect(enrichedMessage.right.has_precondition).toBeFalsy();
+      }
+    });
+    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
+  });
+
+  it("should return right with correct third party data flags when message content is retrieved", async () => {
+    getContentFromBlobMock.mockImplementationOnce(() =>
+      TE.of(
+        O.some({
+          ...aMessageContent,
+          third_party_data: { has_remote_content: true, has_precondition: Has_preconditionEnum.ALWAYS}
+        })
+      )
+    );
+    const enrichMessages = enrichContentData(
+      functionsContextMock,
+      messageModelMock,
+      blobServiceMock,
+      redisClientMock,
+      mockRemoteContentConfigurationModel,
+      mockRemoteContentConfigurationTtl,
+      dummyThirdPartyDataWithCategoryFetcher
+    );
+
+    const enrichedMessagesPromises = enrichMessages([
+      {
+        ...retrievedMessageToPublic(aRetrievedMessageWithoutContent),
+        is_archived: false,
+        is_read: false
+      }
+    ]);
+
+    const enrichedMessages = await pipe(
+      TE.tryCatch(
+        async () => Promise.all(enrichedMessagesPromises),
+        () => {}
+      ),
+      TE.getOrElse(() => {
+        throw Error();
+      })
+    )();
+
+    enrichedMessages.map(enrichedMessage => {
+      expect(E.isRight(enrichedMessage)).toBe(true);
+      if (E.isRight(enrichedMessage)) {
+        expect(EnrichedMessageWithContent.is(enrichedMessage.right)).toBe(true);
+        expect(enrichedMessage.right.category).toEqual({
+          tag: TagEnumBase.GENERIC
+        });
+        expect(enrichedMessage.right.has_remote_content).toBeTruthy();
+        expect(enrichedMessage.right.has_precondition).toBeTruthy();
       }
     });
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();

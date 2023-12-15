@@ -282,6 +282,38 @@ const dummyThirdPartyDataWithCategoryFetcher = jest
 
 const mockConfig = { SERVICE_CACHE_TTL_DURATION: 3600 } as IConfig;
 
+// utility function to avoid code duplication in this file
+const getCreateGetMessagesFunctionSelection = (
+  messageStatusModel: MessageStatusExtendedQueryModel,
+  messageModelMock: MessageModel,
+  dummyThirdPartyDataWithCategoryFetcher?: (
+    serviceId: NonEmptyString
+  ) => { category: TagEnumPN | TagEnumBase }
+) =>
+  createGetMessagesFunctionSelection(
+    false,
+    "none",
+    [],
+    "XYZ" as NonEmptyString,
+    [
+      messageModelMock,
+      messageStatusModel,
+      blobServiceMock,
+      mockRemoteContentConfigurationModel,
+      redisClientMock,
+      mockRemoteContentConfigurationTtl,
+      dummyThirdPartyDataWithCategoryFetcher!
+    ],
+    [
+      messageViewModelMock,
+      mockRemoteContentConfigurationModel,
+      redisClientMock,
+      mockRemoteContentConfigurationTtl,
+      dummyThirdPartyDataWithCategoryFetcher!
+    ]
+  );
+
+
 // ---------------------
 // Tests
 // ---------------------
@@ -300,27 +332,9 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("should respond with a query error if it cannot retrieve messages", async () => {
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        errorMessageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      errorMessageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -348,27 +362,9 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const messageIterator = getMockIterator(messages);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -400,28 +396,9 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const messageIterator = getMockIterator(messages);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -458,28 +435,9 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -522,28 +480,9 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -585,28 +524,9 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -653,28 +573,9 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
     const messageIterator = getMockIterator(messages);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -749,28 +650,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -858,28 +740,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       )
     );
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -948,28 +811,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       )
     );
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1028,7 +872,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
   });
 
   it("should respond with a pn message when third_party_data is defined", async () => {
-    const thirdPartyFetcherForAServiceId = serviceId => ({
+    const thirdPartyFetcherForAServiceId = (serviceId: NonEmptyString) => ({
       category: serviceId == aServiceId ? TagEnumPN.PN : TagEnumBase.GENERIC
     });
 
@@ -1049,28 +893,10 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       )
     );
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        thirdPartyFetcherForAServiceId
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock,
+      thirdPartyFetcherForAServiceId
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1138,28 +964,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       )
     );
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1221,28 +1028,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1293,28 +1081,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       );
     });
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1387,28 +1156,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getContentFromBlob,
       findMessages: jest.fn().mockReturnValue(TE.of(messagesIter))
     };
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock as any,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock as any
     );
 
     const getMessagesHandler = GetMessagesHandler(
@@ -1455,28 +1205,9 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       );
     });
 
-    const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
-      false,
-      "none",
-      [],
-      "XYZ" as NonEmptyString,
-      [
-        messageModelMock,
-        messageStatusModelMock,
-        blobServiceMock,
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ],
-      [
-        messageViewModelMock,
-
-        mockRemoteContentConfigurationModel,
-        redisClientMock,
-        mockRemoteContentConfigurationTtl,
-        dummyThirdPartyDataWithCategoryFetcher
-      ]
+    const getMessagesFunctionSelector = getCreateGetMessagesFunctionSelection(
+      messageStatusModelMock,
+      messageModelMock
     );
 
     const getMessagesHandler = GetMessagesHandler(

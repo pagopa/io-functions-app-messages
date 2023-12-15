@@ -12,14 +12,7 @@ import { Context } from "@azure/functions";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import {
   MessageModel,
-  NewMessageWithoutContent,
-  RetrievedMessageWithoutContent
 } from "@pagopa/io-functions-commons/dist/src/models/message";
-import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { CosmosResource } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
-import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 import { BlobService } from "azure-storage";
 import {
   CreatedMessageWithoutContentWithStatus,
@@ -31,49 +24,9 @@ import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/
 import { pipe } from "fp-ts/lib/function";
 import { EnrichedMessageWithContent } from "../getMessagesFunctions/models";
 import { aMessageContent } from "../../utils/__tests__/messages.test";
-import * as redis from "../../utils/redis_storage";
 import { Has_preconditionEnum } from "../../generated/definitions/ThirdPartyData";
-
-const aDate = new Date();
-const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
-
-// CosmosResourceMetadata
-export const aCosmosResourceMetadata: Omit<CosmosResource, "id"> = {
-  _etag: "_etag",
-  _rid: "_rid",
-  _self: "_self",
-  _ts: 1
-};
-
-const aServiceId = "serviceId" as NonEmptyString;
-
-export const aRetrievedService: RetrievedService = ({
-  ...aCosmosResourceMetadata,
-  serviceId: aServiceId,
-  isVisible: true,
-  serviceName: "a Service",
-  organizationName: "a Organization",
-  organizationFiscalCode: "99999999999"
-} as any) as RetrievedService;
-
-const aNewMessageWithoutContent: NewMessageWithoutContent = {
-  createdAt: aDate,
-  featureLevelType: FeatureLevelTypeEnum.STANDARD,
-  fiscalCode: aFiscalCode,
-  id: "A_MESSAGE_ID" as NonEmptyString,
-  indexedId: "A_MESSAGE_ID" as NonEmptyString,
-  isPending: true,
-  kind: "INewMessageWithoutContent",
-  senderServiceId: aRetrievedService.serviceId,
-  senderUserId: "u123" as NonEmptyString,
-  timeToLiveSeconds: 3600 as TimeToLiveSeconds
-};
-
-const aRetrievedMessageWithoutContent: RetrievedMessageWithoutContent = {
-  ...aNewMessageWithoutContent,
-  ...aCosmosResourceMetadata,
-  kind: "IRetrievedMessageWithoutContent"
-};
+import {aRetrievedService} from "../../__mocks__/mocks.service_preference"
+import { aRetrievedMessageWithoutContent } from "../../__mocks__/messages";
 
 const findLastVersionByModelIdMock = jest
   .fn()

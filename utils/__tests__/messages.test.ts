@@ -520,37 +520,37 @@ describe("mapMessageCategory", () => {
 });
 
 describe("computeFlagFromHasPrecondition ", () => {
-  it("should return false if the has_precondition is NEVER an the message has not been readed", () => {
+  it("should return false if the has_precondition is NEVER an the message has not been read", () => {
     expect(
       computeFlagFromHasPrecondition(Has_preconditionEnum.NEVER, false)
     ).toBeFalsy();
   });
 
-  it("should return false if the has_precondition is NEVER an the message has been readed", () => {
+  it("should return false if the has_precondition is NEVER an the message has been read", () => {
     expect(
       computeFlagFromHasPrecondition(Has_preconditionEnum.NEVER, true)
     ).toBeFalsy();
   });
 
-  it("should return false if the has_precondition is ONCE but it has been readed", () => {
+  it("should return false if the has_precondition is ONCE but it has been read", () => {
     expect(
       computeFlagFromHasPrecondition(Has_preconditionEnum.ONCE, true)
     ).toBeFalsy();
   });
 
-  it("should return true if the has_precondition is ONCE and it has not been readed", () => {
+  it("should return true if the has_precondition is ONCE and it has not been read", () => {
     expect(
       computeFlagFromHasPrecondition(Has_preconditionEnum.ONCE, false)
     ).toBeTruthy();
   });
 
-  it("should return true if the has_precondition is ALWAYS and it has not been readed", () => {
+  it("should return true if the has_precondition is ALWAYS and it has not been read", () => {
     expect(
       computeFlagFromHasPrecondition(Has_preconditionEnum.ALWAYS, false)
     ).toBeTruthy();
   });
 
-  it("should return true if the has_precondition is ALWAYS and it has been readed", () => {
+  it("should return true if the has_precondition is ALWAYS and it has been read", () => {
     expect(
       computeFlagFromHasPrecondition(Has_preconditionEnum.ALWAYS, true)
     ).toBeTruthy();

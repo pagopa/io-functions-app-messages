@@ -19,6 +19,16 @@ services:
     ports:
       - ${COSMOSDB_PORT}:3000
 
+  cosmosdbrc:
+    image: cosmosdb
+    env_file:
+      - ./environments/generated/env.rc.cosmosdb
+    build:
+      context: ../docker/cosmosdb
+      dockerfile: ./Dockerfile
+    ports:
+      - ${RC_COSMOSDB_PORT}:3000
+
   redis:
     container_name: redis
     image: wodby/redis:3.2-2.1.5
@@ -50,6 +60,8 @@ services:
       - ${FUNCTION_PORT}:7071
     links:
       - cosmosdb
+      - cosmosdbrc
+      - redis
       - storage-account
     depends_on:
       - functions-node-18
@@ -65,6 +77,7 @@ services:
       - "../openapi:/usr/src/openapi"
     depends_on:
       - cosmosdb
+      - cosmosdbrc
       - storage-account
     links:
       - function

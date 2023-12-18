@@ -18,3 +18,17 @@ export const cosmosdbClient = new CosmosClient({
 });
 
 export const cosmosdbInstance = cosmosdbClient.database(cosmosDbName);
+
+// Setup remote content cosmosdb
+export const remoteContentCosmosDbUri = config.REMOTE_CONTENT_COSMOSDB_URI;
+export const remoteContentCosmosDbName = config.REMOTE_CONTENT_COSMOSDB_NAME;
+export const remoteContentCosmosDbKey = config.REMOTE_CONTENT_COSMOSDB_KEY;
+
+export const remoteContentCosmosdbClient = new CosmosClient({
+  endpoint: remoteContentCosmosDbUri,
+  key: remoteContentCosmosDbKey
+});
+
+export const remoteContentCosmosdbInstance = cosmosdbClient.database(
+  remoteContentCosmosDbName
+);

@@ -23,7 +23,10 @@ import {
   RemoteContentConfigurationModel,
   REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
 } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
-import { cosmosdbInstance } from "../utils/cosmosdb";
+import {
+  cosmosdbInstance,
+  remoteContentCosmosdbInstance
+} from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import { REDIS_CLIENT } from "../utils/redis";
@@ -56,7 +59,9 @@ const messageViewModel = new MessageViewExtendedQueryModel(
 );
 
 const remoteContentConfigurationModel = new RemoteContentConfigurationModel(
-  cosmosdbInstance.container(REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME)
+  remoteContentCosmosdbInstance.container(
+    REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
+  )
 );
 
 const blobService = createBlobService(config.QueueStorageConnection);

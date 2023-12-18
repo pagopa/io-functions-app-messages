@@ -312,7 +312,6 @@ const getCreateGetMessagesFunctionSelection = (
     ]
   );
 
-
 // ---------------------
 // Tests
 // ---------------------
@@ -706,7 +705,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     expect(functionsContextMock.log.error).not.toHaveBeenCalled();
   });
 
-  it("should call the RC model if the redis cache does not works", async () => {
+  it("should not call the RC model if the redis cache works", async () => {
     const messageIterator = getMockIterator(aMessageList);
     const messageModelMock = getMessageModelMock(messageIterator);
 

@@ -29,6 +29,6 @@ export const remoteContentCosmosdbClient = new CosmosClient({
   key: remoteContentCosmosDbKey
 });
 
-export const remoteContentCosmosdbInstance = cosmosdbClient.database(
+export const remoteContentCosmosdbInstance = remoteContentCosmosdbClient.database(
   remoteContentCosmosDbName
 );

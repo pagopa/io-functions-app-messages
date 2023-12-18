@@ -180,6 +180,8 @@ describe("Get Messages |> Success Results, With Enrichment", () => {
           items: expectedItems.map(mockEnrichMessage).map(m => ({
             ...m,
             has_attachments: false,
+            has_precondition: false,
+            has_remote_content: false,
             is_archived: (messagesArchived as NonEmptyString[]).includes(m.id),
             time_to_live: 3600
           })),

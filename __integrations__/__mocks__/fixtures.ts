@@ -392,6 +392,32 @@ export const fillServices = async (
   )();
 };
 
+export const fillRemoteContent = async (
+  db: Database,
+  rcConfigurations: ReadonlyArray<
+    RemoteContentCollection.RemoteContentConfiguration
+  >
+): Promise<void> => {
+  await pipe(
+    db.container(
+      RemoteContentCollection.REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
+    ),
+    TE.of,
+    TE.map(c => new RemoteContentCollection.RemoteContentConfigurationModel(c)),
+    TE.chain(model =>
+      pipe(
+        rcConfigurations,
+        RA.map(m => model.create(m)),
+        RA.sequence(TE.ApplicativePar)
+      )
+    ),
+    TE.map(_ => log(`${_.length} Remote content created`)),
+    TE.mapLeft(_ => {
+      log("Error", _);
+    })
+  )();
+};
+
 export const fillMessagesStatus = async (
   db: Database,
   messageStatuses: ReadonlyArray<MessageStatusCollection.NewMessageStatus>

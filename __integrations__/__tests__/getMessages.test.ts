@@ -17,6 +17,7 @@ import {
   fillMessages,
   fillMessagesStatus,
   fillMessagesView,
+  fillRemoteContent,
   fillServices,
   setMessagesAsArchived,
   setMessagesViewAsArchived
@@ -29,7 +30,10 @@ import {
   messageStatusList,
   mockEnrichMessage
 } from "../__mocks__/mock.messages";
-import { serviceList } from "../__mocks__/mock.services";
+import {
+  aRemoteContentConfigurationList,
+  serviceList
+} from "../__mocks__/mock.services";
 import { createBlobs } from "../__mocks__/utils/azure_storage";
 import { getNodeFetch } from "../utils/fetch";
 import { getMessages, getMessagesWithEnrichment } from "../utils/client";
@@ -39,6 +43,9 @@ import {
   WAIT_MS,
   SHOW_LOGS,
   COSMOSDB_URI,
+  REMOTE_CONTENT_COSMOSDB_URI,
+  REMOTE_CONTENT_COSMOSDB_KEY,
+  REMOTE_CONTENT_COSMOSDB_NAME,
   COSMOSDB_KEY,
   COSMOSDB_NAME,
   QueueStorageConnection,
@@ -65,13 +72,23 @@ const cosmosClient = new CosmosClient({
   key: COSMOSDB_KEY
 });
 
+const remoteContentCosmosClient = new CosmosClient({
+  endpoint: REMOTE_CONTENT_COSMOSDB_URI,
+  key: REMOTE_CONTENT_COSMOSDB_KEY
+});
+
 // eslint-disable-next-line functional/no-let
 let database: Database;
 
 // Wait some time
 beforeAll(async () => {
   database = await pipe(
-    createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
+    createCosmosDbAndCollections(
+      cosmosClient,
+      COSMOSDB_NAME,
+      remoteContentCosmosClient,
+      REMOTE_CONTENT_COSMOSDB_NAME
+    ),
     TE.getOrElse(e => {
       throw Error("Cannot create db");
     })
@@ -88,6 +105,7 @@ beforeAll(async () => {
   await fillMessagesStatus(database, messageStatusList);
   await fillMessagesView(database, messagesList, messageStatusList);
   await fillServices(database, serviceList);
+  await fillRemoteContent(database, aRemoteContentConfigurationList);
 
   await waitFunctionToSetup();
 });

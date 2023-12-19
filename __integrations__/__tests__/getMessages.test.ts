@@ -6,6 +6,7 @@ import { CosmosClient, Database } from "@azure/cosmos";
 import { createBlobService } from "azure-storage";
 
 import * as TE from "fp-ts/TaskEither";
+import * as O from "fp-ts/lib/Option";
 import { pipe } from "fp-ts/lib/function";
 
 import { PaginatedPublicMessagesCollection } from "@pagopa/io-functions-commons/dist/generated/definitions/PaginatedPublicMessagesCollection";
@@ -84,12 +85,13 @@ let database: Database;
 beforeAll(async () => {
   database = await pipe(
     createCosmosDbAndCollections(
-      cosmosClient,
-      COSMOSDB_NAME,
-      remoteContentCosmosClient,
-      REMOTE_CONTENT_COSMOSDB_NAME
+      { client: cosmosClient, cosmosDbName: COSMOSDB_NAME },
+      O.some({
+        client: remoteContentCosmosClient,
+        cosmosDbName: REMOTE_CONTENT_COSMOSDB_NAME
+      })
     ),
-    TE.getOrElse(e => {
+    TE.getOrElse(() => {
       throw Error("Cannot create db");
     })
   )();

@@ -6,6 +6,7 @@ import { CosmosClient, Database } from "@azure/cosmos";
 import { createBlobService } from "azure-storage";
 
 import * as TE from "fp-ts/TaskEither";
+import * as O from "fp-ts/lib/Option";
 import { pipe } from "fp-ts/lib/function";
 
 import {
@@ -65,7 +66,13 @@ let database: Database;
 // Wait some time
 beforeAll(async () => {
   database = await pipe(
-    createCosmosDbAndCollections(cosmosClient, COSMOSDB_NAME),
+    createCosmosDbAndCollections(
+      {
+        cosmosDbName: COSMOSDB_NAME,
+        client: cosmosClient
+      },
+      O.none
+    ),
     TE.getOrElse(e => {
       throw Error("Cannot create db");
     })

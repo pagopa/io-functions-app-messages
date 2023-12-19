@@ -241,26 +241,38 @@ export const createAllCollectionsForRemoteContentCosmos = (
  */
 export const deleteAllCollectionsForRemoteContentCosmos = deleteAllCollectionsForCosmos;
 
+type ClientAndDbName = {
+  client: CosmosClient;
+  cosmosDbName: string;
+};
+
 /**
  * Create DB and collections
  */
 export const createCosmosDbAndCollections = (
-  client: CosmosClient,
-  cosmosDbName: string,
-  remoteContentClient?: CosmosClient,
-  remoteContentCosmosDbName?: string
+  cosmosParameters: ClientAndDbName,
+  maybeRemoeContentCosmosParameters: O.Option<ClientAndDbName>
 ): TE.TaskEither<CosmosErrors, Database> =>
   pipe(
-    createDatabase(client, cosmosDbName),
+    createDatabase(cosmosParameters.client, cosmosParameters.cosmosDbName),
     // Delete all collections, in case they already exist
     TE.chainFirst(deleteAllCollectionsForCosmos),
     TE.chainFirst(createAllCollectionsForCosmos),
-    TE.chain(() =>
-      createDatabase(remoteContentClient!, remoteContentCosmosDbName!)
+    TE.chain(database =>
+      pipe(
+        maybeRemoeContentCosmosParameters,
+        O.fold(
+          () => TE.of(database),
+          ({ client, cosmosDbName }) =>
+            pipe(
+              createDatabase(client, cosmosDbName),
+              // Delete all collections, in case they already exist
+              TE.chainFirst(deleteAllCollectionsForRemoteContentCosmos),
+              TE.chainFirst(createAllCollectionsForRemoteContentCosmos)
+            )
+        )
+      )
     ),
-    // Delete all collections, in case they already exist
-    TE.chainFirst(deleteAllCollectionsForRemoteContentCosmos),
-    TE.chainFirst(createAllCollectionsForRemoteContentCosmos),
     TE.mapLeft(err => {
       log("Error", err);
       return err;

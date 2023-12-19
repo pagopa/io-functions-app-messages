@@ -9,6 +9,7 @@ import * as MessageCollection from "@pagopa/io-functions-commons/dist/src/models
 import * as MessageViewCollection from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import * as MessageStatusCollection from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import * as ServiceModel from "@pagopa/io-functions-commons/dist/src/models/service";
+import * as RemoteContentCollection from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 
 import { log } from "../utils/logger";
 import {
@@ -25,6 +26,36 @@ import { MESSAGE_CONTAINER_NAME } from "../env";
 import { flow } from "fp-ts/lib/function";
 import { toError } from "fp-ts/lib/Either";
 import { getOrElseW } from "fp-ts/lib/Either";
+
+/**
+ * Create "remote-content-configuration" collection, with indexing policy
+ *
+ * @param db
+ */
+const createRemoteContentCollection = (
+  db: Database
+): TE.TaskEither<CosmosErrors, Container> =>
+  pipe(
+    createCollection(
+      db,
+      RemoteContentCollection.REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME,
+      "serviceId",
+      {
+        indexingMode: "consistent",
+        automatic: true,
+        includedPaths: [
+          {
+            path: "/*"
+          }
+        ],
+        excludedPaths: [
+          {
+            path: '/"_etag"/?'
+          }
+        ]
+      } as any
+    )
+  );
 
 /**
  * Create "messages" collection, with indexing policy
@@ -126,12 +157,7 @@ const createMessageViewCollection = (
     )
   );
 
-/**
- *
- * @param database
- * @returns
- */
-export const createAllCollections = (
+const createAllCollectionsForCosmos = (
   database: Database
 ): TE.TaskEither<CosmosErrors, readonly Container[]> =>
   pipe(
@@ -156,10 +182,7 @@ export const createAllCollections = (
     RA.sequence(TE.ApplicativePar)
   );
 
-/**
- * Create DB
- */
-export const deleteAllCollections = (
+const deleteAllCollectionsForCosmos = (
   database: Database
 ): TE.TaskEither<CosmosErrors, readonly Container[]> => {
   log("deleting CosmosDB");
@@ -197,17 +220,47 @@ export const deleteAllCollections = (
 };
 
 /**
+ * At the moment there is just one collection but we keep the code extensible for the future
+ *
+ * @param database
+ */
+export const createAllCollectionsForRemoteContentCosmos = (
+  database: Database
+): TE.TaskEither<CosmosErrors, readonly Container[]> =>
+  pipe(
+    [
+      // remote-content-collection
+      createRemoteContentCollection(database)
+    ],
+    RA.sequence(TE.ApplicativePar)
+  );
+
+/**
+ * Alias
+ * At the moment there is just one collection but we keep the code extensible for the future
+ */
+export const deleteAllCollectionsForRemoteContentCosmos = deleteAllCollectionsForCosmos;
+
+/**
  * Create DB and collections
  */
 export const createCosmosDbAndCollections = (
   client: CosmosClient,
-  cosmosDbName: string
+  cosmosDbName: string,
+  remoteContentClient?: CosmosClient,
+  remoteContentCosmosDbName?: string
 ): TE.TaskEither<CosmosErrors, Database> =>
   pipe(
     createDatabase(client, cosmosDbName),
     // Delete all collections, in case they already exist
-    TE.chainFirst(deleteAllCollections),
-    TE.chainFirst(createAllCollections),
+    TE.chainFirst(deleteAllCollectionsForCosmos),
+    TE.chainFirst(createAllCollectionsForCosmos),
+    TE.chain(() =>
+      createDatabase(remoteContentClient!, remoteContentCosmosDbName!)
+    ),
+    // Delete all collections, in case they already exist
+    TE.chainFirst(deleteAllCollectionsForRemoteContentCosmos),
+    TE.chainFirst(createAllCollectionsForRemoteContentCosmos),
     TE.mapLeft(err => {
       log("Error", err);
       return err;

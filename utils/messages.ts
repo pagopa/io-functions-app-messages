@@ -369,7 +369,6 @@ export const getThirdPartyDataWithCategoryFetcher: (
       id => Error(`Missing third-party service configuration for ${id}`)
     ),
     E.map(() => TagEnumPN.PN),
-    E.mapLeft(e => telemetryClient.trackException({ exception: e })),
     E.mapLeft(() => TagEnumBase.GENERIC),
     E.toUnion,
     category => ({

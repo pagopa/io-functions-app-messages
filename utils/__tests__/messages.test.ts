@@ -390,7 +390,6 @@ describe("getThirdPartyDataWithCategoryFetcher", () => {
       mockTelemetryClient
     )(aPnServiceId);
     expect(result.category).toEqual(TagEnumPn.PN);
-    expect(mockTelemetryClient.trackException).toBeCalledTimes(0);
   });
 
   it("GIVEN a generic service id WHEN get category fetcher is called THEN return GENERIC category", () => {
@@ -399,12 +398,6 @@ describe("getThirdPartyDataWithCategoryFetcher", () => {
       mockTelemetryClient
     )(aService.serviceId);
     expect(result.category).toEqual(TagEnumBase.GENERIC);
-    expect(mockTelemetryClient.trackException).toBeCalledTimes(1);
-    expect(mockTelemetryClient.trackException).toBeCalledWith({
-      exception: Error(
-        `Missing third-party service configuration for ${aService.serviceId}`
-      )
-    });
   });
 });
 

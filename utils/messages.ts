@@ -358,10 +358,7 @@ export type ThirdPartyDataWithCategoryFetcher = (
 export const getThirdPartyDataWithCategoryFetcher: (
   config: IConfig,
   telemetryClient: TelemetryClient
-) => ThirdPartyDataWithCategoryFetcher = (
-  config,
-  telemetryClient
-) => serviceId =>
+) => ThirdPartyDataWithCategoryFetcher = config => serviceId =>
   pipe(
     serviceId,
     E.fromPredicate(

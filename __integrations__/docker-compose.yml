@@ -21,13 +21,14 @@ services:
 
   cosmosdbrc:
     image: cosmosdb
+    container_name: cosmosdbrc
     env_file:
       - ./environments/generated/env.rc.cosmosdb
     build:
       context: ../docker/cosmosdb
       dockerfile: ./Dockerfile
     ports:
-      - ${RC_COSMOSDB_PORT}:3000
+      - 3001:${RC_COSMOSDB_PORT}
 
   redis:
     container_name: redis

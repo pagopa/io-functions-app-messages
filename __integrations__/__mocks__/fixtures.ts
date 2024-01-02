@@ -252,17 +252,18 @@ type ClientAndDbName = {
 export const createCosmosDbAndCollections = (
   cosmosParameters: ClientAndDbName,
   maybeRemoeContentCosmosParameters: O.Option<ClientAndDbName>
-): TE.TaskEither<CosmosErrors, Database> =>
+): TE.TaskEither<CosmosErrors, { cosmosdb: Database; rccosmosdb: Database }> =>
   pipe(
     createDatabase(cosmosParameters.client, cosmosParameters.cosmosDbName),
     // Delete all collections, in case they already exist
     TE.chainFirst(deleteAllCollectionsForCosmos),
     TE.chainFirst(createAllCollectionsForCosmos),
-    TE.chain(database =>
+    TE.bindTo("cosmosdb"),
+    TE.bind("rccosmosdb", ({ cosmosdb }) =>
       pipe(
         maybeRemoeContentCosmosParameters,
         O.fold(
-          () => TE.of(database),
+          () => TE.of(cosmosdb),
           ({ client, cosmosDbName }) =>
             pipe(
               createDatabase(client, cosmosDbName),

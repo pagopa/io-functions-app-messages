@@ -79,11 +79,12 @@ const remoteContentCosmosClient = new CosmosClient({
 });
 
 // eslint-disable-next-line functional/no-let
-let database: Database;
+let cosmosdb: Database;
+let rccosmosdb: Database;
 
 // Wait some time
 beforeAll(async () => {
-  database = await pipe(
+  const dbTuple = await pipe(
     createCosmosDbAndCollections(
       { client: cosmosClient, cosmosDbName: COSMOSDB_NAME },
       O.some({
@@ -96,6 +97,9 @@ beforeAll(async () => {
     })
   )();
 
+  cosmosdb = dbTuple.cosmosdb;
+  rccosmosdb = dbTuple.rccosmosdb;
+
   await pipe(
     createBlobs(blobService, [MESSAGE_CONTAINER_NAME]),
     TE.getOrElse(() => {
@@ -103,11 +107,11 @@ beforeAll(async () => {
     })
   )();
 
-  await fillMessages(database, blobService, messagesList);
-  await fillMessagesStatus(database, messageStatusList);
-  await fillMessagesView(database, messagesList, messageStatusList);
-  await fillServices(database, serviceList);
-  await fillRemoteContent(database, aRemoteContentConfigurationList);
+  await fillMessages(cosmosdb, blobService, messagesList);
+  await fillMessagesStatus(cosmosdb, messageStatusList);
+  await fillMessagesView(cosmosdb, messagesList, messageStatusList);
+  await fillServices(cosmosdb, serviceList);
+  await fillRemoteContent(rccosmosdb, aRemoteContentConfigurationList);
 
   await waitFunctionToSetup();
 });
@@ -181,8 +185,8 @@ describe("Get Messages |> Success Results, With Enrichment", () => {
       expectedPrev,
       expectedNext
     }) => {
-      await setMessagesAsArchived(database, messagesArchived);
-      await setMessagesViewAsArchived(database, fiscalCode, messagesArchived);
+      await setMessagesAsArchived(cosmosdb, messagesArchived);
+      await setMessagesViewAsArchived(cosmosdb, fiscalCode, messagesArchived);
 
       const response = await getMessagesWithEnrichment(fetch, baseUrl)(
         fiscalCode,
@@ -223,7 +227,7 @@ const delay = (ms: number): Promise<void> =>
   new Promise(resolve => setTimeout(resolve, ms));
 
 const waitFunctionToSetup = async (): Promise<void> => {
-  log("ENV: ", COSMOSDB_URI, WAIT_MS, SHOW_LOGS);
+  log("ENV: ", COSMOSDB_URI, REMOTE_CONTENT_COSMOSDB_URI, WAIT_MS, SHOW_LOGS);
   // eslint-disable-next-line functional/no-let
   let i = 0;
   while (i < MAX_ATTEMPT) {

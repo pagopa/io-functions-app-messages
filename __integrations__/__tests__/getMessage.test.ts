@@ -65,18 +65,20 @@ let database: Database;
 
 // Wait some time
 beforeAll(async () => {
-  database = await pipe(
-    createCosmosDbAndCollections(
-      {
-        cosmosDbName: COSMOSDB_NAME,
-        client: cosmosClient
-      },
-      O.none
-    ),
-    TE.getOrElse(e => {
-      throw Error("Cannot create db");
-    })
-  )();
+  database = (
+    await pipe(
+      createCosmosDbAndCollections(
+        {
+          cosmosDbName: COSMOSDB_NAME,
+          client: cosmosClient
+        },
+        O.none
+      ),
+      TE.getOrElse(e => {
+        throw Error("Cannot create db");
+      })
+    )()
+  ).cosmosdb;
 
   await pipe(
     createBlobs(blobService, [MESSAGE_CONTAINER_NAME]),

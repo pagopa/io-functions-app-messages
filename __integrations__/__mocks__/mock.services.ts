@@ -49,8 +49,8 @@ const aDetailAuthentication = {
 export const aRemoteContentConfiguration: RemoteContentConfiguration = {
   hasPrecondition: Has_preconditionEnum.ALWAYS,
   disableLollipopFor: [],
-  isLollipopEnabled: true,
-  id: "id" as NonEmptyString,
+  isLollipopEnabled: false,
+  id: aService.serviceId,
   serviceId: aServiceID,
   prodEnvironment: {
     baseUrl: "aValidUrl" as NonEmptyString,

@@ -26,9 +26,11 @@ import {
 
 import {
   aFiscalCodeWithMessages,
+  aFiscalCodeWithMessagesWithThirdParty,
   aFiscalCodeWithoutMessages,
   messagesList,
   messageStatusList,
+  messagesWithoutThirdPartyDataList,
   mockEnrichMessage
 } from "../__mocks__/mock.messages";
 import {
@@ -135,9 +137,9 @@ describe("Get Messages |> Middleware errors", () => {
 if (FF_TYPE === "none") {
   describe("Get Messages |> Success Results, No Enrichment", () => {
     it.each`
-      fiscalCode                    | expectedItems   | expectedPrev           | expectedNext
-      ${aFiscalCodeWithoutMessages} | ${[]}           | ${undefined}           | ${undefined}
-      ${aFiscalCodeWithMessages}    | ${messagesList} | ${messagesList[0]?.id} | ${messagesList[9]?.id}
+      fiscalCode                    | expectedItems                        | expectedPrev                                | expectedNext
+      ${aFiscalCodeWithoutMessages} | ${[]}                                | ${undefined}                                | ${undefined}
+      ${aFiscalCodeWithMessages}    | ${messagesWithoutThirdPartyDataList} | ${messagesWithoutThirdPartyDataList[0]?.id} | ${messagesWithoutThirdPartyDataList[9]?.id}
     `(
       "should return and empty list when user has no messages",
       async ({ fiscalCode, expectedItems, expectedPrev, expectedNext }) => {
@@ -165,14 +167,14 @@ if (FF_TYPE === "none") {
 
 describe("Get Messages |> Success Results, With Enrichment", () => {
   it.each`
-    title                                                                             | fiscalCode                    | messagesArchived        | retrieveArchived | pageSize | maximum_id            | expectedItems                | expectedPrev           | expectedNext
-    ${"should return and empty list when user has no messages"}                       | ${aFiscalCodeWithoutMessages} | ${[]}                   | ${undefined}     | ${5}     | ${undefined}          | ${[]}                        | ${undefined}           | ${undefined}
-    ${"should return first page "}                                                    | ${aFiscalCodeWithMessages}    | ${[]}                   | ${undefined}     | ${5}     | ${undefined}          | ${messagesList.slice(0, 5)}  | ${messagesList[0]?.id} | ${messagesList[4]?.id}
-    ${"should return second page"}                                                    | ${aFiscalCodeWithMessages}    | ${[]}                   | ${undefined}     | ${5}     | ${messagesList[4].id} | ${messagesList.slice(5, 10)} | ${messagesList[5]?.id} | ${messagesList[9]?.id}
-    ${"should return and empty list when user has no archived messages"}              | ${aFiscalCodeWithMessages}    | ${[]}                   | ${true}          | ${5}     | ${undefined}          | ${[]}                        | ${undefined}           | ${undefined}
-    ${"should return only archived messages "}                                        | ${aFiscalCodeWithMessages}    | ${[messagesList[0].id]} | ${true}          | ${5}     | ${undefined}          | ${messagesList.slice(0, 1)}  | ${messagesList[0]?.id} | ${undefined}
-    ${"should return only not archived messages when 'archived' flag is not present"} | ${aFiscalCodeWithMessages}    | ${[messagesList[0].id]} | ${undefined}     | ${5}     | ${undefined}          | ${messagesList.slice(1, 6)}  | ${messagesList[1]?.id} | ${messagesList[5]?.id}
-    ${"should return only not archived messages when 'archived' flag is 'true'"}      | ${aFiscalCodeWithMessages}    | ${[messagesList[0].id]} | ${false}         | ${5}     | ${undefined}          | ${messagesList.slice(1, 6)}  | ${messagesList[1]?.id} | ${messagesList[5]?.id}
+    title                                                                             | fiscalCode                    | messagesArchived        | retrieveArchived | pageSize | maximum_id                                 | expectedItems                                     | expectedPrev                                | expectedNext
+    ${"should return and empty list when user has no messages"}                       | ${aFiscalCodeWithoutMessages} | ${[]}                   | ${undefined}     | ${5}     | ${undefined}                               | ${[]}                                             | ${undefined}                                | ${undefined}
+    ${"should return first page "}                                                    | ${aFiscalCodeWithMessages}    | ${[]}                   | ${undefined}     | ${5}     | ${undefined}                               | ${messagesList.slice(0, 5)}                       | ${messagesList[0]?.id}                      | ${messagesList[4]?.id}
+    ${"should return second page"}                                                    | ${aFiscalCodeWithMessages}    | ${[]}                   | ${undefined}     | ${5}     | ${messagesWithoutThirdPartyDataList[4].id} | ${messagesWithoutThirdPartyDataList.slice(5, 10)} | ${messagesWithoutThirdPartyDataList[5]?.id} | ${messagesWithoutThirdPartyDataList[9]?.id}
+    ${"should return and empty list when user has no archived messages"}              | ${aFiscalCodeWithMessages}    | ${[]}                   | ${true}          | ${5}     | ${undefined}                               | ${[]}                                             | ${undefined}                                | ${undefined}
+    ${"should return only archived messages "}                                        | ${aFiscalCodeWithMessages}    | ${[messagesList[0].id]} | ${true}          | ${5}     | ${undefined}                               | ${messagesList.slice(0, 1)}                       | ${messagesList[0]?.id}                      | ${undefined}
+    ${"should return only not archived messages when 'archived' flag is not present"} | ${aFiscalCodeWithMessages}    | ${[messagesList[0].id]} | ${undefined}     | ${5}     | ${undefined}                               | ${messagesList.slice(1, 6)}                       | ${messagesList[1]?.id}                      | ${messagesList[5]?.id}
+    ${"should return only not archived messages when 'archived' flag is 'true'"}      | ${aFiscalCodeWithMessages}    | ${[messagesList[0].id]} | ${false}         | ${5}     | ${undefined}                               | ${messagesList.slice(1, 6)}                       | ${messagesList[1]?.id}                      | ${messagesList[5]?.id}
   `(
     "$title, page size: $pageSize",
     async ({
@@ -217,6 +219,16 @@ describe("Get Messages |> Success Results, With Enrichment", () => {
       expect(body).toEqual(expected);
     }
   );
+
+  it("should return a single message with third has_precondition = true for the user that has a single message with a third_party_data block inside it", async () => {
+    const response = await getMessagesWithEnrichment(fetch, baseUrl)(
+      aFiscalCodeWithMessagesWithThirdParty,
+      5
+    );
+    const body = await response.json();
+    expect(body.items).toHaveLength(1);
+    expect(body.items[0].has_precondition).toBeTruthy();
+  });
 });
 
 // -----------------------

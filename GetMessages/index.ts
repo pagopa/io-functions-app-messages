@@ -97,7 +97,12 @@ const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
 
 app.get(
   "/api/v1/messages/:fiscalcode",
-  GetMessages(getMessagesFunctionSelector, serviceModel, REDIS_CLIENT, config)
+  GetMessages(
+    getMessagesFunctionSelector,
+    serviceModel,
+    REDIS_CLIENT,
+    config.SERVICE_CACHE_TTL_DURATION
+  )
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);

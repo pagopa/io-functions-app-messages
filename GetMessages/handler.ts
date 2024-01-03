@@ -32,7 +32,6 @@ import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/m
 import { Context } from "@azure/functions";
 import { RedisClient } from "redis";
 import { enrichServiceData } from "../utils/messages";
-import { IConfig } from "../utils/config";
 import { IGetMessagesFunctionSelector } from "./getMessagesFunctions/getMessages.selector";
 
 type IGetMessagesHandlerResponse =
@@ -65,7 +64,7 @@ export const GetMessagesHandler = (
   functionSelector: IGetMessagesFunctionSelector,
   serviceModel: ServiceModel,
   redisClient: RedisClient,
-  config: IConfig
+  serviceCacheTtlDuration: NonNegativeInteger
   // eslint-disable-next-line max-params
 ): IGetMessagesHandler => async (
   context,
@@ -119,7 +118,7 @@ export const GetMessagesHandler = (
                     context,
                     serviceModel,
                     redisClient,
-                    config.SERVICE_CACHE_TTL_DURATION
+                    serviceCacheTtlDuration
                   ),
                   TE.map((items: PageResults["items"]) => ({
                     ...paginatedItems,
@@ -147,14 +146,14 @@ export const GetMessages = (
   functionSelector: IGetMessagesFunctionSelector,
   serviceModel: ServiceModel,
   redisClient: RedisClient,
-  config: IConfig
+  serviceCacheTtlDuration: NonNegativeInteger
   // eslint-disable-next-line max-params
 ): express.RequestHandler => {
   const handler = GetMessagesHandler(
     functionSelector,
     serviceModel,
     redisClient,
-    config
+    serviceCacheTtlDuration
   );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),

@@ -339,7 +339,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const result = await getMessagesHandler(
@@ -369,7 +369,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const result = await getMessagesHandler(
@@ -403,7 +403,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const result = await getMessagesHandler(
@@ -442,7 +442,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -487,7 +487,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -531,7 +531,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -580,7 +580,7 @@ describe("GetMessagesHandler |> Fallback |> No Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -657,7 +657,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -747,7 +747,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -818,7 +818,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -901,7 +901,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -971,7 +971,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1035,7 +1035,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1088,7 +1088,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1163,7 +1163,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1212,7 +1212,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1301,7 +1301,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1386,7 +1386,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 1 as NonNegativeInteger;
@@ -1437,7 +1437,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1488,7 +1488,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1565,7 +1565,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const pageSize = 2 as NonNegativeInteger;
@@ -1598,7 +1598,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const result = await getMessagesHandler(
@@ -1632,7 +1632,7 @@ describe("GetMessagesHandler |> Message View", () => {
       getMessagesFunctionSelector,
       serviceModelMock,
       redisClientMock,
-      mockConfig
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const result = await getMessagesHandler(

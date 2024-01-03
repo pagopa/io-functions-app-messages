@@ -354,6 +354,10 @@ export const fillMessagesView = async (
             payment: {
               has: m.content.payment_data != null,
               notice_number: m.content.payment_data?.notice_number
+            },
+            thirdParty: {
+              has: m.content.third_party_data != null,
+              ...m.content.third_party_data
             }
           },
           messageTitle: m.content.subject,

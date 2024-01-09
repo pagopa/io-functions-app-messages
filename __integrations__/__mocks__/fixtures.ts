@@ -428,9 +428,11 @@ export const fillRemoteContent = async (
         RA.sequence(TE.ApplicativePar)
       )
     ),
-    TE.map(_ => log(`${_.length} Remote content created`)),
-    TE.mapLeft(_ => {
-      log("Error", _);
+    TE.map(rcConfigurationList =>
+      log(`${rcConfigurationList.length} Remote content created`)
+    ),
+    TE.mapLeft(cosmosErrors => {
+      log("Error", cosmosErrors);
     })
   )();
 };

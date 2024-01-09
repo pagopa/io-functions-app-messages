@@ -251,7 +251,7 @@ type ClientAndDbName = {
  */
 export const createCosmosDbAndCollections = (
   cosmosParameters: ClientAndDbName,
-  maybeRemoeContentCosmosParameters: O.Option<ClientAndDbName>
+  maybeRemoteContentCosmosParameters: O.Option<ClientAndDbName>
 ): TE.TaskEither<CosmosErrors, { cosmosdb: Database; rccosmosdb: Database }> =>
   pipe(
     createDatabase(cosmosParameters.client, cosmosParameters.cosmosDbName),
@@ -261,7 +261,7 @@ export const createCosmosDbAndCollections = (
     TE.bindTo("cosmosdb"),
     TE.bind("rccosmosdb", ({ cosmosdb }) =>
       pipe(
-        maybeRemoeContentCosmosParameters,
+        maybeRemoteContentCosmosParameters,
         O.fold(
           () => TE.of(cosmosdb),
           ({ client, cosmosDbName }) =>

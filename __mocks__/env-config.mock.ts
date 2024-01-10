@@ -1,8 +1,6 @@
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { IConfig } from "../utils/config";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-
-const aBlacklistedFiscalCode = "AAAAAA00A00H501I" as FiscalCode;
 
 export const envConfig: IConfig = {
   isProduction: false,
@@ -12,6 +10,10 @@ export const envConfig: IConfig = {
   COSMOSDB_KEY: "aKey" as NonEmptyString,
   COSMOSDB_NAME: "aName" as NonEmptyString,
   COSMOSDB_URI: "aUri" as NonEmptyString,
+
+  REMOTE_CONTENT_COSMOSDB_KEY: "aKey" as NonEmptyString,
+  REMOTE_CONTENT_COSMOSDB_NAME: "aName" as NonEmptyString,
+  REMOTE_CONTENT_COSMOSDB_URI: "aUri" as NonEmptyString,
 
   MESSAGE_CONTAINER_NAME: "aaa" as NonEmptyString,
   QueueStorageConnection: "aaa" as NonEmptyString,

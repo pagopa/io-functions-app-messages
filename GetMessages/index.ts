@@ -19,7 +19,14 @@ import {
   SERVICE_COLLECTION_NAME
 } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { MESSAGE_VIEW_COLLECTION_NAME } from "@pagopa/io-functions-commons/dist/src/models/message_view";
-import { cosmosdbInstance } from "../utils/cosmosdb";
+import {
+  RemoteContentConfigurationModel,
+  REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
+} from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
+import {
+  cosmosdbInstance,
+  remoteContentCosmosdbInstance
+} from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { MessageStatusExtendedQueryModel } from "../model/message_status_query";
 import { REDIS_CLIENT } from "../utils/redis";
@@ -51,6 +58,12 @@ const messageViewModel = new MessageViewExtendedQueryModel(
   cosmosdbInstance.container(MESSAGE_VIEW_COLLECTION_NAME)
 );
 
+const remoteContentConfigurationModel = new RemoteContentConfigurationModel(
+  remoteContentCosmosdbInstance.container(
+    REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
+  )
+);
+
 const blobService = createBlobService(config.QueueStorageConnection);
 
 const telemetryClient = initTelemetryClient();
@@ -64,8 +77,22 @@ const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
   config.FF_TYPE,
   config.FF_BETA_TESTER_LIST,
   config.FF_CANARY_USERS_REGEX,
-  [messageModel, messageStatusModel, blobService, categoryFecther],
-  [messageViewModel, categoryFecther]
+  [
+    messageModel,
+    messageStatusModel,
+    blobService,
+    remoteContentConfigurationModel,
+    REDIS_CLIENT,
+    config.SERVICE_CACHE_TTL_DURATION,
+    categoryFecther
+  ],
+  [
+    messageViewModel,
+    remoteContentConfigurationModel,
+    REDIS_CLIENT,
+    config.SERVICE_CACHE_TTL_DURATION,
+    categoryFecther
+  ]
 );
 
 app.get(

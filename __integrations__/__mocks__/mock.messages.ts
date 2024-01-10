@@ -19,11 +19,17 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 import { NotRejectedMessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/NotRejectedMessageStatusValue";
+import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 
 export const aFiscalCodeWithoutMessages = "FFLFRC74E04B157I" as FiscalCode;
 export const aFiscalCodeWithMessages = "FRLFRC74E04B157I" as FiscalCode;
+export const aFiscalCodeWithMessagesWithThirdParty = "FRNFRC74E04B157I" as FiscalCode;
 
 export const aMessageBodyMarkdown = "test".repeat(80);
+export const aValidThirdPartyData: ThirdPartyData = {
+  id: "thirdPartyId" as NonEmptyString
+};
+
 export const aMessageContent = {
   markdown: aMessageBodyMarkdown,
   subject: "test".repeat(10)
@@ -43,8 +49,19 @@ export const aMessage: NewMessageWithContent = {
   timeToLiveSeconds: 3600 as TimeToLiveSeconds
 };
 
+export const aMessageWithThirdPartyData: NewMessageWithContent = {
+  ...aMessage,
+  fiscalCode: aFiscalCodeWithMessagesWithThirdParty,
+  id: "aMessageWithThirdPartyData" as NonEmptyString,
+  indexedId: `aMessageWithThirdPartyData` as NonEmptyString,
+  content: {
+    ...aMessage.content,
+    third_party_data: aValidThirdPartyData
+  }
+};
+
 const messageListLength = 9;
-export const messagesList = Array.from(
+export const messagesWithoutThirdPartyDataList = Array.from(
   { length: messageListLength },
   (_, i) => ({
     ...aMessage,
@@ -52,6 +69,10 @@ export const messagesList = Array.from(
     indexedId: `${aMessage.id}_${messageListLength - i - 1}` as NonEmptyString
   })
 );
+export const messagesList = [
+  ...messagesWithoutThirdPartyDataList,
+  aMessageWithThirdPartyData
+];
 
 export const messageStatusList = pipe(
   messagesList,

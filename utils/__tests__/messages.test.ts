@@ -17,25 +17,22 @@ import { aCosmosResourceMetadata } from "../../__mocks__/mocks";
 import * as O from "fp-ts/lib/Option";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
-import { BlobService } from "azure-storage";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import {
+  computeFlagFromHasPrecondition,
   CreatedMessageWithoutContentWithStatus,
-  enrichContentData,
   enrichServiceData,
   getThirdPartyDataWithCategoryFetcher,
   mapMessageCategory,
   ThirdPartyDataWithCategoryFetcher
 } from "../messages";
 import {
-  MessageModel,
   NewMessageWithoutContent,
   RetrievedMessageWithoutContent
 } from "@pagopa/io-functions-commons/dist/src/models/message";
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
-import { pipe } from "fp-ts/lib/function";
 import { Context } from "@azure/functions";
 import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
@@ -47,6 +44,7 @@ import { TelemetryClient } from "applicationinsights";
 import { IConfig } from "../config";
 import { TagEnum as TagEnumPn } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
 import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
+import { Has_preconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 
 const dummyThirdPartyDataWithCategoryFetcher: ThirdPartyDataWithCategoryFetcher = jest
   .fn()
@@ -104,31 +102,9 @@ const aRetrievedMessageWithoutContent: RetrievedMessageWithoutContent = {
   kind: "IRetrievedMessageWithoutContent"
 };
 
-const blobServiceMock = ({
-  getBlobToText: jest.fn()
-} as unknown) as BlobService;
-
 const mockedGenericContent = {
   subject: "a subject",
   markdown: "a markdown"
-} as MessageContent;
-
-const mockedGreenPassContent = {
-  subject: "a subject".repeat(10),
-  markdown: "a markdown".repeat(80),
-  eu_covid_cert: {
-    auth_code: "an_auth_code"
-  }
-} as MessageContent;
-
-const mockedLegalDataContent = {
-  subject: "a subject".repeat(10),
-  markdown: "a markdown".repeat(80),
-  legal_data: {
-    has_attachment: false,
-    message_unique_id: "dummy_mvl_id",
-    sender_mail_from: "dummy@sender.it"
-  }
 } as MessageContent;
 
 const mockedPaymentContent = {
@@ -139,14 +115,6 @@ const mockedPaymentContent = {
     notice_number: "012345678901234567"
   }
 } as MessageContent;
-
-const getContentFromBlobMock = jest
-  .fn()
-  .mockImplementation(() => TE.of(O.some(mockedGenericContent)));
-
-const messageModelMock = ({
-  getContentFromBlob: getContentFromBlobMock
-} as unknown) as MessageModel;
 
 const findLastVersionByModelIdMock = jest
   .fn()
@@ -213,189 +181,6 @@ const aServiceCacheTtl = 10 as NonNegativeInteger;
 // ------------------------
 // Tests
 // ------------------------
-
-describe("enrichContentData", () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it("should return right when message blob is retrieved", async () => {
-    const enrichMessages = enrichContentData(
-      functionsContextMock,
-      messageModelMock,
-      blobServiceMock,
-      dummyThirdPartyDataWithCategoryFetcher
-    );
-
-    const enrichedMessagesPromises = enrichMessages(messages);
-
-    const enrichedMessages = await pipe(
-      TE.tryCatch(
-        async () => Promise.all(enrichedMessagesPromises),
-        () => {}
-      ),
-      TE.getOrElse(() => {
-        throw Error();
-      })
-    )();
-
-    enrichedMessages.map(enrichedMessage => {
-      expect(E.isRight(enrichedMessage)).toBe(true);
-      if (E.isRight(enrichedMessage)) {
-        expect(EnrichedMessageWithContent.is(enrichedMessage.right)).toBe(true);
-        expect(enrichedMessage.right.category).toEqual({
-          tag: TagEnumBase.GENERIC
-        });
-      }
-    });
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-    expect(findLastVersionByModelIdMock).not.toHaveBeenCalled();
-  });
-
-  it("should return right with right message EU_COVID_CERT category when message content is retrieved", async () => {
-    getContentFromBlobMock.mockImplementationOnce(() =>
-      TE.of(O.some(mockedGreenPassContent))
-    );
-    const enrichMessages = enrichContentData(
-      functionsContextMock,
-      messageModelMock,
-      blobServiceMock,
-      dummyThirdPartyDataWithCategoryFetcher
-    );
-
-    const enrichedMessagesPromises = enrichMessages(messages);
-
-    const enrichedMessages = await pipe(
-      TE.tryCatch(
-        async () => Promise.all(enrichedMessagesPromises),
-        () => {}
-      ),
-      TE.getOrElse(() => {
-        throw Error();
-      })
-    )();
-
-    enrichedMessages.map(enrichedMessage => {
-      expect(E.isRight(enrichedMessage)).toBe(true);
-      if (E.isRight(enrichedMessage)) {
-        expect(EnrichedMessageWithContent.is(enrichedMessage.right)).toBe(true);
-        expect(enrichedMessage.right.category).toEqual({
-          tag: TagEnumBase.EU_COVID_CERT
-        });
-      }
-    });
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
-
-  it("GIVEN a message with a valid legal_data WHEN a message retrieved from cosmos is enriched THEN the message category must be LEGAL_MESSAGE", async () => {
-    getContentFromBlobMock.mockImplementationOnce(() =>
-      TE.of(O.some(mockedLegalDataContent))
-    );
-    const enrichMessages = enrichContentData(
-      functionsContextMock,
-      messageModelMock,
-      blobServiceMock,
-      dummyThirdPartyDataWithCategoryFetcher
-    );
-
-    const enrichedMessagesPromises = enrichMessages(messages);
-
-    const enrichedMessages = await pipe(
-      TE.tryCatch(
-        async () => Promise.all(enrichedMessagesPromises),
-        () => {}
-      ),
-      TE.getOrElse(() => {
-        throw Error();
-      })
-    )();
-
-    enrichedMessages.map(enrichedMessage => {
-      expect(E.isRight(enrichedMessage)).toBe(true);
-      if (E.isRight(enrichedMessage)) {
-        expect(EnrichedMessageWithContent.is(enrichedMessage.right)).toBe(true);
-        expect(enrichedMessage.right.category).toEqual({
-          tag: TagEnumBase.LEGAL_MESSAGE
-        });
-      }
-    });
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
-
-  it("should return right with right PAYMENT category when message content is retrieved", async () => {
-    getContentFromBlobMock.mockImplementationOnce(() =>
-      TE.of(O.some(mockedPaymentContent))
-    );
-    const enrichMessages = enrichContentData(
-      functionsContextMock,
-      messageModelMock,
-      blobServiceMock,
-      dummyThirdPartyDataWithCategoryFetcher
-    );
-
-    const enrichedMessagesPromises = enrichMessages(messages);
-
-    const enrichedMessages = await pipe(
-      TE.tryCatch(
-        async () => Promise.all(enrichedMessagesPromises),
-        () => {}
-      ),
-      TE.getOrElse(() => {
-        throw Error();
-      })
-    )();
-
-    enrichedMessages.map(enrichedMessage => {
-      expect(E.isRight(enrichedMessage)).toBe(true);
-      if (E.isRight(enrichedMessage)) {
-        expect(EnrichedMessageWithContent.is(enrichedMessage.right)).toBe(true);
-        expect(enrichedMessage.right.category).toEqual({
-          tag: TagEnumPayment.PAYMENT,
-          noticeNumber: mockedPaymentContent.payment_data?.notice_number
-        });
-      }
-    });
-    expect(functionsContextMock.log.error).not.toHaveBeenCalled();
-  });
-
-  it("should return left when message model return an error", async () => {
-    findLastVersionByModelIdMock.mockImplementationOnce(() =>
-      TE.right(O.some(aRetrievedService))
-    );
-
-    getContentFromBlobMock.mockImplementationOnce(() =>
-      TE.left(new Error("GENERIC_ERROR"))
-    );
-
-    const enrichMessages = enrichContentData(
-      functionsContextMock,
-      messageModelMock,
-      blobServiceMock,
-      dummyThirdPartyDataWithCategoryFetcher
-    );
-
-    const enrichedMessagesPromises = enrichMessages(messages);
-
-    const enrichedMessages = await pipe(
-      TE.tryCatch(
-        async () => Promise.all(enrichedMessagesPromises),
-        () => {}
-      ),
-      TE.getOrElse(() => {
-        throw Error();
-      })
-    )();
-
-    enrichedMessages.map(enrichedMessage => {
-      expect(E.isLeft(enrichedMessage)).toBe(true);
-    });
-
-    expect(functionsContextMock.log.error).toHaveBeenCalledTimes(1);
-    expect(functionsContextMock.log.error).toHaveBeenCalledWith(
-      `Cannot enrich message "${aRetrievedMessageWithoutContent.id}" | Error: GENERIC_ERROR`
-    );
-  });
-});
 
 describe("enrichServiceData", () => {
   beforeEach(() => {
@@ -605,7 +390,6 @@ describe("getThirdPartyDataWithCategoryFetcher", () => {
       mockTelemetryClient
     )(aPnServiceId);
     expect(result.category).toEqual(TagEnumPn.PN);
-    expect(mockTelemetryClient.trackException).toBeCalledTimes(0);
   });
 
   it("GIVEN a generic service id WHEN get category fetcher is called THEN return GENERIC category", () => {
@@ -614,12 +398,6 @@ describe("getThirdPartyDataWithCategoryFetcher", () => {
       mockTelemetryClient
     )(aService.serviceId);
     expect(result.category).toEqual(TagEnumBase.GENERIC);
-    expect(mockTelemetryClient.trackException).toBeCalledTimes(1);
-    expect(mockTelemetryClient.trackException).toBeCalledWith({
-      exception: Error(
-        `Missing third-party service configuration for ${aService.serviceId}`
-      )
-    });
   });
 });
 
@@ -699,5 +477,43 @@ describe("mapMessageCategory", () => {
       getThirdPartyDataWithCategoryFetcher(dummyConfig, mockTelemetryClient)
     );
     expect(r.tag).toBe("EU_COVID_CERT");
+  });
+});
+
+describe("computeFlagFromHasPrecondition ", () => {
+  it("should return false if the has_precondition is NEVER an the message has not been read", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.NEVER, false)
+    ).toBeFalsy();
+  });
+
+  it("should return false if the has_precondition is NEVER an the message has been read", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.NEVER, true)
+    ).toBeFalsy();
+  });
+
+  it("should return false if the has_precondition is ONCE but it has been read", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.ONCE, true)
+    ).toBeFalsy();
+  });
+
+  it("should return true if the has_precondition is ONCE and it has not been read", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.ONCE, false)
+    ).toBeTruthy();
+  });
+
+  it("should return true if the has_precondition is ALWAYS and it has not been read", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.ALWAYS, false)
+    ).toBeTruthy();
+  });
+
+  it("should return true if the has_precondition is ALWAYS and it has been read", () => {
+    expect(
+      computeFlagFromHasPrecondition(Has_preconditionEnum.ALWAYS, true)
+    ).toBeTruthy();
   });
 });

@@ -63,7 +63,9 @@ const EnrichedMessageWithContentR = t.interface({
 const EnrichedMessageWithContentO = t.partial({
   time_to_live: TimeToLiveSeconds,
   category: InternalMessageCategory,
-  has_attachments: withDefault(t.boolean, false)
+  has_attachments: withDefault(t.boolean, false),
+  has_precondition: withDefault(t.boolean, false),
+  has_remote_content: withDefault(t.boolean, false)
 });
 
 export const EnrichedMessageWithContent = t.exact(

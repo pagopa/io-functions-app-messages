@@ -64,7 +64,7 @@ export const GetMessagesHandler = (
   functionSelector: IGetMessagesFunctionSelector,
   serviceModel: ServiceModel,
   redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
+  serviceCacheTtlDuration: NonNegativeInteger
   // eslint-disable-next-line max-params
 ): IGetMessagesHandler => async (
   context,
@@ -118,7 +118,7 @@ export const GetMessagesHandler = (
                     context,
                     serviceModel,
                     redisClient,
-                    serviceCacheTtl
+                    serviceCacheTtlDuration
                   ),
                   TE.map((items: PageResults["items"]) => ({
                     ...paginatedItems,
@@ -146,14 +146,14 @@ export const GetMessages = (
   functionSelector: IGetMessagesFunctionSelector,
   serviceModel: ServiceModel,
   redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
+  serviceCacheTtlDuration: NonNegativeInteger
   // eslint-disable-next-line max-params
 ): express.RequestHandler => {
   const handler = GetMessagesHandler(
     functionSelector,
     serviceModel,
     redisClient,
-    serviceCacheTtl
+    serviceCacheTtlDuration
   );
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),

@@ -4,17 +4,17 @@ import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { EUCovidCert } from "@pagopa/io-functions-commons/dist/generated/definitions/EUCovidCert";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
-import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
-import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/message";
+import {
+  Has_preconditionEnum,
+  ThirdPartyData
+} from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 import {
   RetrievedService,
   ServiceModel
 } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { BlobService } from "azure-storage";
 import * as AR from "fp-ts/lib/Array";
 import * as RA from "fp-ts/lib/ReadonlyArray";
-import * as A from "fp-ts/lib/Apply";
 import * as E from "fp-ts/lib/Either";
 import { constVoid, flow, pipe } from "fp-ts/lib/function";
 import * as O from "fp-ts/lib/Option";
@@ -45,7 +45,7 @@ import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
 import { IConfig } from "./config";
 
-const trackErrorAndContinue = (
+export const trackErrorAndContinue = (
   context: Context,
   error: Error,
   kind: "SERVICE" | "CONTENT" | "STATUS",
@@ -196,51 +196,14 @@ export const getOrCacheService = (
     )
   );
 
-/**
- * This function enrich a CreatedMessageWithoutContent with
- * service's details and message's subject.
- *
- * @param messageModel
- * @param serviceModel
- * @param blobService
- * @returns
- */
-export const enrichContentData = (
-  context: Context,
-  messageModel: MessageModel,
-  blobService: BlobService,
-  categoryFetcher: ThirdPartyDataWithCategoryFetcher
-) => (
-  messages: ReadonlyArray<CreatedMessageWithoutContentWithStatus>
-  // eslint-disable-next-line functional/prefer-readonly-type, @typescript-eslint/array-type
-): Promise<E.Either<Error, EnrichedMessageWithContent>>[] =>
-  messages.map(message =>
-    pipe(
-      {
-        content: pipe(
-          messageModel.getContentFromBlob(blobService, message.id),
-          TE.map(O.toUndefined),
-          TE.mapLeft(e =>
-            trackErrorAndContinue(
-              context,
-              e,
-              "CONTENT",
-              message.fiscal_code,
-              message.id
-            )
-          )
-        )
-      },
-      A.sequenceS(TE.ApplicativePar),
-      TE.map(({ content }) => ({
-        ...message,
-        category: mapMessageCategory(message, content, categoryFetcher),
-        has_attachments: content.legal_data?.has_attachment ?? false,
-        id: message.id as NonEmptyString,
-        message_title: content.subject
-      }))
-    )()
-  );
+export const computeFlagFromHasPrecondition = (
+  has_precondition: Has_preconditionEnum,
+  is_read: boolean
+): boolean =>
+  has_precondition === Has_preconditionEnum.ALWAYS ||
+  (has_precondition === Has_preconditionEnum.ONCE && !is_read)
+    ? true
+    : false;
 
 /**
  * This function enrich a CreatedMessageWithoutContent with
@@ -395,10 +358,7 @@ export type ThirdPartyDataWithCategoryFetcher = (
 export const getThirdPartyDataWithCategoryFetcher: (
   config: IConfig,
   telemetryClient: TelemetryClient
-) => ThirdPartyDataWithCategoryFetcher = (
-  config,
-  telemetryClient
-) => serviceId =>
+) => ThirdPartyDataWithCategoryFetcher = config => serviceId =>
   pipe(
     serviceId,
     E.fromPredicate(
@@ -406,7 +366,6 @@ export const getThirdPartyDataWithCategoryFetcher: (
       id => Error(`Missing third-party service configuration for ${id}`)
     ),
     E.map(() => TagEnumPN.PN),
-    E.mapLeft(e => telemetryClient.trackException({ exception: e })),
     E.mapLeft(() => TagEnumBase.GENERIC),
     E.toUnion,
     category => ({

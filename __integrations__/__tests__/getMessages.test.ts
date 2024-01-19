@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable sort-keys */
-import { exit } from "process";
-
 import { CosmosClient, Database } from "@azure/cosmos";
 import { createBlobService } from "azure-storage";
 
@@ -40,11 +38,9 @@ import {
 import { createBlobs } from "../__mocks__/utils/azure_storage";
 import { getNodeFetch } from "../utils/fetch";
 import { getMessages, getMessagesWithEnrichment } from "../utils/client";
-import { log } from "../utils/logger";
 
 import {
   WAIT_MS,
-  SHOW_LOGS,
   COSMOSDB_URI,
   REMOTE_CONTENT_COSMOSDB_URI,
   REMOTE_CONTENT_COSMOSDB_KEY,
@@ -114,8 +110,6 @@ beforeAll(async () => {
   await fillMessagesView(cosmosdb, messagesList, messageStatusList);
   await fillServices(cosmosdb, serviceList);
   await fillRemoteContent(rccosmosdb, aRemoteContentConfigurationList);
-
-  await waitFunctionToSetup();
 });
 
 beforeEach(() => {
@@ -230,31 +224,3 @@ describe("Get Messages |> Success Results, With Enrichment", () => {
     expect(body.items[0].has_precondition).toBeTruthy();
   });
 });
-
-// -----------------------
-// utils
-// -----------------------
-
-const delay = (ms: number): Promise<void> =>
-  new Promise(resolve => setTimeout(resolve, ms));
-
-const waitFunctionToSetup = async (): Promise<void> => {
-  log("ENV: ", COSMOSDB_URI, REMOTE_CONTENT_COSMOSDB_URI, WAIT_MS, SHOW_LOGS);
-  // eslint-disable-next-line functional/no-let
-  let i = 0;
-  while (i < MAX_ATTEMPT) {
-    log("Waiting the function to setup..");
-    try {
-      await fetch(baseUrl + "/api/info");
-      break;
-    } catch (e) {
-      log("Waiting the function to setup..");
-      await delay(WAIT_MS);
-      i++;
-    }
-  }
-  if (i >= MAX_ATTEMPT) {
-    log("Function unable to setup in time");
-    exit(1);
-  }
-};

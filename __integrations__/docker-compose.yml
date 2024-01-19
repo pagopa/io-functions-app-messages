@@ -57,6 +57,11 @@ services:
     build:
       context: ..
       dockerfile: ./docker/functions/Dockerfile
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7071/api/v1/ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
     ports:
       - ${FUNCTION_PORT}:7071
     links:
@@ -77,8 +82,13 @@ services:
       - "./:/usr/src/app"
       - "../openapi:/usr/src/openapi"
     depends_on:
-      - cosmosdb
-      - cosmosdbrc
-      - storage-account
+      function:
+        condition: service_healthy
+      cosmosdb:
+        condition: service_started
+      cosmosdbrc:
+        condition: service_started
+      storage-account:
+        condition: service_started
     links:
       - function

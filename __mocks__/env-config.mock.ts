@@ -20,6 +20,7 @@ export const envConfig: IConfig = {
 
   REDIS_URL: "aaa" as NonEmptyString,
   SERVICE_CACHE_TTL_DURATION: 10 as NonNegativeInteger,
+  REMOTE_CONFIGURATION_CACHE_TTL_DURATION: 10 as NonNegativeInteger,
 
   FF_TYPE: "none",
   USE_FALLBACK: false,

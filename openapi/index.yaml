@@ -179,6 +179,55 @@ paths:
             $ref: '#/definitions/ProblemJson'
         '429':
           description: Too many requests
+  /remote-contents/configurations/{id}:
+    get:
+      operationId: getRCConfiguration
+      summary: GetRCConfiguration
+      description: Return the remote content configuration associated to the requested id.
+      tags:
+        - public
+        - restricted
+      parameters:
+        - name: id
+          in: path
+          type: string
+          required: true
+          description: The ID of the remote content configuration.
+      responses:
+        '200':
+          description: Remote content configuration found.
+          schema:
+            $ref: '#/definitions/RCConfiguration'
+          examples:
+            application/json:
+              userId: aUserId
+              configurationId: 01HMRBX079WA5SGYBQP1A7FSKH
+              name: aName
+              description: a simple description
+              hasPrecondition: ALWAYS
+              disableLollipopFor: []
+              isLollipopEnabled: false
+              prodEnvironment:
+                baseUrl: https://anydomain.anytld/api/v1/anyapi
+                detailsAuthentication:
+                  headerKeyName: X-Functions-Key
+                  key: anykey
+                  type: API_KEY
+              testEnvironment:
+                baseUrl: https://anytestdomain.anytld/api/v1/anyapi
+                detailsAuthentication:
+                  headerKeyName: X-Functions-Key
+                  key: anykey
+                  type: API_KEY
+                testUsers: []
+        '401':
+          description: Unauthorized
+        '404':
+          description: No message found for the provided ID.
+          schema:
+            $ref: '#/definitions/ProblemJson'
+        '429':
+          description: Too many requests
 consumes:
   - application/json
 produces:
@@ -1377,6 +1426,146 @@ definitions:
         $ref: '#/definitions/MessageStatusValue'
     required:
       - message
+  RCConfiguration:
+    allOf:
+      - $ref: '#/definitions/RCConfigurationBase'
+      - $ref: '#/definitions/RCConfigurationEnvironment'
+  RCConfigurationBase:
+    type: object
+    properties:
+      userId:
+        type: string
+        minLength: 1
+        description: User id.
+      configurationId:
+        type: string
+        description: Ulid string.
+        format: Ulid
+        x-import: '@pagopa/ts-commons/lib/strings'
+        example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+      name:
+        type: string
+        minLength: 1
+        description: Configuration name.
+      description:
+        type: string
+        minLength: 1
+        description: Configuration description.
+      hasPrecondition:
+        $ref: '#/definitions/HasPrecondition'
+      disableLollipopFor:
+        type: array
+        items:
+          type: string
+          minLength: 1
+          description: User for which lollipop should be disabled
+      isLollipopEnabled:
+        type: boolean
+        description: Flag to check if lollipop is enabled
+    required:
+      - userId
+      - configurationId
+      - name
+      - description
+      - hasPrecondition
+      - disableLollipopFor
+      - isLollipopEnabled
+  RCConfigurationEnvironment:
+    x-one-of: true
+    allOf:
+      - $ref: '#/definitions/RCConfigurationWithTestEnvironment'
+      - $ref: '#/definitions/RCConfigurationWithProdEnvironment'
+      - $ref: '#/definitions/RCConfigurationWithProdAndTestEnvironment'
+  RCConfigurationWithTestEnvironment:
+    type: object
+    properties:
+      testEnvironment:
+        $ref: '#/definitions/RCConfigurationTestEnvironment'
+    required:
+      - testEnvironment
+  RCConfigurationWithProdEnvironment:
+    type: object
+    properties:
+      prodEnvironment:
+        $ref: '#/definitions/RCConfigurationProdEnvironment'
+    required:
+      - prodEnvironment
+  RCConfigurationWithProdAndTestEnvironment:
+    type: object
+    properties:
+      prodEnvironment:
+        $ref: '#/definitions/RCConfigurationProdEnvironment'
+      testEnvironment:
+        $ref: '#/definitions/RCConfigurationTestEnvironment'
+    required:
+      - prodEnvironment
+      - testEnvironment
+  RCConfigurationProdEnvironment:
+    type: object
+    properties:
+      baseUrl:
+        type: string
+        minLength: 1
+        description: Base url of the server.
+      detailsAuthentication:
+        $ref: '#/definitions/RCAuthenticationConfig'
+    required:
+      - baseUrl
+  RCConfigurationTestEnvironment:
+    allOf:
+      - $ref: '#/definitions/RCConfigurationProdEnvironment'
+      - type: object
+        properties:
+          testUsers:
+            type: array
+            items:
+              $ref: '#/definitions/FiscalCode'
+  RCAuthenticationConfig:
+    type: object
+    properties:
+      headerKeyName:
+        type: string
+        minLength: 1
+        description: header key name
+      key:
+        type: string
+        minLength: 1
+        description: authentication config key
+      type:
+        type: string
+        minLength: 1
+        description: authentication config type
+      cert:
+        $ref: '#/definitions/RCClientCert'
+    required:
+      - headerKeyName
+      - key
+      - type
+  RCClientCert:
+    type: object
+    properties:
+      clientCert:
+        type: string
+        minLength: 1
+        description: authentication config client cert
+      clientKey:
+        type: string
+        minLength: 1
+        description: authentication config client key
+      serverCa:
+        type: string
+        minLength: 1
+        description: authentication config server ca
+    required:
+      - clientCert
+      - clientKey
+      - serverCa
+  HasPrecondition:
+    type: string
+    x-extensible-enum:
+      - ALWAYS
+      - ONCE
+      - NEVER
   ThirdPartyData:
     type: object
     description: >-
@@ -1402,11 +1591,7 @@ definitions:
         type: boolean
         default: false
       has_precondition:
-        type: string
-        x-extensible-enum:
-          - ALWAYS
-          - ONCE
-          - NEVER
+        $ref: '#/definitions/HasPrecondition'
       summary:
         type: string
         minLength: 1

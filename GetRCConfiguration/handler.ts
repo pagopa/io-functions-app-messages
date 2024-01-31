@@ -23,14 +23,14 @@ import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/m
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import {
-  RCConfigurationModel,
-  RetrievedRCConfiguration
+  RCConfiguration,
+  RCConfigurationModel
 } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 import { Context } from "@azure/functions";
 import { getOrCacheMaybeRCConfiguration } from "../utils/remoteContentConfig";
 
 type IGetRCConfigurationHandlerResponse =
-  | IResponseSuccessJson<RetrievedRCConfiguration>
+  | IResponseSuccessJson<RCConfiguration>
   | IResponseErrorNotFound
   | IResponseErrorInternal;
 

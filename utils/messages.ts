@@ -4,10 +4,7 @@ import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { EUCovidCert } from "@pagopa/io-functions-commons/dist/generated/definitions/EUCovidCert";
 import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
-import {
-  Has_preconditionEnum,
-  ThirdPartyData
-} from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
+import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 import {
   RetrievedService,
   ServiceModel
@@ -40,6 +37,7 @@ import {
   EnrichedMessageWithContent,
   InternalMessageCategory
 } from "../GetMessages/getMessagesFunctions/models";
+import { HasPreconditionEnum } from "../generated/definitions/HasPrecondition";
 import { initTelemetryClient } from "./appinsights";
 import { createTracker } from "./tracking";
 import { getTask, setWithExpirationTask } from "./redis_storage";
@@ -197,11 +195,11 @@ export const getOrCacheService = (
   );
 
 export const computeFlagFromHasPrecondition = (
-  has_precondition: Has_preconditionEnum,
+  has_precondition: HasPreconditionEnum,
   is_read: boolean
 ): boolean =>
-  has_precondition === Has_preconditionEnum.ALWAYS ||
-  (has_precondition === Has_preconditionEnum.ONCE && !is_read)
+  has_precondition === HasPreconditionEnum.ALWAYS ||
+  (has_precondition === HasPreconditionEnum.ONCE && !is_read)
     ? true
     : false;
 

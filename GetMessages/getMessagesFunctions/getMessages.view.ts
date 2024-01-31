@@ -27,7 +27,7 @@ import {
   computeFlagFromHasPrecondition
 } from "../../utils/messages";
 import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
-import { Has_preconditionEnum } from "../../generated/definitions/ThirdPartyData";
+import { HasPreconditionEnum } from "../../generated/definitions/HasPrecondition";
 import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 
@@ -77,7 +77,7 @@ export const getHasPreconditionFlagForMessagesFromView = (
           pipe(
             thirdParty.has
               ? thirdParty.has_precondition
-              : Has_preconditionEnum.NEVER, // ugly, but O.fromPredicate cannot infer disjointed unions
+              : HasPreconditionEnum.NEVER, // ugly, but O.fromPredicate cannot infer disjointed unions
             O.fromNullable,
             O.fold(
               () =>

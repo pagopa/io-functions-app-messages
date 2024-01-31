@@ -24,7 +24,7 @@ import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/
 import { pipe } from "fp-ts/lib/function";
 import { EnrichedMessageWithContent } from "../getMessagesFunctions/models";
 import { aMessageContent } from "../../utils/__tests__/messages.test";
-import { Has_preconditionEnum } from "../../generated/definitions/ThirdPartyData";
+import { HasPreconditionEnum } from "../../generated/definitions/HasPrecondition";
 import {aRetrievedService} from "../../__mocks__/mocks.service_preference"
 import { aRetrievedMessageWithoutContent } from "../../__mocks__/messages";
 
@@ -227,7 +227,7 @@ describe("enrichContentData", () => {
       TE.of(
         O.some({
           ...aMessageContent,
-          third_party_data: { has_remote_content: true, has_precondition: Has_preconditionEnum.ALWAYS}
+          third_party_data: { has_remote_content: true, has_precondition: HasPreconditionEnum.ALWAYS}
         })
       )
     );

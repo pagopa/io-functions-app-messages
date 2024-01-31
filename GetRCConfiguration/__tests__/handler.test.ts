@@ -24,7 +24,7 @@ describe("GetRCConfigurationHandler", () => {
     const getRCConfigurationHandler = GetRCConfigurationHandler(
       mockRCConfigurationModel as any,
       {} as any,
-      mockConfig.REMOTE_CONFIGURATION_CACHE_TTL_DURATION
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const result = await getRCConfigurationHandler(
@@ -41,7 +41,7 @@ describe("GetRCConfigurationHandler", () => {
     const getRCConfigurationHandler = GetRCConfigurationHandler(
       mockRCConfigurationModel as any,
       {} as any,
-      mockConfig.REMOTE_CONFIGURATION_CACHE_TTL_DURATION
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const result = await getRCConfigurationHandler(
@@ -56,7 +56,7 @@ describe("GetRCConfigurationHandler", () => {
     const getRCConfigurationHandler = GetRCConfigurationHandler(
       mockRCConfigurationModel as any,
       {} as any,
-      mockConfig.REMOTE_CONFIGURATION_CACHE_TTL_DURATION
+      mockConfig.SERVICE_CACHE_TTL_DURATION
     );
 
     const result = await getRCConfigurationHandler(

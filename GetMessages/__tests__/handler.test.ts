@@ -59,7 +59,7 @@ import {
   mockRemoteContentConfigurationModel,
   mockRemoteContentConfigurationTtl
 } from "../../__mocks__/remote-content";
-import { Has_preconditionEnum } from "../../generated/definitions/ThirdPartyData";
+import { HasPreconditionEnum } from "../../generated/definitions/HasPrecondition";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -719,7 +719,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
           markdown: "a markdown",
           third_party_data: {
             has_remote_content: true,
-            has_precondition: Has_preconditionEnum.ALWAYS
+            has_precondition: HasPreconditionEnum.ALWAYS
           }
         })
       )
@@ -732,7 +732,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
           markdown: "a markdown",
           third_party_data: {
             has_remote_content: true,
-            has_precondition: Has_preconditionEnum.ALWAYS
+            has_precondition: HasPreconditionEnum.ALWAYS
           }
         })
       )

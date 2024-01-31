@@ -2,10 +2,9 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import {
-  aRCConfigurationCacheTTL,
-  aRetrievedRemoteContentConfiguration,
   aRetrievedRemoteContentConfigurationWithBothEnv,
   findLastVersionByModelIdMock,
+  mockConfig,
   mockRCConfigurationModel,
 } from "../../__mocks__/remote-content";
 import * as redis from "../redis_storage";
@@ -29,7 +28,7 @@ describe("getOrCacheRCConfiguration", () => {
     const r = await getOrCacheMaybeRCConfiguration(
       aRedisClient,
       mockRCConfigurationModel as any,
-      aRCConfigurationCacheTTL,
+      mockConfig.SERVICE_CACHE_TTL_DURATION,
       aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
     )();
 
@@ -43,7 +42,7 @@ describe("getOrCacheRCConfiguration", () => {
     const r = await getOrCacheMaybeRCConfiguration(
       aRedisClient,
       mockRCConfigurationModel as any,
-      aRCConfigurationCacheTTL,
+      mockConfig.SERVICE_CACHE_TTL_DURATION,
       aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
     )();
 
@@ -57,7 +56,7 @@ describe("getOrCacheRCConfiguration", () => {
     const r = await getOrCacheMaybeRCConfiguration(
       aRedisClient,
       mockRCConfigurationModel as any,
-      aRCConfigurationCacheTTL,
+      mockConfig.SERVICE_CACHE_TTL_DURATION,
       aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
     )();
 
@@ -72,7 +71,7 @@ describe("getOrCacheRCConfiguration", () => {
     const r = await getOrCacheMaybeRCConfiguration(
       aRedisClient,
       mockRCConfigurationModel as any,
-      aRCConfigurationCacheTTL,
+      mockConfig.SERVICE_CACHE_TTL_DURATION,
       aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
     )();
 
@@ -89,7 +88,7 @@ describe("getOrCacheRCConfiguration", () => {
     const r = await getOrCacheMaybeRCConfiguration(
       aRedisClient,
       mockRCConfigurationModel as any,
-      aRCConfigurationCacheTTL,
+      mockConfig.SERVICE_CACHE_TTL_DURATION,
       aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
     )();
 

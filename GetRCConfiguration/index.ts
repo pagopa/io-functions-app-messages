@@ -31,7 +31,7 @@ app.get(
   GetRCConfiguration(
     rCConfigurationModel,
     REDIS_CLIENT,
-    config.REMOTE_CONFIGURATION_CACHE_TTL_DURATION
+    config.SERVICE_CACHE_TTL_DURATION
   )
 );
 

@@ -1,7 +1,7 @@
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
 
-import { Has_preconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
+import { HasPreconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/HasPrecondition";
 import {
   RemoteContentConfigurationModel,
   RetrievedRemoteContentConfiguration
@@ -9,8 +9,9 @@ import {
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
 import { aCosmosResourceMetadata, aFiscalCode } from "./mocks";
-import { RCConfiguration, RCConfigurationBase, RetrievedRCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
+import { RCConfiguration, RetrievedRCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 import { IConfig } from "../utils/config";
+import { RCConfigurationBase } from "../generated/definitions/RCConfigurationBase"
 
 export const mockFind = jest.fn(() =>
   TE.of(O.some(aRetrievedRemoteContentConfiguration))
@@ -29,7 +30,7 @@ const aDetailAuthentication = {
 };
 
 export const aRetrievedRemoteContentConfiguration: RetrievedRemoteContentConfiguration = {
-  hasPrecondition: Has_preconditionEnum.ALWAYS,
+  hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [aFiscalCode],
   isLollipopEnabled: true,
   id: "id" as NonEmptyString,
@@ -41,7 +42,7 @@ export const aRetrievedRemoteContentConfiguration: RetrievedRemoteContentConfigu
   ...aCosmosResourceMetadata
 };
 
-export const mockConfig = { REMOTE_CONFIGURATION_CACHE_TTL_DURATION: 3600 } as IConfig;
+export const mockConfig = { SERVICE_CACHE_TTL_DURATION: 3600 } as IConfig;
 
 export const findLastVersionByModelIdMock = jest
   .fn()
@@ -65,7 +66,7 @@ const aRemoteContentConfigurationWithNoEnv: RCConfigurationBase = {
   configurationId: "01HMRBX079WA5SGYBQP1A7FSKH" as Ulid,
   name: "aName" as NonEmptyString,
   description: "a simple description" as NonEmptyString,
-  hasPrecondition: Has_preconditionEnum.ALWAYS,
+  hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [],
   isLollipopEnabled: false
 };

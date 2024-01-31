@@ -11,7 +11,7 @@ import {
   RCConfigurationModel,
   RC_CONFIGURATION_COLLECTION_NAME
 } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
-import { cosmosdbInstance } from "../utils/cosmosdb";
+import { remoteContentCosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { REDIS_CLIENT } from "../utils/redis";
 import { GetRCConfiguration } from "./handler";
@@ -23,11 +23,11 @@ secureExpressApp(app);
 const config = getConfigOrThrow();
 
 const rCConfigurationModel = new RCConfigurationModel(
-  cosmosdbInstance.container(RC_CONFIGURATION_COLLECTION_NAME)
+  remoteContentCosmosdbInstance.container(RC_CONFIGURATION_COLLECTION_NAME)
 );
 
 app.get(
-  "v1/remote-contents/configurations/{id}",
+  "/api/v1/remote-contents/configurations/{id}",
   GetRCConfiguration(
     rCConfigurationModel,
     REDIS_CLIENT,

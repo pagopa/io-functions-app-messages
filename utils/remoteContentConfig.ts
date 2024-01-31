@@ -146,6 +146,6 @@ export const getOrCacheMaybeRCConfiguration = (
             )
           )
         ),
-      x => TE.right(O.some(x))
+      rCConfiguration => TE.right(O.some(rCConfiguration))
     )
   );

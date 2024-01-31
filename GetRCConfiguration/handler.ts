@@ -95,4 +95,4 @@ export const GetRCConfiguration = (
     RequiredParamMiddleware("id", Ulid)
   );
   return wrapRequestHandler(middlewaresWrap(handler));
-}
+};

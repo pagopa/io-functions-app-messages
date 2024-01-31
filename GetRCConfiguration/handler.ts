@@ -80,12 +80,11 @@ export const GetRCConfigurationHandler = (
 /**
  * Wraps a GetRCConfiguration handler inside an Express request handler.
  */
-// eslint-disable-next-line prefer-arrow/prefer-arrow-functions, max-params
-export function GetRCConfiguration(
+export const GetRCConfiguration = (
   rCConfigurationModel: RCConfigurationModel,
   redisClient: RedisClient,
   serviceCacheTtl: NonNegativeInteger
-): express.RequestHandler {
+): express.RequestHandler => {
   const handler = GetRCConfigurationHandler(
     rCConfigurationModel,
     redisClient,

@@ -1,6 +1,6 @@
 import { ServiceScopeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceScope";
 import { StandardServiceCategoryEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/StandardServiceCategory";
-import { Has_preconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
+import { HasPreconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/HasPrecondition";
 import { RemoteContentConfiguration } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import { ServiceMetadata } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { toAuthorizedRecipients } from "@pagopa/io-functions-commons/dist/src/models/service";
@@ -47,7 +47,7 @@ const aDetailAuthentication = {
 };
 
 export const aRemoteContentConfiguration: RemoteContentConfiguration = {
-  hasPrecondition: Has_preconditionEnum.ALWAYS,
+  hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [],
   isLollipopEnabled: false,
   id: aService.serviceId,

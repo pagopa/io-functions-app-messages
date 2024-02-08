@@ -141,15 +141,16 @@ const getErrorOrPaymentData = async (
   )();
 
 /**
- * In case a payment data exists and does not already contain the `payee` field,
- * it enriches the `payee` field with the sender service fiscal code.
+ * In case a third party data exists and does not already contain the `configuration_id` field,
+ * it enriches the `configuration_id` field with the serviceToRCConfigurationMap using the `sender_service_id`.
  *
  * @param context
  * @param senderServiceId
+ * @param serviceToRCConfigurationMap
  * @param maybeThirdPartyData
  * @returns
  */
-const getErrorOrThirdPartyData = async (
+const getErrorOrMaybeThirdPartyData = async (
   context: Context,
   senderServiceId: ServiceId,
   serviceToRCConfigurationMap: ReadonlyMap<string, string>,
@@ -325,7 +326,7 @@ export function GetMessageHandler(
 
     const maybeThirdPartyData = O.fromNullable(messageContent.third_party_data);
 
-    const errorOrMaybeThirdPartyData = await getErrorOrThirdPartyData(
+    const errorOrMaybeThirdPartyData = await getErrorOrMaybeThirdPartyData(
       context,
       retrievedMessage.senderServiceId,
       serviceToRCConfigurationMap,

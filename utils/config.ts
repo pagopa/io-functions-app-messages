@@ -79,10 +79,10 @@ export const UlidMapFromString = new t.Type<ReadonlyMap<string, Ulid>, string>(
   "UlidMapFromString",
   isMap,
   (s, c) => {
+    if (typeof s !== "string") {
+      return t.failure(s, c);
+    }
     try {
-      if (typeof s !== "string") {
-        return t.failure(s, c);
-      }
       const json = JSON.parse(s);
       const values = Object.values(json);
       if (!values.every(Ulid.is)) {

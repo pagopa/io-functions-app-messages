@@ -6,7 +6,6 @@
  */
 
 import * as t from "io-ts";
-import { JsonFromString, JsonRecord } from "io-ts-types";
 
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
@@ -20,8 +19,6 @@ import {
 } from "@pagopa/ts-commons/lib/numbers";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 import { BooleanFromString } from "@pagopa/ts-commons/lib/booleans";
-import { readonlyMap } from "fp-ts";
-import { findAllVersionsByModelIdIn } from "../model/utils/documentdb";
 import { CommaSeparatedListOf } from "./types";
 
 // exclude a specific value from a type

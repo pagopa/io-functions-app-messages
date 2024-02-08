@@ -17,7 +17,11 @@ import {
   ResponseErrorNotFound,
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
-import { FiscalCode, NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
+import {
+  FiscalCode,
+  NonEmptyString,
+  Ulid
+} from "@pagopa/ts-commons/lib/strings";
 import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
@@ -49,8 +53,6 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import * as TE from "fp-ts/lib/TaskEither";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
 import { MessageStatusModel } from "@pagopa/io-functions-commons/dist/src/models/message_status";
-import { Json } from "io-ts-types";
-import { toRecord } from "fp-ts/lib/ReadonlyRecord";
 import {
   getOrCacheService,
   mapMessageCategory,

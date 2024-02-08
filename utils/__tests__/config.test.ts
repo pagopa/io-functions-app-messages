@@ -1,8 +1,10 @@
 import * as E from "fp-ts/lib/Either";
 
-import { IConfig } from "../config";
+import { IConfig, UlidMapFromString } from "../config";
 
 import { envConfig } from "../../__mocks__/env-config.mock";
+import { JsonFromString } from "io-ts-types";
+import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 describe("IConfig - USE_FALLBACK", () => {
   it("should decode USE_FALLBACK with defalt, when is not defined", () => {
@@ -27,6 +29,20 @@ describe("IConfig - USE_FALLBACK", () => {
     expect(E.isRight(res)).toBe(true);
     if (E.isRight(res)) {
       expect(res.right.USE_FALLBACK).toEqual(true);
+    }
+  });
+
+  it("should decode SERVICE_TO_RC_CONFIGURATION_MAP with a valid map, when set to a valid json map string", () => {
+    const p = IConfig.encode(envConfig);
+    const { SERVICE_TO_RC_CONFIGURATION_MAP, ...env } = p;
+    const env2 = { ...env, SERVICE_TO_RC_CONFIGURATION_MAP: '{"one": "01ARZ3NDEKTSV4RRFFQ69G5FAV", "two": "01ARZ3NDEKTSV4RRFFQ69G5FAV"}' };
+    const map = new Map(Object.entries({one: "01ARZ3NDEKTSV4RRFFQ69G5FAV" as Ulid, two: "01ARZ3NDEKTSV4RRFFQ69G5FAV" as Ulid}));
+
+    const res = IConfig.decode(env2);
+
+    expect(E.isRight(res)).toBe(true);
+    if (E.isRight(res)) {
+      expect(res.right.SERVICE_TO_RC_CONFIGURATION_MAP).toEqual(map);
     }
   });
 });

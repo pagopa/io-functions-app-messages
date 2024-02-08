@@ -197,7 +197,7 @@ paths:
         '200':
           description: Remote content configuration found.
           schema:
-            $ref: '#/definitions/RCConfiguration'
+            $ref: '#/definitions/RCConfigurationResponse'
           examples:
             application/json:
               userId: aUserId
@@ -1426,50 +1426,54 @@ definitions:
         $ref: '#/definitions/MessageStatusValue'
     required:
       - message
-  RCConfiguration:
+  RCConfigurationResponse:
     allOf:
       - $ref: '#/definitions/RCConfigurationBase'
       - $ref: '#/definitions/RCConfigurationEnvironment'
   RCConfigurationBase:
-    type: object
-    properties:
-      userId:
-        type: string
-        minLength: 1
-        description: User id.
-      configurationId:
-        type: string
-        description: Ulid string.
-        format: Ulid
-        x-import: '@pagopa/ts-commons/lib/strings'
-        example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
-      name:
-        type: string
-        minLength: 1
-        description: Configuration name.
-      description:
-        type: string
-        minLength: 1
-        description: Configuration description.
-      hasPrecondition:
-        $ref: '#/definitions/HasPrecondition'
-      disableLollipopFor:
-        type: array
-        items:
-          type: string
-          minLength: 1
-          description: User for which lollipop should be disabled
-      isLollipopEnabled:
-        type: boolean
-        description: Flag to check if lollipop is enabled
-    required:
-      - userId
-      - configurationId
-      - name
-      - description
-      - hasPrecondition
-      - disableLollipopFor
-      - isLollipopEnabled
+    allOf:
+      - type: object
+        properties:
+          name:
+            type: string
+            minLength: 1
+            description: Configuration name.
+          description:
+            type: string
+            minLength: 1
+            description: Configuration description.
+          hasPrecondition:
+            $ref: '#/definitions/HasPrecondition'
+          disableLollipopFor:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              description: User for which lollipop should be disabled
+          isLollipopEnabled:
+            type: boolean
+            description: Flag to check if lollipop is enabled
+        required:
+          - name
+          - description
+          - hasPrecondition
+          - disableLollipopFor
+          - isLollipopEnabled
+      - type: object
+        properties:
+          configurationId:
+            type: string
+            description: Ulid string.
+            format: Ulid
+            x-import: '@pagopa/ts-commons/lib/strings'
+            example: 01ARZ3NDEKTSV4RRFFQ69G5FAV
+          userId:
+            type: string
+            minLength: 1
+            description: User id.
+        required:
+          - configurationId
+          - userId
   RCConfigurationEnvironment:
     x-one-of: true
     allOf:

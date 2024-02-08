@@ -171,5 +171,5 @@ export const aPnThirdPartyData: ThirdPartyData = {
   original_sender: "an-original-sender" as NonEmptyString,
   original_receipt_date: new Date(),
   has_attachments: true,
-  summary: "a-summary" as NonEmptyString
+  summary: "a-summary" as NonEmptyString,
 };

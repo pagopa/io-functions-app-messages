@@ -22,12 +22,14 @@ import {
   MessageStatusModel,
   MESSAGE_STATUS_COLLECTION_NAME
 } from "@pagopa/io-functions-commons/dist/src/models/message_status";
+import { NonEmptyString } from "io-ts-types";
 import { cosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { REDIS_CLIENT } from "../utils/redis";
 import { initTelemetryClient } from "../utils/appinsights";
 import { getThirdPartyDataWithCategoryFetcher } from "../utils/messages";
 import { GetMessage } from "./handler";
+import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 // Setup Express
 const app = express();
@@ -61,6 +63,7 @@ app.get(
     serviceModel,
     REDIS_CLIENT,
     config.SERVICE_CACHE_TTL_DURATION,
+    config.SERVICE_TO_RC_CONFIGURATION_MAP,
     getThirdPartyDataWithCategoryFetcher(config, telemetryClient)
   )
 );

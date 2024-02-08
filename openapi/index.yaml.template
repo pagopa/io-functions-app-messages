@@ -184,7 +184,7 @@ paths:
         "200":
           description: Remote content configuration found.
           schema:
-            $ref: "#/definitions/RCConfiguration"
+            $ref: "#/definitions/RCConfigurationResponse"
           examples:
             application/json:
               userId: aUserId
@@ -456,8 +456,8 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/CreatedMessageWithContentResponse"
   InternalMessageResponseWithContent:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/InternalMessageResponseWithContent"
-  RCConfiguration:
-    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfiguration"
+  RCConfigurationResponse:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationResponse"
   RCConfigurationBase:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationBase"
   RCConfigurationEnvironment:

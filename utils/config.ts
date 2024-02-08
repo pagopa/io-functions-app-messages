@@ -6,19 +6,22 @@
  */
 
 import * as t from "io-ts";
+import { JsonFromString, JsonRecord } from "io-ts-types";
 
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import { pipe } from "fp-ts/lib/function";
 
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
 import {
   IntegerFromString,
   NonNegativeInteger
 } from "@pagopa/ts-commons/lib/numbers";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
 import { BooleanFromString } from "@pagopa/ts-commons/lib/booleans";
+import { readonlyMap } from "fp-ts";
+import { findAllVersionsByModelIdIn } from "../model/utils/documentdb";
 import { CommaSeparatedListOf } from "./types";
 
 // exclude a specific value from a type
@@ -73,6 +76,31 @@ export const FeatureFlagType = t.union([
 ]);
 export type FeatureFlagType = t.TypeOf<typeof FeatureFlagType>;
 
+const isMap = (s: t.mixed): s is ReadonlyMap<string, Ulid> => s instanceof Map;
+
+export const UlidMapFromString = new t.Type<ReadonlyMap<string, Ulid>, string>(
+  "UlidMapFromString",
+  isMap,
+  (s, c) => {
+    try {
+      if (typeof s !== "string") {
+        return t.failure(s, c);
+      }
+      const json = JSON.parse(s);
+      const values = Object.values(json);
+      if (!values.every(Ulid.is)) {
+        return t.failure(s, c);
+      }
+      return t.success(new Map(Object.entries(json)));
+    } catch (e) {
+      return t.failure(s, c);
+    }
+  },
+  a => JSON.stringify(Object.fromEntries(a.entries()))
+);
+
+export type UlidMapFromString = t.TypeOf<typeof UlidMapFromString>;
+
 // global app configuration
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
@@ -87,6 +115,8 @@ export const IConfig = t.intersection([
     REMOTE_CONTENT_COSMOSDB_KEY: NonEmptyString,
     REMOTE_CONTENT_COSMOSDB_NAME: NonEmptyString,
     REMOTE_CONTENT_COSMOSDB_URI: NonEmptyString,
+
+    SERVICE_TO_RC_CONFIGURATION_MAP: UlidMapFromString,
 
     MESSAGE_CONTAINER_NAME: NonEmptyString,
 

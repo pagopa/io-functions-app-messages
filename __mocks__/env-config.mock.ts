@@ -1,4 +1,4 @@
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
 import { IConfig } from "../utils/config";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 
@@ -14,6 +14,8 @@ export const envConfig: IConfig = {
   REMOTE_CONTENT_COSMOSDB_KEY: "aKey" as NonEmptyString,
   REMOTE_CONTENT_COSMOSDB_NAME: "aName" as NonEmptyString,
   REMOTE_CONTENT_COSMOSDB_URI: "aUri" as NonEmptyString,
+
+  SERVICE_TO_RC_CONFIGURATION_MAP: new Map(Object.entries({aServiceId: "01ARZ3NDEKTSV4RRFFQ69G5FAV" as Ulid, two: "01ARZ3NDEKTSV4RRFFQ69G5FAV" as Ulid})),
 
   MESSAGE_CONTAINER_NAME: "aaa" as NonEmptyString,
   QueueStorageConnection: "aaa" as NonEmptyString,

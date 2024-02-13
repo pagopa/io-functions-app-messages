@@ -1,9 +1,8 @@
 import * as E from "fp-ts/lib/Either";
 
-import { IConfig, UlidMapFromString } from "../config";
+import { IConfig } from "../config";
 
 import { envConfig } from "../../__mocks__/env-config.mock";
-import { JsonFromString } from "io-ts-types";
 import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 describe("IConfig - USE_FALLBACK", () => {

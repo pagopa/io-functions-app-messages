@@ -184,7 +184,7 @@ paths:
         "200":
           description: Remote content configuration found.
           schema:
-            $ref: "#/definitions/RCConfigurationResponse"
+            $ref: "#/definitions/RCConfigurationPublic"
           examples:
             application/json:
               userId: aUserId
@@ -456,18 +456,14 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/CreatedMessageWithContentResponse"
   InternalMessageResponseWithContent:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/InternalMessageResponseWithContent"
-  RCConfigurationResponse:
-    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationResponse"
+  RCConfigurationPublic:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationPublic"
   RCConfigurationBase:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationBase"
+  NewRCConfigurationBase:
+    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/NewRCConfigurationBase"
   RCConfigurationEnvironment:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationEnvironment"
-  RCConfigurationWithTestEnvironment:
-    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationWithTestEnvironment"
-  RCConfigurationWithProdEnvironment:
-    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationWithProdEnvironment"
-  RCConfigurationWithProdAndTestEnvironment:
-    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationWithProdAndTestEnvironment"
   RCConfigurationProdEnvironment:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/RCConfigurationProdEnvironment"
   RCConfigurationTestEnvironment:

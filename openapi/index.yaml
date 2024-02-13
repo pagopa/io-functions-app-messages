@@ -200,26 +200,26 @@ paths:
             $ref: '#/definitions/RCConfigurationPublic'
           examples:
             application/json:
-              userId: aUserId
-              configurationId: 01HMRBX079WA5SGYBQP1A7FSKH
+              user_id: aUserId
+              configuration_id: 01HMRBX079WA5SGYBQP1A7FSKH
               name: aName
               description: a simple description
-              hasPrecondition: ALWAYS
-              disableLollipopFor: []
-              isLollipopEnabled: false
-              prodEnvironment:
-                baseUrl: https://anydomain.anytld/api/v1/anyapi
-                detailsAuthentication:
-                  headerKeyName: X-Functions-Key
+              has_precondition: ALWAYS
+              disable_lollipop_for: []
+              is_lollipop_enabled: false
+              prod_environment:
+                base_url: https://anydomain.anytld/api/v1/anyapi
+                details_authentication:
+                  header_key_name: X-Functions-Key
                   key: anykey
                   type: API_KEY
-              testEnvironment:
-                baseUrl: https://anytestdomain.anytld/api/v1/anyapi
-                detailsAuthentication:
-                  headerKeyName: X-Functions-Key
+              test_environment:
+                base_url: https://anytestdomain.anytld/api/v1/anyapi
+                details_authentication:
+                  header_key_name: X-Functions-Key
                   key: anykey
                   type: API_KEY
-                testUsers: []
+                test_users: []
         '401':
           description: Unauthorized
         '404':

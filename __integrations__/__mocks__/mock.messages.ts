@@ -25,6 +25,8 @@ import { Ulid } from "@pagopa/ts-commons/lib/strings";
 export const aFiscalCodeWithoutMessages = "FFLFRC74E04B157I" as FiscalCode;
 export const aFiscalCodeWithMessages = "FRLFRC74E04B157I" as FiscalCode;
 export const aFiscalCodeWithMessagesWithThirdParty = "FRNFRC74E04B157I" as FiscalCode;
+export const aFiscalCodeWithMessagesWithThirdPartyWithConfigId = "FRCFRC74E04B157I" as FiscalCode;
+
 
 export const aMessageBodyMarkdown = "test".repeat(80);
 export const aValidThirdPartyData: ThirdPartyData = {
@@ -68,7 +70,7 @@ export const aThirdPartyDataWithConfigId: ThirdPartyData = {
 
 export const aMessageWithThirdPartyDataWithConfigId: NewMessageWithContent = {
   ...aMessage,
-  fiscalCode: aFiscalCodeWithMessagesWithThirdParty,
+  fiscalCode: aFiscalCodeWithMessagesWithThirdPartyWithConfigId,
   id: "aMessageWithThirdPartyDataWithConfigId" as NonEmptyString,
   indexedId: `aMessageWithThirdPartyDataWithConfigId` as NonEmptyString,
   content: {

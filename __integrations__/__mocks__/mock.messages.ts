@@ -70,7 +70,7 @@ export const aMessageWithThirdPartyDataWithConfigId: NewMessageWithContent = {
   ...aMessage,
   fiscalCode: aFiscalCodeWithMessagesWithThirdParty,
   id: "aMessageWithThirdPartyDataWithConfigId" as NonEmptyString,
-  indexedId: `aMessageWithThirdPartyData` as NonEmptyString,
+  indexedId: `aMessageWithThirdPartyDataWithConfigId` as NonEmptyString,
   content: {
     ...aMessage.content,
     third_party_data: aThirdPartyDataWithConfigId

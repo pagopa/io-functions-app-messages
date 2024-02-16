@@ -18,8 +18,6 @@ import {
 
 import {
   aFiscalCodeWithMessages,
-  aMessageWithThirdPartyDataWithConfigId,
-  aThirdPartyDataWithConfigId,
   messagesList,
   messageStatusList
 } from "../__mocks__/mock.messages";
@@ -101,15 +99,16 @@ beforeEach(() => {
 // -------------------------
 
 const aMessage = messagesList[0];
+const aMessageWithThirdPartyDataWithConfigId = messagesList[messagesList.length - 1];
 
 const expectedGetMessageResponseWithConfigId: InternalMessageResponseWithContent = {
   message: {
-    content: {...aMessage.content, third_party_data: aThirdPartyDataWithConfigId},
-    created_at: aMessage.createdAt,
-    fiscal_code: aMessage.fiscalCode,
-    id: aMessage.id,
-    sender_service_id: aMessage.senderServiceId,
-    time_to_live: aMessage.timeToLiveSeconds
+    content: aMessageWithThirdPartyDataWithConfigId.content,
+    created_at: aMessageWithThirdPartyDataWithConfigId.createdAt,
+    fiscal_code: aMessageWithThirdPartyDataWithConfigId.fiscalCode,
+    id: aMessageWithThirdPartyDataWithConfigId.id,
+    sender_service_id: aMessageWithThirdPartyDataWithConfigId.senderServiceId,
+    time_to_live: aMessageWithThirdPartyDataWithConfigId.timeToLiveSeconds
   }
 };
 

@@ -18,6 +18,8 @@ import {
 
 import {
   aFiscalCodeWithMessages,
+  aMessageWithThirdPartyDataWithConfigId,
+  aThirdPartyDataWithConfigId,
   messagesList,
   messageStatusList
 } from "../__mocks__/mock.messages";
@@ -100,6 +102,17 @@ beforeEach(() => {
 
 const aMessage = messagesList[0];
 
+const expectedGetMessageResponseWithConfigId: InternalMessageResponseWithContent = {
+  message: {
+    content: {...aMessage.content, third_party_data: aThirdPartyDataWithConfigId},
+    created_at: aMessage.createdAt,
+    fiscal_code: aMessage.fiscalCode,
+    id: aMessage.id,
+    sender_service_id: aMessage.senderServiceId,
+    time_to_live: aMessage.timeToLiveSeconds
+  }
+};
+
 const expectedGetMessageResponse: InternalMessageResponseWithContent = {
   message: {
     content: aMessage.content,
@@ -127,9 +140,10 @@ const expectedGetMessageResponseWithPublicAttributes: InternalMessageResponseWit
 
 describe("Get Message |> Success Results", () => {
   it.each`
-    title                                                      | fiscalCode                 | msgId          | publicMessage | expectedResult
-    ${"should return a message detail"}                        | ${aFiscalCodeWithMessages} | ${aMessage.id} | ${undefined}  | ${expectedGetMessageResponse}
-    ${"should return a message detail with public attributes"} | ${aFiscalCodeWithMessages} | ${aMessage.id} | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
+    title                                                               | fiscalCode                 | msgId                                        | publicMessage | expectedResult
+    ${"should return a message detail"}                                 | ${aFiscalCodeWithMessages} | ${aMessage.id}                               | ${undefined}  | ${expectedGetMessageResponse}
+    ${"should return a message detail with public attributes"}          | ${aFiscalCodeWithMessages} | ${aMessage.id}                               | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
+    ${"should return a message detail without using the config map"}    | ${aFiscalCodeWithMessages} | ${aMessageWithThirdPartyDataWithConfigId.id} | ${undefined}  | ${expectedGetMessageResponseWithConfigId}
   `("$title", async ({ fiscalCode, msgId, publicMessage, expectedResult }) => {
     console.log(
       `calling getMessage with fiscalCode=${fiscalCode},messageId=${msgId}`

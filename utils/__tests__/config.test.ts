@@ -44,6 +44,15 @@ describe("IConfig - USE_FALLBACK", () => {
       expect(res.right.SERVICE_TO_RC_CONFIGURATION_MAP).toEqual(map);
     }
   });
+
+  it("should fail decode SERVICE_TO_RC_CONFIGURATION_MAP when set to a invvalid json map string", () => {
+    const p = IConfig.encode(envConfig);
+    const { SERVICE_TO_RC_CONFIGURATION_MAP, ...env } = p;
+    const env2 = { ...env, SERVICE_TO_RC_CONFIGURATION_MAP: '{"one": ["01ARZ3NDEKTSV4RRFFQ69G5FAV", "test"], "two": "01ARZ3NDEKTSV4RRFFQ69G5FAV"}' };
+    const res = IConfig.decode(env2);
+
+    expect(E.isLeft(res)).toBe(true);
+  });
 });
 
 describe("IConfig - FF_TYPE", () => {

@@ -20,6 +20,7 @@ import {
 import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 import { NotRejectedMessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/NotRejectedMessageStatusValue";
 import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
+import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 export const aFiscalCodeWithoutMessages = "FFLFRC74E04B157I" as FiscalCode;
 export const aFiscalCodeWithMessages = "FRLFRC74E04B157I" as FiscalCode;
@@ -60,6 +61,22 @@ export const aMessageWithThirdPartyData: NewMessageWithContent = {
   }
 };
 
+export const aThirdPartyDataWithConfigId: ThirdPartyData = {
+  ...aValidThirdPartyData,
+  configuration_id: "01ARZ3NDEKTSV2TRFFQ69G5FAV" as Ulid
+}
+
+export const aMessageWithThirdPartyDataWithConfigId: NewMessageWithContent = {
+  ...aMessage,
+  fiscalCode: aFiscalCodeWithMessagesWithThirdParty,
+  id: "aMessageWithThirdPartyDataWithConfigId" as NonEmptyString,
+  indexedId: `aMessageWithThirdPartyData` as NonEmptyString,
+  content: {
+    ...aMessage.content,
+    third_party_data: aThirdPartyDataWithConfigId
+  }
+};
+
 const messageListLength = 9;
 export const messagesWithoutThirdPartyDataList = Array.from(
   { length: messageListLength },
@@ -71,7 +88,8 @@ export const messagesWithoutThirdPartyDataList = Array.from(
 );
 export const messagesList = [
   ...messagesWithoutThirdPartyDataList,
-  aMessageWithThirdPartyData
+  aMessageWithThirdPartyData,
+  aMessageWithThirdPartyDataWithConfigId
 ];
 
 export const messageStatusList = pipe(

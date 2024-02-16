@@ -41,6 +41,7 @@ import { InternalMessageResponseWithContent } from "@pagopa/io-functions-commons
 
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { aMessageStatus } from "../__mocks__/mock.messages";
+import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 const MAX_ATTEMPT = 50;
 
@@ -118,7 +119,13 @@ const expectedGetMessageResponseWithConfigId: InternalMessageResponseWithContent
 
 const expectedGetMessageResponseWithThirdParty: InternalMessageResponseWithContent = {
   message: {
-    content: aMessageWithThirdPartyData.content,
+    content: {
+      ...aMessageWithThirdPartyData.content,
+      third_party_data: {
+        ...aThirdPartyDataWithConfigId,
+        configuration_id: "01ARZ3NDEKTSV4RRFFQ69G5FAV" as Ulid
+      }
+    },
     created_at: aMessageWithThirdPartyData.createdAt,
     fiscal_code: aMessageWithThirdPartyData.fiscalCode,
     id: aMessageWithThirdPartyData.id,

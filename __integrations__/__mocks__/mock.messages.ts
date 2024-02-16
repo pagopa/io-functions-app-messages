@@ -30,7 +30,9 @@ export const aFiscalCodeWithMessagesWithThirdPartyWithConfigId = "FRCFRC74E04B15
 
 export const aMessageBodyMarkdown = "test".repeat(80);
 export const aValidThirdPartyData: ThirdPartyData = {
-  id: "thirdPartyId" as NonEmptyString
+  id: "thirdPartyId" as NonEmptyString,
+  has_attachments: false,
+  has_remote_content: false
 };
 
 export const aMessageContent = {

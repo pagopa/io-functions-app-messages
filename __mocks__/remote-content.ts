@@ -13,6 +13,7 @@ import { IConfig } from "../utils/config";
 import { RCConfigurationBase } from "../generated/definitions/RCConfigurationBase"
 import { RCConfigurationPublic } from "../generated/definitions/RCConfigurationPublic"
 import { RCConfiguration, RetrievedRCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
+import { RCConfigurationProdEnvironment } from "../generated/definitions/RCConfigurationProdEnvironment";
 
 export const mockFind = jest.fn(() =>
   TE.of(O.some(aRetrievedRemoteContentConfiguration))
@@ -71,12 +72,12 @@ const aRemoteContentConfigurationWithNoEnv: RCConfigurationBase = {
   is_lollipop_enabled: false
 };
 
-const aRemoteContentConfigurationWithProdEnv: RCConfigurationPublic = {
+export const aRemoteContentConfigurationWithProdEnv: RCConfigurationPublic = {
   ...aRemoteContentConfigurationWithNoEnv,
   prod_environment: aRemoteContentEnvironmentConfiguration
 };
 
-const aRemoteContentConfigurationWithBothEnv: RCConfigurationPublic = {
+export const aRemoteContentConfigurationWithBothEnv: RCConfigurationPublic = {
   ...aRemoteContentConfigurationWithNoEnv,
   prod_environment: aRemoteContentEnvironmentConfiguration,
   test_environment: {
@@ -120,4 +121,3 @@ export const aRetrievedRemoteContentConfigurationWithBothEnv: RetrievedRCConfigu
   _self: "_self",
   _ts: 1
 };
-

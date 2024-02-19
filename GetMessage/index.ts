@@ -61,6 +61,7 @@ app.get(
     serviceModel,
     REDIS_CLIENT,
     config.SERVICE_CACHE_TTL_DURATION,
+    config.SERVICE_TO_RC_CONFIGURATION_MAP,
     getThirdPartyDataWithCategoryFetcher(config, telemetryClient)
   )
 );

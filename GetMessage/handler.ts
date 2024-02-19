@@ -17,7 +17,11 @@ import {
   ResponseErrorNotFound,
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import {
+  FiscalCode,
+  NonEmptyString,
+  Ulid
+} from "@pagopa/ts-commons/lib/strings";
 import { withoutUndefinedValues } from "@pagopa/ts-commons/lib/types";
 
 import { retrievedMessageToPublic } from "@pagopa/io-functions-commons/dist/src/utils/messages";
@@ -54,6 +58,7 @@ import {
   mapMessageCategory,
   ThirdPartyDataWithCategoryFetcher
 } from "../utils/messages";
+import { ThirdPartyData } from "../generated/definitions/ThirdPartyData";
 
 /**
  * Type of a GetMessage handler.
@@ -136,6 +141,54 @@ const getErrorOrPaymentData = async (
   )();
 
 /**
+ * In case a third party data exists and does not already contain the `configuration_id` field,
+ * it enriches the `configuration_id` field with the serviceToRCConfigurationMap using the `sender_service_id`.
+ *
+ * @param context
+ * @param senderServiceId
+ * @param serviceToRCConfigurationMap
+ * @param maybeThirdPartyData
+ * @returns
+ */
+const getErrorOrMaybeThirdPartyData = async (
+  context: Context,
+  senderServiceId: ServiceId,
+  serviceToRCConfigurationMap: ReadonlyMap<string, string>,
+  maybeThirdPartyData: O.Option<ThirdPartyData>
+): Promise<E.Either<IResponseErrorInternal, O.Option<ThirdPartyData>>> =>
+  pipe(
+    maybeThirdPartyData,
+    O.fold(
+      () => TE.right(O.none),
+      thirdPartyData =>
+        pipe(
+          O.fromNullable(thirdPartyData.configuration_id),
+          O.map(configuration_id => ({ ...thirdPartyData, configuration_id })),
+          O.map(flow(O.some, TE.of)),
+          O.getOrElse(() =>
+            pipe(
+              O.fromNullable(serviceToRCConfigurationMap.get(senderServiceId)),
+              TE.fromOption(() => {
+                context.log.error(
+                  `GetMessageHandler|Error getting configuration id for the service ${senderServiceId}`
+                );
+                return ResponseErrorInternal(
+                  `Cannot convert SERVICE_TO_RCCONFIGURATION_MAP`
+                );
+              }),
+              TE.map(configurationId =>
+                O.some({
+                  ...thirdPartyData,
+                  configuration_id: configurationId as Ulid
+                })
+              )
+            )
+          )
+        )
+    )
+  )();
+
+/**
  * Handles requests for getting a single message for a recipient.
  */
 // eslint-disable-next-line prefer-arrow/prefer-arrow-functions, max-params
@@ -146,6 +199,7 @@ export function GetMessageHandler(
   serviceModel: ServiceModel,
   redisClient: RedisClient,
   serviceCacheTtl: NonNegativeInteger,
+  serviceToRCConfigurationMap: ReadonlyMap<string, string>,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): IGetMessageHandler {
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -270,10 +324,24 @@ export function GetMessageHandler(
       return getErrorOrMaybePublicData.left;
     }
 
+    const maybeThirdPartyData = O.fromNullable(messageContent.third_party_data);
+
+    const errorOrMaybeThirdPartyData = await getErrorOrMaybeThirdPartyData(
+      context,
+      retrievedMessage.senderServiceId,
+      serviceToRCConfigurationMap,
+      maybeThirdPartyData
+    );
+
+    if (E.isLeft(errorOrMaybeThirdPartyData)) {
+      return errorOrMaybeThirdPartyData.left;
+    }
+
     const message = withoutUndefinedValues({
       content: {
         ...messageContent,
-        payment_data: O.toUndefined(errorOrMaybePaymentData.right)
+        payment_data: O.toUndefined(errorOrMaybePaymentData.right),
+        third_party_data: O.toUndefined(errorOrMaybeThirdPartyData.right)
       },
       ...publicMessage,
       ...O.toUndefined(getErrorOrMaybePublicData.right)
@@ -298,6 +366,7 @@ export function GetMessage(
   serviceModel: ServiceModel,
   redisClient: RedisClient,
   serviceCacheTtl: NonNegativeInteger,
+  serviceToRCConfigurationMap: ReadonlyMap<string, string>,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): express.RequestHandler {
   const handler = GetMessageHandler(
@@ -307,6 +376,7 @@ export function GetMessage(
     serviceModel,
     redisClient,
     serviceCacheTtl,
+    serviceToRCConfigurationMap,
     categoryFetcher
   );
   const middlewaresWrap = withRequestMiddlewares(

@@ -18,6 +18,9 @@ import {
 
 import {
   aFiscalCodeWithMessages,
+  aFiscalCodeWithMessagesWithThirdParty,
+  aFiscalCodeWithMessagesWithThirdPartyWithConfigId,
+  aThirdPartyDataWithConfigId,
   messagesList,
   messageStatusList
 } from "../__mocks__/mock.messages";
@@ -38,6 +41,7 @@ import { InternalMessageResponseWithContent } from "@pagopa/io-functions-commons
 
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { aMessageStatus } from "../__mocks__/mock.messages";
+import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 const MAX_ATTEMPT = 50;
 
@@ -99,6 +103,36 @@ beforeEach(() => {
 // -------------------------
 
 const aMessage = messagesList[0];
+const aMessageWithThirdPartyDataWithConfigId = messagesList[messagesList.length - 1];
+const aMessageWithThirdPartyData = messagesList[messagesList.length - 2];
+
+const expectedGetMessageResponseWithConfigId: InternalMessageResponseWithContent = {
+  message: {
+    content: {... aMessageWithThirdPartyDataWithConfigId.content, third_party_data: aThirdPartyDataWithConfigId},
+    created_at: aMessageWithThirdPartyDataWithConfigId.createdAt,
+    fiscal_code: aMessageWithThirdPartyDataWithConfigId.fiscalCode,
+    id: aMessageWithThirdPartyDataWithConfigId.id,
+    sender_service_id: aMessageWithThirdPartyDataWithConfigId.senderServiceId,
+    time_to_live: aMessageWithThirdPartyDataWithConfigId.timeToLiveSeconds
+  }
+};
+
+const expectedGetMessageResponseWithThirdParty: InternalMessageResponseWithContent = {
+  message: {
+    content: {
+      ...aMessageWithThirdPartyData.content,
+      third_party_data: {
+        ...aThirdPartyDataWithConfigId,
+        configuration_id: "01ARZ3NDEKTSV4RRFFQ69G5FAV" as Ulid
+      }
+    },
+    created_at: aMessageWithThirdPartyData.createdAt,
+    fiscal_code: aMessageWithThirdPartyData.fiscalCode,
+    id: aMessageWithThirdPartyData.id,
+    sender_service_id: aMessageWithThirdPartyData.senderServiceId,
+    time_to_live: aMessageWithThirdPartyData.timeToLiveSeconds
+  }
+};
 
 const expectedGetMessageResponse: InternalMessageResponseWithContent = {
   message: {
@@ -127,9 +161,11 @@ const expectedGetMessageResponseWithPublicAttributes: InternalMessageResponseWit
 
 describe("Get Message |> Success Results", () => {
   it.each`
-    title                                                      | fiscalCode                 | msgId          | publicMessage | expectedResult
-    ${"should return a message detail"}                        | ${aFiscalCodeWithMessages} | ${aMessage.id} | ${undefined}  | ${expectedGetMessageResponse}
-    ${"should return a message detail with public attributes"} | ${aFiscalCodeWithMessages} | ${aMessage.id} | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
+    title                                                             | fiscalCode                                            | msgId                                         | publicMessage | expectedResult
+    ${"should return a message detail"}                               | ${aFiscalCodeWithMessages}                            | ${aMessage.id}                                | ${undefined}  | ${expectedGetMessageResponse}
+    ${"should return a message detail with public attributes"}        | ${aFiscalCodeWithMessages}                            | ${aMessage.id}                                | ${true}       | ${expectedGetMessageResponseWithPublicAttributes}
+    ${"should return a message detail using the config map"}          | ${aFiscalCodeWithMessagesWithThirdParty}              | ${aMessageWithThirdPartyData.id}              | ${undefined}  | ${expectedGetMessageResponseWithThirdParty}
+    ${"should return a message detail without using the config map"}  | ${aFiscalCodeWithMessagesWithThirdPartyWithConfigId}  | ${aMessageWithThirdPartyDataWithConfigId.id}  | ${undefined}  | ${expectedGetMessageResponseWithConfigId}
   `("$title", async ({ fiscalCode, msgId, publicMessage, expectedResult }) => {
     console.log(
       `calling getMessage with fiscalCode=${fiscalCode},messageId=${msgId}`

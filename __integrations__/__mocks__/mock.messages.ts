@@ -20,14 +20,19 @@ import {
 import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/FeatureLevelType";
 import { NotRejectedMessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/NotRejectedMessageStatusValue";
 import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
+import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 export const aFiscalCodeWithoutMessages = "FFLFRC74E04B157I" as FiscalCode;
 export const aFiscalCodeWithMessages = "FRLFRC74E04B157I" as FiscalCode;
 export const aFiscalCodeWithMessagesWithThirdParty = "FRNFRC74E04B157I" as FiscalCode;
+export const aFiscalCodeWithMessagesWithThirdPartyWithConfigId = "FRCFRC74E04B157I" as FiscalCode;
+
 
 export const aMessageBodyMarkdown = "test".repeat(80);
 export const aValidThirdPartyData: ThirdPartyData = {
-  id: "thirdPartyId" as NonEmptyString
+  id: "thirdPartyId" as NonEmptyString,
+  has_attachments: false,
+  has_remote_content: false
 };
 
 export const aMessageContent = {
@@ -60,6 +65,22 @@ export const aMessageWithThirdPartyData: NewMessageWithContent = {
   }
 };
 
+export const aThirdPartyDataWithConfigId: ThirdPartyData = {
+  ...aValidThirdPartyData,
+  configuration_id: "01ARZ3NDEKTSV2TRFFQ69G5FAV" as Ulid
+}
+
+export const aMessageWithThirdPartyDataWithConfigId: NewMessageWithContent = {
+  ...aMessage,
+  fiscalCode: aFiscalCodeWithMessagesWithThirdPartyWithConfigId,
+  id: "aMessageWithThirdPartyDataWithConfigId" as NonEmptyString,
+  indexedId: `aMessageWithThirdPartyDataWithConfigId` as NonEmptyString,
+  content: {
+    ...aMessage.content,
+    third_party_data: aThirdPartyDataWithConfigId
+  }
+};
+
 const messageListLength = 9;
 export const messagesWithoutThirdPartyDataList = Array.from(
   { length: messageListLength },
@@ -71,7 +92,8 @@ export const messagesWithoutThirdPartyDataList = Array.from(
 );
 export const messagesList = [
   ...messagesWithoutThirdPartyDataList,
-  aMessageWithThirdPartyData
+  aMessageWithThirdPartyData,
+  aMessageWithThirdPartyDataWithConfigId
 ];
 
 export const messageStatusList = pipe(

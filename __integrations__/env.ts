@@ -9,9 +9,15 @@ export const COSMOSDB_URI = process.env.COSMOSDB_URI as string;
 export const COSMOSDB_KEY = process.env.COSMOSDB_KEY as string;
 export const COSMOSDB_NAME = process.env.COSMOSDB_NAME as string;
 
-export const REMOTE_CONTENT_COSMOSDB_URI = process.env.REMOTE_CONTENT_COSMOSDB_URI as string;
-export const REMOTE_CONTENT_COSMOSDB_KEY = process.env.REMOTE_CONTENT_COSMOSDB_KEY as string;
-export const REMOTE_CONTENT_COSMOSDB_NAME = process.env.REMOTE_CONTENT_COSMOSDB_NAME as string;
+export const SERVICE_TO_RC_CONFIGURATION_MAP = process.env
+  .SERVICE_TO_RC_CONFIGURATION_MAP as string;
+
+export const REMOTE_CONTENT_COSMOSDB_URI = process.env
+  .REMOTE_CONTENT_COSMOSDB_URI as string;
+export const REMOTE_CONTENT_COSMOSDB_KEY = process.env
+  .REMOTE_CONTENT_COSMOSDB_KEY as string;
+export const REMOTE_CONTENT_COSMOSDB_NAME = process.env
+  .REMOTE_CONTENT_COSMOSDB_NAME as string;
 
 export const FF_TYPE = process.env.FF_TYPE;
 

@@ -43,6 +43,7 @@ import { toCosmosErrorResponse } from "@pagopa/io-functions-commons/dist/src/uti
 import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 import { TagEnum as TagEnumBase } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPN } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPN";
+import { envConfig } from "../../__mocks__/env-config.mock";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aDate = new Date();
@@ -150,6 +151,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -184,6 +186,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -216,6 +219,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -249,6 +253,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -311,6 +316,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       thirdPartyFetcherForAServiceId
     );
 
@@ -340,7 +346,10 @@ describe("GetMessageHandler", () => {
           },
           content: {
             ...aMessageContent,
-            third_party_data: aPnThirdPartyData
+            third_party_data: {
+              ...aPnThirdPartyData,
+              configuration_id: "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+            }
           },
           ...anEnrichedMessageResponse
         }
@@ -356,6 +365,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -411,6 +421,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -448,6 +459,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -480,6 +492,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -534,6 +547,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -571,6 +585,7 @@ describe("GetMessageHandler", () => {
       mockServiceModel as any,
       {} as any,
       aServiceCacheTTL,
+      envConfig.SERVICE_TO_RC_CONFIGURATION_MAP,
       dummyThirdPartyDataWithCategoryFetcher
     );
 

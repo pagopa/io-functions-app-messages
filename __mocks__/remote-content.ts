@@ -9,9 +9,10 @@ import {
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
 import { aCosmosResourceMetadata, aFiscalCode } from "./mocks";
-import { RCConfiguration, RetrievedRCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 import { IConfig } from "../utils/config";
 import { RCConfigurationBase } from "../generated/definitions/RCConfigurationBase"
+import { RCConfigurationPublic } from "../generated/definitions/RCConfigurationPublic"
+import { RCConfiguration, RetrievedRCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 
 export const mockFind = jest.fn(() =>
   TE.of(O.some(aRetrievedRemoteContentConfiguration))
@@ -53,6 +54,38 @@ export const mockRCConfigurationModel = {
 };
 
 const aRemoteContentEnvironmentConfiguration = {
+  base_url: "https://anydomain.anytld/api/v1/anyapi" as NonEmptyString,
+  details_authentication: {
+    header_key_name: "X-Functions-Key" as NonEmptyString,
+    key: "anykey" as NonEmptyString,
+    type: "API_KEY" as NonEmptyString
+  }
+};
+
+const aRemoteContentConfigurationWithNoEnv: RCConfigurationBase = {
+  configuration_id: "01HMRBX079WA5SGYBQP1A7FSKH" as Ulid,
+  name: "aName" as NonEmptyString,
+  description: "a simple description" as NonEmptyString,
+  has_precondition: HasPreconditionEnum.ALWAYS,
+  disable_lollipop_for: [],
+  is_lollipop_enabled: false
+};
+
+const aRemoteContentConfigurationWithProdEnv: RCConfigurationPublic = {
+  ...aRemoteContentConfigurationWithNoEnv,
+  prod_environment: aRemoteContentEnvironmentConfiguration
+};
+
+const aRemoteContentConfigurationWithBothEnv: RCConfigurationPublic = {
+  ...aRemoteContentConfigurationWithNoEnv,
+  prod_environment: aRemoteContentEnvironmentConfiguration,
+  test_environment: {
+    ...aRemoteContentEnvironmentConfiguration,
+    test_users: []
+  }
+};
+
+const aRemoteContentConfigurationEnvironmentModel = {
   baseUrl: "https://anydomain.anytld/api/v1/anyapi" as NonEmptyString,
   detailsAuthentication: {
     headerKeyName: "X-Functions-Key" as NonEmptyString,
@@ -61,33 +94,24 @@ const aRemoteContentEnvironmentConfiguration = {
   }
 };
 
-const aRemoteContentConfigurationWithNoEnv: RCConfigurationBase = {
+const aRemoteContentConfigurationModel: RCConfiguration = {
   userId: "aUserId" as NonEmptyString,
   configurationId: "01HMRBX079WA5SGYBQP1A7FSKH" as Ulid,
   name: "aName" as NonEmptyString,
   description: "a simple description" as NonEmptyString,
   hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [],
-  isLollipopEnabled: false
-};
-
-const aRemoteContentConfigurationWithProdEnv: RCConfiguration = {
-  ...aRemoteContentConfigurationWithNoEnv,
-  prodEnvironment: aRemoteContentEnvironmentConfiguration
-};
-
-const aRemoteContentConfigurationWithBothEnv: RCConfiguration = {
-  ...aRemoteContentConfigurationWithNoEnv,
-  prodEnvironment: aRemoteContentEnvironmentConfiguration,
+  isLollipopEnabled: false,
+  prodEnvironment: aRemoteContentConfigurationEnvironmentModel,
   testEnvironment: {
-    ...aRemoteContentEnvironmentConfiguration,
+    ...aRemoteContentConfigurationEnvironmentModel,
     testUsers: []
   }
 };
 
 export const aRetrievedRemoteContentConfigurationWithBothEnv: RetrievedRCConfiguration = {
-  ...aRemoteContentConfigurationWithBothEnv,
-  id: `${aRemoteContentConfigurationWithProdEnv.configurationId}-${"0".repeat(
+  ...aRemoteContentConfigurationModel,
+  id: `${aRemoteContentConfigurationModel.configurationId}-${"0".repeat(
     16
   )}` as NonEmptyString,
   version: 0 as NonNegativeInteger,

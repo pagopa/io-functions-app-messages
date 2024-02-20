@@ -21,9 +21,6 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as t from "io-ts";
 
 import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmosdb_model";
-import { RedisClient } from "redis";
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import {
@@ -35,7 +32,7 @@ import {
 } from "../../utils/messages";
 import { MessageStatusExtendedQueryModel } from "../../model/message_status_query";
 import { ThirdPartyDataWithCategoryFetcher } from "../../utils/messages";
-import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
+import RCConfigurationUtility from "../../utils/remoteContentConfig";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
 import { EnrichedMessageWithContent } from "./models";
 
@@ -65,10 +62,7 @@ const filterMessages = (shouldGetArchivedMessages: boolean) => (
 export const getHasPreconditionFlagForMessagesFallback = (
   content: MessageContent,
   message: EnrichedMessageWithContent,
-  redisClient: RedisClient,
-  remoteContentConfigurationModel: RemoteContentConfigurationModel,
-  remoteContentConfigCacheTtl: NonNegativeInteger
-  // eslint-disable-next-line max-params
+  rcConfigurationUtility: RCConfigurationUtility
 ): TE.TaskEither<Error, EnrichedMessageWithContent> =>
   pipe(
     O.fromNullable(content.third_party_data),
@@ -78,11 +72,9 @@ export const getHasPreconditionFlagForMessagesFallback = (
         O.fold(
           () =>
             pipe(
-              getOrCacheRemoteServiceConfig(
-                redisClient,
-                remoteContentConfigurationModel,
-                remoteContentConfigCacheTtl,
-                message.sender_service_id
+              rcConfigurationUtility.getOrCacheRCConfiguration(
+                message.sender_service_id,
+                thirdPartyData.configuration_id
               ),
               TE.map(serviceConfig => serviceConfig.hasPrecondition)
             ),
@@ -118,9 +110,7 @@ export const enrichContentData = (
   context: Context,
   messageModel: MessageModel,
   blobService: BlobService,
-  redisClient: RedisClient,
-  remoteContentConfigurationModel: RemoteContentConfigurationModel,
-  remoteContentConfigurationTtl: NonNegativeInteger,
+  rcConfigurationUtility: RCConfigurationUtility,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
   // eslint-disable-next-line max-params
 ) => (
@@ -161,9 +151,7 @@ export const enrichContentData = (
         getHasPreconditionFlagForMessagesFallback(
           content,
           enrichedMessage,
-          redisClient,
-          remoteContentConfigurationModel,
-          remoteContentConfigurationTtl
+          rcConfigurationUtility
         )
       )
     )()
@@ -173,9 +161,7 @@ export const getMessagesFromFallback = (
   messageModel: MessageModel,
   messageStatusModel: MessageStatusExtendedQueryModel,
   blobService: BlobService,
-  remoteContentConfigurationModel: RemoteContentConfigurationModel,
-  redisClient: RedisClient,
-  remoteContentConfigurationTtl: NonNegativeInteger,
+  rcConfigurationUtility: RCConfigurationUtility,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
   // eslint-disable-next-line max-params
 ): IGetMessagesFunction => ({
@@ -228,9 +214,7 @@ export const getMessagesFromFallback = (
                 context,
                 messageModel,
                 blobService,
-                redisClient,
-                remoteContentConfigurationModel,
-                remoteContentConfigurationTtl,
+                rcConfigurationUtility,
                 categoryFetcher
               )
             )

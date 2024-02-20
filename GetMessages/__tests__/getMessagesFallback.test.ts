@@ -10,9 +10,7 @@ import {
 } from "../../__mocks__/remote-content";
 import { Context } from "@azure/functions";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
-import {
-  MessageModel,
-} from "@pagopa/io-functions-commons/dist/src/models/message";
+import { MessageModel } from "@pagopa/io-functions-commons/dist/src/models/message";
 import { BlobService } from "azure-storage";
 import {
   CreatedMessageWithoutContentWithStatus,
@@ -25,8 +23,10 @@ import { pipe } from "fp-ts/lib/function";
 import { EnrichedMessageWithContent } from "../getMessagesFunctions/models";
 import { aMessageContent } from "../../utils/__tests__/messages.test";
 import { HasPreconditionEnum } from "../../generated/definitions/HasPrecondition";
-import {aRetrievedService} from "../../__mocks__/mocks.service_preference"
+import { aRetrievedService } from "../../__mocks__/mocks.service_preference";
 import { aRetrievedMessageWithoutContent } from "../../__mocks__/messages";
+import RCConfigurationUtility from "../../utils/remoteContentConfig";
+import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 const findLastVersionByModelIdMock = jest
   .fn()
@@ -98,6 +98,16 @@ const mockedPaymentContent = {
   }
 } as MessageContent;
 
+const mockRCConfigurationUtility = new RCConfigurationUtility(
+  redisClientMock,
+  mockRemoteContentConfigurationModel,
+  mockRemoteContentConfigurationTtl,
+  ({ aServiceId: "01HMRBX079WA5SGYBQP1A7FSKH" } as unknown) as ReadonlyMap<
+    string,
+    Ulid
+  >
+);
+
 describe("enrichContentData", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -108,9 +118,7 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
-      redisClientMock,
-      mockRemoteContentConfigurationModel,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -149,9 +157,7 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
-      redisClientMock,
-      mockRemoteContentConfigurationModel,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -189,9 +195,7 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
-      redisClientMock,
-      mockRemoteContentConfigurationModel,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -227,7 +231,10 @@ describe("enrichContentData", () => {
       TE.of(
         O.some({
           ...aMessageContent,
-          third_party_data: { has_remote_content: true, has_precondition: HasPreconditionEnum.ALWAYS}
+          third_party_data: {
+            has_remote_content: true,
+            has_precondition: HasPreconditionEnum.ALWAYS
+          }
         })
       )
     );
@@ -235,9 +242,7 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
-      redisClientMock,
-      mockRemoteContentConfigurationModel,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher
     );
 
@@ -286,9 +291,7 @@ describe("enrichContentData", () => {
       functionsContextMock,
       messageModelMock,
       blobServiceMock,
-      redisClientMock,
-      mockRemoteContentConfigurationModel,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher
     );
 

@@ -5,15 +5,17 @@ import {
   aRetrievedRemoteContentConfigurationWithBothEnv,
   findLastVersionByModelIdMock,
   mockConfig,
-  mockRCConfigurationModel,
+  mockRCConfigurationModel
 } from "../../__mocks__/remote-content";
 import * as redis from "../redis_storage";
-import { getOrCacheMaybeRCConfiguration, getOrCacheRemoteServiceConfig } from "../remoteContentConfig";
+import { getOrCacheMaybeRCConfiguration } from "../remoteContentConfig";
 
 const getTaskMock = jest
   .fn()
   .mockImplementation(() =>
-    TE.of(O.some(JSON.stringify(aRetrievedRemoteContentConfigurationWithBothEnv)))
+    TE.of(
+      O.some(JSON.stringify(aRetrievedRemoteContentConfigurationWithBothEnv))
+    )
   );
 jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
 

@@ -20,10 +20,6 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { MESSAGE_VIEW_COLLECTION_NAME } from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import {
-  RemoteContentConfigurationModel,
-  REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
-} from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
-import {
   cosmosdbInstance,
   remoteContentCosmosdbInstance
 } from "../utils/cosmosdb";
@@ -35,6 +31,11 @@ import { initTelemetryClient } from "../utils/appinsights";
 import { getThirdPartyDataWithCategoryFetcher } from "../utils/messages";
 import { GetMessages } from "./handler";
 import { createGetMessagesFunctionSelection } from "./getMessagesFunctions/getMessages.selector";
+import {
+  RCConfigurationModel,
+  RC_CONFIGURATION_COLLECTION_NAME
+} from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
+import RCConfigurationUtility from "../utils/remoteContentConfig";
 
 // Setup Express
 const app = express();
@@ -58,10 +59,15 @@ const messageViewModel = new MessageViewExtendedQueryModel(
   cosmosdbInstance.container(MESSAGE_VIEW_COLLECTION_NAME)
 );
 
-const remoteContentConfigurationModel = new RemoteContentConfigurationModel(
-  remoteContentCosmosdbInstance.container(
-    REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
-  )
+const rcConfigurationModel = new RCConfigurationModel(
+  remoteContentCosmosdbInstance.container(RC_CONFIGURATION_COLLECTION_NAME)
+);
+
+const rcConfigurationUtility = new RCConfigurationUtility(
+  REDIS_CLIENT,
+  rcConfigurationModel,
+  config.SERVICE_CACHE_TTL_DURATION,
+  config.SERVICE_TO_RC_CONFIGURATION_MAP
 );
 
 const blobService = createBlobService(config.QueueStorageConnection);
@@ -81,18 +87,10 @@ const getMessagesFunctionSelector = createGetMessagesFunctionSelection(
     messageModel,
     messageStatusModel,
     blobService,
-    remoteContentConfigurationModel,
-    REDIS_CLIENT,
-    config.SERVICE_CACHE_TTL_DURATION,
+    rcConfigurationUtility,
     categoryFecther
   ],
-  [
-    messageViewModel,
-    remoteContentConfigurationModel,
-    REDIS_CLIENT,
-    config.SERVICE_CACHE_TTL_DURATION,
-    categoryFecther
-  ]
+  [messageViewModel, rcConfigurationUtility, categoryFecther]
 );
 
 app.get(

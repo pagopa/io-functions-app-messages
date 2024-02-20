@@ -2,18 +2,13 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
 
 import { HasPreconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/HasPrecondition";
-import {
-  RemoteContentConfigurationModel,
-  RetrievedRemoteContentConfiguration
-} from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
 import { aCosmosResourceMetadata, aFiscalCode } from "./mocks";
 import { IConfig } from "../utils/config";
 import { RCConfigurationBase } from "../generated/definitions/RCConfigurationBase"
 import { RCConfigurationPublic } from "../generated/definitions/RCConfigurationPublic"
-import { RCConfiguration, RetrievedRCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
-import { RCConfigurationProdEnvironment } from "../generated/definitions/RCConfigurationProdEnvironment";
+import { RCConfiguration, RCConfigurationModel, RetrievedRCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 
 export const mockFind = jest.fn(() =>
   TE.of(O.some(aRetrievedRemoteContentConfiguration))
@@ -21,7 +16,7 @@ export const mockFind = jest.fn(() =>
 
 export const mockRemoteContentConfigurationModel = ({
   find: mockFind
-} as unknown) as RemoteContentConfigurationModel;
+} as unknown) as RCConfigurationModel;
 
 export const mockRemoteContentConfigurationTtl = 100 as NonNegativeInteger;
 
@@ -31,16 +26,20 @@ const aDetailAuthentication = {
   type: "type" as NonEmptyString
 };
 
-export const aRetrievedRemoteContentConfiguration: RetrievedRemoteContentConfiguration = {
+export const aRetrievedRemoteContentConfiguration: RetrievedRCConfiguration = {
+  configurationId: "01HMRBX079WA5SGYBQP1A7FSKH" as Ulid,
+  userId: "01HMRBX079WA5SGYBQP1A7FSKK" as NonEmptyString,
   hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [aFiscalCode],
   isLollipopEnabled: true,
   id: "id" as NonEmptyString,
-  serviceId: "serviceId" as NonEmptyString,
+  name: "name" as NonEmptyString,
+  description: "description" as NonEmptyString,
   prodEnvironment: {
     baseUrl: "aValidUrl" as NonEmptyString,
     detailsAuthentication: aDetailAuthentication
   },
+  version: 0 as NonNegativeInteger,
   ...aCosmosResourceMetadata
 };
 

@@ -6,7 +6,7 @@ import { CosmosErrors } from "@pagopa/io-functions-commons/dist/src/utils/cosmos
 import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 
-import { FeatureFlagType, UlidMapFromString } from "../../utils/config";
+import { FeatureFlagType } from "../../utils/config";
 import { toFiscalCodeHash } from "../../utils/fiscalCodeHash";
 
 import { getMessagesFromFallback } from "./getMessages.fallback";

@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string, no-invalid-this, sonarjs/no-identical-functions */
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
@@ -24,7 +25,7 @@ export default class RCConfigurationUtility {
     private readonly serviceToRCConfigurationMap: UlidMapFromString
   ) {}
 
-  public getOrCacheRCConfiguration = (
+  public readonly getOrCacheRCConfiguration = (
     serviceId: NonEmptyString,
     configurationId?: Ulid
   ): TE.TaskEither<Error, RetrievedRCConfiguration> =>
@@ -99,7 +100,7 @@ export default class RCConfigurationUtility {
       )
     );
 
-  public getOrCacheMaybeRCConfiguration = (
+  public readonly getOrCacheMaybeRCConfiguration = (
     serviceId: NonEmptyString,
     configurationId: Ulid
   ): TE.TaskEither<Error, O.Option<RetrievedRCConfiguration>> =>
@@ -112,7 +113,7 @@ export default class RCConfigurationUtility {
           pipe(
             getTask(
               this.redisClient,
-              `${RC_CONFIGURATION_REDIS_PREFIX}-${configurationId}`
+              `${RC_CONFIGURATION_REDIS_PREFIX}-${configId}`
             ),
             TE.chain(
               TE.fromOption(
@@ -143,19 +144,16 @@ export default class RCConfigurationUtility {
               () =>
                 pipe(
                   this.rcConfigurationModel.findLastVersionByModelId([
-                    configurationId
+                    configId
                   ]),
                   TE.mapLeft(
-                    e =>
-                      new Error(
-                        `${e.kind}, RCConfiguration Id=${configurationId}`
-                      )
+                    e => new Error(`${e.kind}, RCConfiguration Id=${configId}`)
                   ),
                   TE.chain(rCConfiguration =>
                     pipe(
                       setWithExpirationTask(
                         this.redisClient,
-                        `${RC_CONFIGURATION_REDIS_PREFIX}-${configurationId}`,
+                        `${RC_CONFIGURATION_REDIS_PREFIX}-${configId}`,
                         JSON.stringify(rCConfiguration),
                         this.rcConfigurationCacheTtl
                       ),

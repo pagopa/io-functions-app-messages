@@ -27,7 +27,6 @@ import RCConfigurationUtility from "../../utils/remoteContentConfig";
 import { HasPreconditionEnum } from "../../generated/definitions/HasPrecondition";
 import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
-import { RCConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 
 /**
  * Map `RetrievedMessageView` to `EnrichedMessageWithContent`

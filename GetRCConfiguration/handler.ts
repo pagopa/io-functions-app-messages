@@ -22,15 +22,14 @@ import {
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { RedisClient } from "redis";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import {
-  RCConfiguration,
-  RCConfigurationModel
-} from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
+import { RCConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
+import { retrievedRCConfigurationToPublic } from "@pagopa/io-functions-commons/dist/src/utils/rc_configuration";
 import { Context } from "@azure/functions";
 import { getOrCacheMaybeRCConfiguration } from "../utils/remoteContentConfig";
+import { RCConfigurationPublic } from "../generated/definitions/RCConfigurationPublic";
 
 type IGetRCConfigurationHandlerResponse =
-  | IResponseSuccessJson<RCConfiguration>
+  | IResponseSuccessJson<RCConfigurationPublic>
   | IResponseErrorNotFound
   | IResponseErrorInternal;
 
@@ -73,6 +72,7 @@ export const GetRCConfigurationHandler = (
         )
       )
     ),
+    TE.map(retrievedRCConfigurationToPublic),
     TE.map(ResponseSuccessJson),
     TE.toUnion
   )();

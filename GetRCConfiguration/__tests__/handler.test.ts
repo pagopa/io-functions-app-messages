@@ -6,7 +6,7 @@ import * as TE from "fp-ts/lib/TaskEither";
 import { context as contextMock } from "../../__mocks__/context";
 import { GetRCConfigurationHandler } from "../handler";
 import * as rCConfigurationUtils from "../../utils/remoteContentConfig";
-import { aRetrievedRemoteContentConfigurationWithBothEnv, mockConfig, mockRCConfigurationModel } from "../../__mocks__/remote-content";
+import { aRemoteContentConfigurationWithBothEnv, aRetrievedRemoteContentConfigurationWithBothEnv, mockConfig, mockRCConfigurationModel } from "../../__mocks__/remote-content";
 
 const getOrCacheMaybeRCConfigurationMock = jest
   .fn()
@@ -66,7 +66,7 @@ describe("GetRCConfigurationHandler", () => {
 
     expect(result.kind).toBe("IResponseSuccessJson");
     if (result.kind === "IResponseSuccessJson") {
-      expect(result.value).toEqual(aRetrievedRemoteContentConfigurationWithBothEnv);
+      expect(result.value).toEqual(aRemoteContentConfigurationWithBothEnv);
     }
   });
 });

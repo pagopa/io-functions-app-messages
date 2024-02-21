@@ -123,7 +123,7 @@ const expectedGetMessageResponseWithThirdParty: InternalMessageResponseWithConte
       ...aMessageWithThirdPartyData.content,
       third_party_data: {
         ...aThirdPartyDataWithConfigId,
-        configuration_id: "01ARZ3NDEKTSV4RRFFQ69G5FAV" as Ulid
+        configuration_id: "01HJ0VS18VBAQKCQ337YDV27B5" as Ulid
       }
     },
     created_at: aMessageWithThirdPartyData.createdAt,

@@ -76,7 +76,7 @@ export const getHasPreconditionFlagForMessagesFromView = (
             O.fold(
               () =>
                 pipe(
-                  rcConfigurationUtility.getOrCacheRCConfiguration(
+                  rcConfigurationUtility.getOrCacheRCConfigurationWithFallback(
                     message.senderServiceId,
                     thirdParty.has ? thirdParty.configuration_id : undefined
                   ),

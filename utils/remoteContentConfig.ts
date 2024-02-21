@@ -25,7 +25,7 @@ export default class RCConfigurationUtility {
     private readonly serviceToRCConfigurationMap: UlidMapFromString
   ) {}
 
-  public readonly getOrCacheRCConfiguration = (
+  public readonly getOrCacheRCConfigurationWithFallback = (
     serviceId: NonEmptyString,
     configurationId?: Ulid
   ): TE.TaskEither<Error, RetrievedRCConfiguration> =>
@@ -100,122 +100,56 @@ export default class RCConfigurationUtility {
       )
     );
 
-  public readonly getOrCacheMaybeRCConfiguration = (
-    serviceId: NonEmptyString,
+  public readonly getOrCacheMaybeRCConfigurationById = (
     configurationId: Ulid
   ): TE.TaskEither<Error, O.Option<RetrievedRCConfiguration>> =>
     pipe(
-      configurationId ?? this.serviceToRCConfigurationMap[serviceId],
-      Ulid.decode,
-      E.fold(
-        _ => TE.left(new Error(`ConfigurationId is not valid`)),
-        configId =>
-          pipe(
-            getTask(
-              this.redisClient,
-              `${RC_CONFIGURATION_REDIS_PREFIX}-${configId}`
-            ),
-            TE.chain(
-              TE.fromOption(
-                () => new Error("Cannot Get RCConfiguration from Redis")
+      getTask(
+        this.redisClient,
+        `${RC_CONFIGURATION_REDIS_PREFIX}-${configurationId}`
+      ),
+      TE.chain(
+        TE.fromOption(() => new Error("Cannot Get RCConfiguration from Redis"))
+      ),
+      TE.chainEitherK(
+        flow(
+          parse,
+          E.mapLeft(
+            () => new Error("Cannot parse RCConfiguration Json from Redis")
+          ),
+          E.chain(
+            flow(
+              RetrievedRCConfiguration.decode,
+              E.mapLeft(
+                () => new Error("Cannot decode RCConfiguration Json from Redis")
               )
-            ),
-            TE.chainEitherK(
-              flow(
-                parse,
-                E.mapLeft(
-                  () =>
-                    new Error("Cannot parse RCConfiguration Json from Redis")
-                ),
-                E.chain(
-                  flow(
-                    RetrievedRCConfiguration.decode,
-                    E.mapLeft(
-                      () =>
-                        new Error(
-                          "Cannot decode RCConfiguration Json from Redis"
-                        )
-                    )
-                  )
-                )
-              )
-            ),
-            TE.fold(
-              () =>
-                pipe(
-                  this.rcConfigurationModel.findLastVersionByModelId([
-                    configId
-                  ]),
-                  TE.mapLeft(
-                    e => new Error(`${e.kind}, RCConfiguration Id=${configId}`)
-                  ),
-                  TE.chain(rCConfiguration =>
-                    pipe(
-                      setWithExpirationTask(
-                        this.redisClient,
-                        `${RC_CONFIGURATION_REDIS_PREFIX}-${configId}`,
-                        JSON.stringify(rCConfiguration),
-                        this.rcConfigurationCacheTtl
-                      ),
-                      TE.map(() => rCConfiguration),
-                      TE.orElse(() => TE.of(rCConfiguration))
-                    )
-                  )
-                ),
-              rCConfiguration => TE.right(O.some(rCConfiguration))
-            )
-          )
-      )
-    );
-}
-
-export const getOrCacheMaybeRCConfiguration = (
-  redisClient: RedisClient,
-  rcConfigurationModel: RCConfigurationModel,
-  rcConfigurationCacheTtl: NonNegativeInteger,
-  configurationId: Ulid
-): TE.TaskEither<Error, O.Option<RetrievedRCConfiguration>> =>
-  pipe(
-    getTask(redisClient, `${RC_CONFIGURATION_REDIS_PREFIX}-${configurationId}`),
-    TE.chain(
-      TE.fromOption(() => new Error("Cannot Get RCConfiguration from Redis"))
-    ),
-    TE.chainEitherK(
-      flow(
-        parse,
-        E.mapLeft(
-          () => new Error("Cannot parse RCConfiguration Json from Redis")
-        ),
-        E.chain(
-          flow(
-            RetrievedRCConfiguration.decode,
-            E.mapLeft(
-              () => new Error("Cannot decode RCConfiguration Json from Redis")
             )
           )
         )
-      )
-    ),
-    TE.fold(
-      () =>
-        pipe(
-          rcConfigurationModel.findLastVersionByModelId([configurationId]),
-          TE.mapLeft(
-            e => new Error(`${e.kind}, RCConfiguration Id=${configurationId}`)
-          ),
-          TE.chain(rCConfiguration =>
-            pipe(
-              setWithExpirationTask(
-                redisClient,
-                `${RC_CONFIGURATION_REDIS_PREFIX}-${configurationId}`,
-                JSON.stringify(rCConfiguration),
-                rcConfigurationCacheTtl
-              ),
-              TE.map(() => rCConfiguration),
-              TE.orElse(() => TE.of(rCConfiguration))
+      ),
+      TE.fold(
+        () =>
+          pipe(
+            this.rcConfigurationModel.findLastVersionByModelId([
+              configurationId
+            ]),
+            TE.mapLeft(
+              e => new Error(`${e.kind}, RCConfiguration Id=${configurationId}`)
+            ),
+            TE.chain(rCConfiguration =>
+              pipe(
+                setWithExpirationTask(
+                  this.redisClient,
+                  `${RC_CONFIGURATION_REDIS_PREFIX}-${configurationId}`,
+                  JSON.stringify(rCConfiguration),
+                  this.rcConfigurationCacheTtl
+                ),
+                TE.map(() => rCConfiguration),
+                TE.orElse(() => TE.of(rCConfiguration))
+              )
             )
-          )
-        ),
-      rCConfiguration => TE.right(O.some(rCConfiguration))
-    )
-  );
+          ),
+        rCConfiguration => TE.right(O.some(rCConfiguration))
+      )
+    );
+}

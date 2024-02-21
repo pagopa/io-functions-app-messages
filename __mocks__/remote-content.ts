@@ -6,17 +6,13 @@ import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 import { NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
 import { aCosmosResourceMetadata, aFiscalCode } from "./mocks";
 import { IConfig } from "../utils/config";
-import { RCConfigurationBase } from "../generated/definitions/RCConfigurationBase"
-import { RCConfigurationPublic } from "../generated/definitions/RCConfigurationPublic"
-import { RCConfiguration, RCConfigurationModel, RetrievedRCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
-
-export const mockFind = jest.fn(() =>
-  TE.of(O.some(aRetrievedRemoteContentConfiguration))
-);
-
-export const mockRemoteContentConfigurationModel = ({
-  find: mockFind
-} as unknown) as RCConfigurationModel;
+import { RCConfigurationBase } from "../generated/definitions/RCConfigurationBase";
+import { RCConfigurationPublic } from "../generated/definitions/RCConfigurationPublic";
+import {
+  RCConfiguration,
+  RCConfigurationModel,
+  RetrievedRCConfiguration
+} from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 
 export const mockRemoteContentConfigurationTtl = 100 as NonNegativeInteger;
 
@@ -47,11 +43,22 @@ export const mockConfig = { SERVICE_CACHE_TTL_DURATION: 3600 } as IConfig;
 
 export const findLastVersionByModelIdMock = jest
   .fn()
-  .mockImplementation(() => TE.of(O.some(aRetrievedRemoteContentConfigurationWithBothEnv)));
+  .mockImplementation(() =>
+    TE.of(O.some(aRetrievedRemoteContentConfigurationWithBothEnv))
+  );
 
-export const mockRCConfigurationModel = {
+export const mockFind = jest.fn(() =>
+  TE.of(O.some(aRetrievedRemoteContentConfiguration))
+);
+
+export const mockRemoteContentConfigurationModel = ({
+  find: mockFind,
   findLastVersionByModelId: findLastVersionByModelIdMock
-};
+} as unknown) as RCConfigurationModel;
+
+export const mockRCConfigurationModel = ({
+  findLastVersionByModelId: findLastVersionByModelIdMock
+} as unknown) as RCConfigurationModel;
 
 const aRemoteContentEnvironmentConfiguration = {
   base_url: "https://anydomain.anytld/api/v1/anyapi" as NonEmptyString,

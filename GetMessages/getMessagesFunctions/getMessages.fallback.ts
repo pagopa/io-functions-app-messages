@@ -72,7 +72,7 @@ export const getHasPreconditionFlagForMessagesFallback = (
         O.fold(
           () =>
             pipe(
-              rcConfigurationUtility.getOrCacheRCConfiguration(
+              rcConfigurationUtility.getOrCacheRCConfigurationWithFallback(
                 message.sender_service_id,
                 thirdPartyData.configuration_id
               ),

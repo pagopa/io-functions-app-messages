@@ -286,7 +286,7 @@ const mockRCConfigurationUtility = new RCConfigurationUtility(
   redisClientMock,
   mockRCConfigurationModel,
   mockRCConfigurationTtl,
-  ({ aServiceId: "01HMRBX079WA5SGYBQP1A7FSKH" } as unknown) as ReadonlyMap<
+  ({ get: () => "01HMRBX079WA5SGYBQP1A7FSKH" } as unknown) as ReadonlyMap<
     string,
     Ulid
   >

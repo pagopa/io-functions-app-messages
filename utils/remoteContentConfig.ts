@@ -30,7 +30,7 @@ export default class RCConfigurationUtility {
     configurationId?: Ulid
   ): TE.TaskEither<Error, RetrievedRCConfiguration> =>
     pipe(
-      configurationId ?? this.serviceToRCConfigurationMap[serviceId],
+      configurationId ?? this.serviceToRCConfigurationMap.get(serviceId),
       Ulid.decode,
       E.fold(
         _ => TE.left(new Error(`ConfigurationId is not valid`)),

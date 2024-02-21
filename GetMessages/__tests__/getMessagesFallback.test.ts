@@ -5,8 +5,8 @@ import * as O from "fp-ts/lib/Option";
 import { enrichContentData } from "../getMessagesFunctions/getMessages.fallback";
 import { redisClientMock } from "../../__mocks__/redis";
 import {
-  mockRemoteContentConfigurationModel,
-  mockRemoteContentConfigurationTtl
+  mockRCConfigurationModel,
+  mockRCConfigurationTtl
 } from "../../__mocks__/remote-content";
 import { Context } from "@azure/functions";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
@@ -100,8 +100,8 @@ const mockedPaymentContent = {
 
 const mockRCConfigurationUtility = new RCConfigurationUtility(
   redisClientMock,
-  mockRemoteContentConfigurationModel,
-  mockRemoteContentConfigurationTtl,
+  mockRCConfigurationModel,
+  mockRCConfigurationTtl,
   ({ aServiceId: "01HMRBX079WA5SGYBQP1A7FSKH" } as unknown) as ReadonlyMap<
     string,
     Ulid

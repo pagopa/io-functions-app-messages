@@ -14,7 +14,7 @@ import {
   RetrievedRCConfiguration
 } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 
-export const mockRemoteContentConfigurationTtl = 100 as NonNegativeInteger;
+export const mockRCConfigurationTtl = 100 as NonNegativeInteger;
 
 const aDetailAuthentication = {
   headerKeyName: "a" as NonEmptyString,
@@ -22,7 +22,7 @@ const aDetailAuthentication = {
   type: "type" as NonEmptyString
 };
 
-export const aRetrievedRemoteContentConfiguration: RetrievedRCConfiguration = {
+export const aRetrievedRCConfiguration: RetrievedRCConfiguration = {
   configurationId: "01HMRBX079WA5SGYBQP1A7FSKH" as Ulid,
   userId: "01HMRBX079WA5SGYBQP1A7FSKK" as NonEmptyString,
   hasPrecondition: HasPreconditionEnum.ALWAYS,
@@ -44,23 +44,19 @@ export const mockConfig = { SERVICE_CACHE_TTL_DURATION: 3600 } as IConfig;
 export const findLastVersionByModelIdMock = jest
   .fn()
   .mockImplementation(() =>
-    TE.of(O.some(aRetrievedRemoteContentConfigurationWithBothEnv))
+    TE.of(O.some(aRetrievedRCConfigurationWithBothEnv))
   );
 
 export const mockFind = jest.fn(() =>
-  TE.of(O.some(aRetrievedRemoteContentConfiguration))
+  TE.of(O.some(aRetrievedRCConfiguration))
 );
 
-export const mockRemoteContentConfigurationModel = ({
+export const mockRCConfigurationModel = ({
   find: mockFind,
   findLastVersionByModelId: findLastVersionByModelIdMock
 } as unknown) as RCConfigurationModel;
 
-export const mockRCConfigurationModel = ({
-  findLastVersionByModelId: findLastVersionByModelIdMock
-} as unknown) as RCConfigurationModel;
-
-const aRemoteContentEnvironmentConfiguration = {
+const aRCEnvironmentConfiguration = {
   base_url: "https://anydomain.anytld/api/v1/anyapi" as NonEmptyString,
   details_authentication: {
     header_key_name: "X-Functions-Key" as NonEmptyString,
@@ -69,7 +65,7 @@ const aRemoteContentEnvironmentConfiguration = {
   }
 };
 
-const aRemoteContentConfigurationWithNoEnv: RCConfigurationBase = {
+const aRCConfigurationWithNoEnv: RCConfigurationBase = {
   configuration_id: "01HMRBX079WA5SGYBQP1A7FSKH" as Ulid,
   name: "aName" as NonEmptyString,
   description: "a simple description" as NonEmptyString,
@@ -78,21 +74,21 @@ const aRemoteContentConfigurationWithNoEnv: RCConfigurationBase = {
   is_lollipop_enabled: false
 };
 
-export const aRemoteContentConfigurationWithProdEnv: RCConfigurationPublic = {
-  ...aRemoteContentConfigurationWithNoEnv,
-  prod_environment: aRemoteContentEnvironmentConfiguration
+export const aRCConfigurationWithProdEnv: RCConfigurationPublic = {
+  ...aRCConfigurationWithNoEnv,
+  prod_environment: aRCEnvironmentConfiguration
 };
 
-export const aRemoteContentConfigurationWithBothEnv: RCConfigurationPublic = {
-  ...aRemoteContentConfigurationWithNoEnv,
-  prod_environment: aRemoteContentEnvironmentConfiguration,
+export const aRCConfigurationWithBothEnv: RCConfigurationPublic = {
+  ...aRCConfigurationWithNoEnv,
+  prod_environment: aRCEnvironmentConfiguration,
   test_environment: {
-    ...aRemoteContentEnvironmentConfiguration,
+    ...aRCEnvironmentConfiguration,
     test_users: []
   }
 };
 
-const aRemoteContentConfigurationEnvironmentModel = {
+const aRCConfigurationEnvironmentModel = {
   baseUrl: "https://anydomain.anytld/api/v1/anyapi" as NonEmptyString,
   detailsAuthentication: {
     headerKeyName: "X-Functions-Key" as NonEmptyString,
@@ -101,7 +97,7 @@ const aRemoteContentConfigurationEnvironmentModel = {
   }
 };
 
-const aRemoteContentConfigurationModel: RCConfiguration = {
+const aRCConfiguration: RCConfiguration = {
   userId: "aUserId" as NonEmptyString,
   configurationId: "01HMRBX079WA5SGYBQP1A7FSKH" as Ulid,
   name: "aName" as NonEmptyString,
@@ -109,16 +105,16 @@ const aRemoteContentConfigurationModel: RCConfiguration = {
   hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [],
   isLollipopEnabled: false,
-  prodEnvironment: aRemoteContentConfigurationEnvironmentModel,
+  prodEnvironment: aRCConfigurationEnvironmentModel,
   testEnvironment: {
-    ...aRemoteContentConfigurationEnvironmentModel,
+    ...aRCConfigurationEnvironmentModel,
     testUsers: []
   }
 };
 
-export const aRetrievedRemoteContentConfigurationWithBothEnv: RetrievedRCConfiguration = {
-  ...aRemoteContentConfigurationModel,
-  id: `${aRemoteContentConfigurationModel.configurationId}-${"0".repeat(
+export const aRetrievedRCConfigurationWithBothEnv: RetrievedRCConfiguration = {
+  ...aRCConfiguration,
+  id: `${aRCConfiguration.configurationId}-${"0".repeat(
     16
   )}` as NonEmptyString,
   version: 0 as NonNegativeInteger,

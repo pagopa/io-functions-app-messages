@@ -54,10 +54,10 @@ import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { IConfig } from "../../utils/config";
 import {
-  aRetrievedRemoteContentConfiguration,
+  aRetrievedRCConfiguration,
   mockFind,
-  mockRemoteContentConfigurationModel,
-  mockRemoteContentConfigurationTtl
+  mockRCConfigurationModel,
+  mockRCConfigurationTtl
 } from "../../__mocks__/remote-content";
 import { HasPreconditionEnum } from "../../generated/definitions/HasPrecondition";
 import RCConfigurationUtility from "../../utils/remoteContentConfig";
@@ -284,8 +284,8 @@ const mockConfig = { SERVICE_CACHE_TTL_DURATION: 3600 } as IConfig;
 
 const mockRCConfigurationUtility = new RCConfigurationUtility(
   redisClientMock,
-  mockRemoteContentConfigurationModel,
-  mockRemoteContentConfigurationTtl,
+  mockRCConfigurationModel,
+  mockRCConfigurationTtl,
   ({ aServiceId: "01HMRBX079WA5SGYBQP1A7FSKH" } as unknown) as ReadonlyMap<
     string,
     Ulid
@@ -882,7 +882,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     });
 
     getTaskMock.mockReturnValueOnce(
-      TE.of(O.some(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+      TE.of(O.some(JSON.stringify(aRetrievedRCConfiguration)))
     );
 
     const messageIterator = getMockIterator([aMessageList[0]]);
@@ -1367,7 +1367,7 @@ describe("GetMessagesHandler |> Message View", () => {
     expect(aPnMessageList.length).toBe(5);
 
     getTaskMock.mockReturnValueOnce(
-      TE.of(O.some(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+      TE.of(O.some(JSON.stringify(aRetrievedRCConfiguration)))
     );
 
     let iteratorCalls = 0;

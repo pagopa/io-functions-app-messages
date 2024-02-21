@@ -3,8 +3,8 @@ import { context as contextMock } from "../../__mocks__/context";
 import { GetRCConfigurationHandler } from "../handler";
 import RCConfigurationUtility from "../../utils/remoteContentConfig";
 import {
-  aRemoteContentConfigurationWithBothEnv,
-  aRetrievedRemoteContentConfigurationWithBothEnv
+  aRCConfigurationWithBothEnv,
+  aRetrievedRCConfigurationWithBothEnv
 } from "../../__mocks__/remote-content";
 import * as TE from "fp-ts/TaskEither";
 import * as O from "fp-ts/Option";
@@ -12,7 +12,7 @@ import * as O from "fp-ts/Option";
 const getOrCacheMaybeRCConfigurationByIdMock = jest
   .fn()
   .mockReturnValue(
-    TE.right(O.some(aRetrievedRemoteContentConfigurationWithBothEnv))
+    TE.right(O.some(aRetrievedRCConfigurationWithBothEnv))
   );
 
 const mockRCConfigurationUtility = ({
@@ -31,7 +31,7 @@ describe("GetRCConfigurationHandler", () => {
 
     const result = await getRCConfigurationHandler(
       contextMock as any,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     );
 
     expect(result.kind).toBe("IResponseErrorInternal");
@@ -46,7 +46,7 @@ describe("GetRCConfigurationHandler", () => {
 
     const result = await getRCConfigurationHandler(
       contextMock as any,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     );
 
     expect(result.kind).toBe("IResponseErrorNotFound");
@@ -59,12 +59,12 @@ describe("GetRCConfigurationHandler", () => {
 
     const result = await getRCConfigurationHandler(
       contextMock as any,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     );
 
     expect(result.kind).toBe("IResponseSuccessJson");
     if (result.kind === "IResponseSuccessJson") {
-      expect(result.value).toEqual(aRemoteContentConfigurationWithBothEnv);
+      expect(result.value).toEqual(aRCConfigurationWithBothEnv);
     }
   });
 });

@@ -2,10 +2,10 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import {
-  aRetrievedRemoteContentConfigurationWithBothEnv,
+  aRetrievedRCConfigurationWithBothEnv,
   findLastVersionByModelIdMock,
   mockConfig,
-  mockRemoteContentConfigurationModel
+  mockRCConfigurationModel
 } from "../../__mocks__/remote-content";
 import * as redis from "../redis_storage";
 import RCConfigurationUtility from "../remoteContentConfig";
@@ -15,7 +15,7 @@ const getTaskMock = jest
   .fn()
   .mockImplementation(() =>
     TE.of(
-      O.some(JSON.stringify(aRetrievedRemoteContentConfigurationWithBothEnv))
+      O.some(JSON.stringify(aRetrievedRCConfigurationWithBothEnv))
     )
   );
 jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
@@ -24,7 +24,7 @@ const aRedisClient = {} as any;
 
 const mockRCConfigurationUtility = new RCConfigurationUtility(
   aRedisClient,
-  mockRemoteContentConfigurationModel,
+  mockRCConfigurationModel,
   mockConfig.SERVICE_CACHE_TTL_DURATION,
   ({ aServiceId: "01HMRBX079WA5SGYBQP1A7FSKH" } as unknown) as ReadonlyMap<
     string,
@@ -39,7 +39,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
 
   it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv without calling the model.findLastVersionByModelIdMock if the getTask works fine", async () => {
     const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();
@@ -51,7 +51,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
     getTaskMock.mockReturnValueOnce(TE.left(new Error("Error")));
 
     const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();
@@ -63,7 +63,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
     getTaskMock.mockReturnValueOnce(TE.of(O.none));
 
     const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();
@@ -76,7 +76,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
     findLastVersionByModelIdMock.mockReturnValueOnce(TE.of(O.none));
 
     const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();
@@ -87,11 +87,11 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
   it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.findLastVersionByModelIdMock if the getTask works fine but the JSON parse fails", async () => {
     getTaskMock.mockReturnValueOnce(
       //without the JSON.stringify we expect that the pasre will fail
-      TE.of(O.some(aRetrievedRemoteContentConfigurationWithBothEnv))
+      TE.of(O.some(aRetrievedRCConfigurationWithBothEnv))
     );
 
     const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();

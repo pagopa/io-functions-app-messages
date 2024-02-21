@@ -1,4 +1,4 @@
-/* eslint-disable sonarjs/no-duplicate-string, no-invalid-this, sonarjs/no-identical-functions */
+/* eslint-disable no-invalid-this */
 import * as TE from "fp-ts/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";

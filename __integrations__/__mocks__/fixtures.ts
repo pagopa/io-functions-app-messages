@@ -39,7 +39,7 @@ const createRemoteContentCollection = (
     createCollection(
       db,
       RemoteContentCollection.RC_CONFIGURATION_COLLECTION_NAME,
-      "serviceId",
+      "configurationId",
       {
         indexingMode: "consistent",
         automatic: true,

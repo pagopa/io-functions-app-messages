@@ -9,7 +9,6 @@ import {
 import * as TE from "fp-ts/TaskEither";
 import * as O from "fp-ts/Option";
 
-
 const getOrCacheMaybeRCConfigurationByIdMock = jest
   .fn()
   .mockReturnValue(

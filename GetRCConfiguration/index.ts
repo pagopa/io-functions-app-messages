@@ -14,8 +14,8 @@ import {
 import { remoteContentCosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { REDIS_CLIENT } from "../utils/redis";
-import { GetRCConfiguration } from "./handler";
 import RCConfigurationUtility from "../utils/remoteContentConfig";
+import { GetRCConfiguration } from "./handler";
 
 // Setup Express
 const app = express();

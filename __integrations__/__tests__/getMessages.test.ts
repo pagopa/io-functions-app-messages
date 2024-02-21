@@ -32,7 +32,7 @@ import {
   mockEnrichMessage
 } from "../__mocks__/mock.messages";
 import {
-  aRemoteContentConfigurationList,
+  aRCConfigurationList,
   serviceList
 } from "../__mocks__/mock.services";
 import { createBlobs } from "../__mocks__/utils/azure_storage";
@@ -109,7 +109,7 @@ beforeAll(async () => {
   await fillMessagesStatus(cosmosdb, messageStatusList);
   await fillMessagesView(cosmosdb, messagesList, messageStatusList);
   await fillServices(cosmosdb, serviceList);
-  await fillRemoteContent(rccosmosdb, aRemoteContentConfigurationList);
+  await fillRemoteContent(rccosmosdb, aRCConfigurationList);
 });
 
 beforeEach(() => {

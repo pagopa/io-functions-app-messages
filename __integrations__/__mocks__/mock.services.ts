@@ -7,8 +7,9 @@ import { toAuthorizedRecipients } from "@pagopa/io-functions-commons/dist/src/mo
 import { NewService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { toAuthorizedCIDRs } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { Service } from "@pagopa/io-functions-commons/dist/src/models/service";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
+import { RCConfiguration } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 
 export const aServiceID = "01HJ0VS18VBAQKCQ337YDV27B5" as NonEmptyString;
 
@@ -46,18 +47,20 @@ const aDetailAuthentication = {
   type: "type" as NonEmptyString
 };
 
-export const aRemoteContentConfiguration: RemoteContentConfiguration = {
+export const aRCConfiguration: RCConfiguration = {
+  name: "aRCConfiguration" as NonEmptyString,
+  description: "aRCConfiguration description" as NonEmptyString,
   hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [],
   isLollipopEnabled: false,
-  id: aService.serviceId,
-  serviceId: aServiceID,
+  configurationId: "01HJ0VS18VBAQKCQ337YDV27B5" as Ulid,
+  userId: "aUserId" as NonEmptyString,
   prodEnvironment: {
     baseUrl: "aValidUrl" as NonEmptyString,
     detailsAuthentication: aDetailAuthentication
   }
 };
 
-export const aRemoteContentConfigurationList = [aRemoteContentConfiguration];
+export const aRCConfigurationList = [aRCConfiguration];
 
 export const serviceList = [aNewService];

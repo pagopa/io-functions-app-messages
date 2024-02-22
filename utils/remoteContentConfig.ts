@@ -25,6 +25,15 @@ export default class RCConfigurationUtility {
     private readonly serviceToRCConfigurationMap: UlidMapFromString
   ) {}
 
+  /**
+   * This method retrieves a RC Configuration by it's configuration id, if given,
+   * or else it tries to get the configuration id by service id from the related map.
+   * If the configuration is cached it retrieves it from cache, or else it retrieves
+   * it from cosmosdb and provides to cache it.
+   * @param serviceId
+   * @param configurationId
+   * @returns
+   */
   public readonly getOrCacheRCConfigurationWithFallback = (
     serviceId: NonEmptyString,
     configurationId?: Ulid
@@ -49,6 +58,13 @@ export default class RCConfigurationUtility {
       )
     );
 
+  /**
+   * This method is used to get a configuration, if it exists, by configuratin id.
+   * If the configuration is cached it retrieves it from cache, or else it retrieves
+   * it from cosmosdb and provides to cache it.
+   * @param configurationId
+   * @returns
+   */
   public readonly getOrCacheMaybeRCConfigurationById = (
     configurationId: Ulid
   ): TE.TaskEither<Error, O.Option<RetrievedRCConfiguration>> =>

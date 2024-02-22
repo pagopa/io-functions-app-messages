@@ -35,7 +35,7 @@ const rcConfigurationUtility = new RCConfigurationUtility(
 );
 
 app.get(
-  "/api/v1/remote-contents/configurations/{id}",
+  "/api/v1/remote-contents/configurations/:id",
   GetRCConfiguration(rcConfigurationUtility)
 );
 

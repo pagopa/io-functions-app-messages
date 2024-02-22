@@ -163,7 +163,6 @@ export const getMessagesFromFallback = (
   blobService: BlobService,
   rcConfigurationUtility: RCConfigurationUtility,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
-  // eslint-disable-next-line max-params
 ): IGetMessagesFunction => ({
   context,
   fiscalCode,

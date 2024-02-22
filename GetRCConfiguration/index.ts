@@ -27,7 +27,7 @@ const rCConfigurationModel = new RCConfigurationModel(
 );
 
 app.get(
-  "/api/v1/remote-contents/configurations/{id}",
+  "/api/v1/remote-contents/configurations/:id",
   GetRCConfiguration(
     rCConfigurationModel,
     REDIS_CLIENT,

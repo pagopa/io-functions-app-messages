@@ -9,7 +9,7 @@ import * as MessageCollection from "@pagopa/io-functions-commons/dist/src/models
 import * as MessageViewCollection from "@pagopa/io-functions-commons/dist/src/models/message_view";
 import * as MessageStatusCollection from "@pagopa/io-functions-commons/dist/src/models/message_status";
 import * as ServiceModel from "@pagopa/io-functions-commons/dist/src/models/service";
-import * as RemoteContentCollection from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
+import * as RemoteContentCollection from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 
 import { log } from "../utils/logger";
 import {
@@ -38,8 +38,8 @@ const createRemoteContentCollection = (
   pipe(
     createCollection(
       db,
-      RemoteContentCollection.REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME,
-      "serviceId",
+      RemoteContentCollection.RC_CONFIGURATION_COLLECTION_NAME,
+      "configurationId",
       {
         indexingMode: "consistent",
         automatic: true,
@@ -412,15 +412,15 @@ export const fillServices = async (
 export const fillRemoteContent = async (
   db: Database,
   rcConfigurations: ReadonlyArray<
-    RemoteContentCollection.RemoteContentConfiguration
+    RemoteContentCollection.RCConfiguration
   >
 ): Promise<void> => {
   await pipe(
     db.container(
-      RemoteContentCollection.REMOTE_CONTENT_CONFIGURATION_COLLECTION_NAME
+      RemoteContentCollection.RC_CONFIGURATION_COLLECTION_NAME
     ),
     TE.of,
-    TE.map(c => new RemoteContentCollection.RemoteContentConfigurationModel(c)),
+    TE.map(c => new RemoteContentCollection.RCConfigurationModel(c)),
     TE.chain(model =>
       pipe(
         rcConfigurations,

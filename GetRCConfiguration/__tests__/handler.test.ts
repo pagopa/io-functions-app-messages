@@ -1,52 +1,52 @@
 // eslint-disable @typescript-eslint/no-explicit-any, sonarjs/no-duplicate-string, sonar/sonar-max-lines-per-function
-
-import * as O from "fp-ts/lib/Option";
-
-import * as TE from "fp-ts/lib/TaskEither";
 import { context as contextMock } from "../../__mocks__/context";
 import { GetRCConfigurationHandler } from "../handler";
-import * as rCConfigurationUtils from "../../utils/remoteContentConfig";
-import { aRemoteContentConfigurationWithBothEnv, aRetrievedRemoteContentConfigurationWithBothEnv, mockConfig, mockRCConfigurationModel } from "../../__mocks__/remote-content";
+import RCConfigurationUtility from "../../utils/remoteContentConfig";
+import {
+  aRCConfigurationWithBothEnv,
+  aRetrievedRCConfigurationWithBothEnv
+} from "../../__mocks__/remote-content";
+import * as TE from "fp-ts/TaskEither";
+import * as O from "fp-ts/Option";
 
-const getOrCacheMaybeRCConfigurationMock = jest
+const getOrCacheMaybeRCConfigurationByIdMock = jest
   .fn()
-  .mockImplementation(() => TE.of(O.some(aRetrievedRemoteContentConfigurationWithBothEnv)));
+  .mockReturnValue(
+    TE.right(O.some(aRetrievedRCConfigurationWithBothEnv))
+  );
 
-jest
-  .spyOn(rCConfigurationUtils, "getOrCacheMaybeRCConfiguration")
-  .mockImplementation(getOrCacheMaybeRCConfigurationMock);
+const mockRCConfigurationUtility = ({
+  getOrCacheRCConfigurationWithFallback: jest.fn(), // not used for this handler
+  getOrCacheMaybeRCConfigurationById: getOrCacheMaybeRCConfigurationByIdMock
+} as unknown) as RCConfigurationUtility;
 
 describe("GetRCConfigurationHandler", () => {
   afterEach(() => jest.clearAllMocks());
   it("should fail if any error occurs trying to retrieve the remote content configuration", async () => {
-    getOrCacheMaybeRCConfigurationMock.mockImplementationOnce(() => TE.left(new Error()));
+    getOrCacheMaybeRCConfigurationByIdMock.mockReturnValueOnce(TE.left(new Error("Any error")))
 
     const getRCConfigurationHandler = GetRCConfigurationHandler(
-      mockRCConfigurationModel as any,
-      {} as any,
-      mockConfig.SERVICE_CACHE_TTL_DURATION
+      mockRCConfigurationUtility
     );
 
     const result = await getRCConfigurationHandler(
       contextMock as any,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     );
 
     expect(result.kind).toBe("IResponseErrorInternal");
   });
 
   it("should fail with Not Found if no configuration is found with the requested id", async () => {
-    getOrCacheMaybeRCConfigurationMock.mockImplementationOnce(() => TE.of(O.none));
+    getOrCacheMaybeRCConfigurationByIdMock.mockReturnValueOnce(TE.right(O.none))
 
     const getRCConfigurationHandler = GetRCConfigurationHandler(
-      mockRCConfigurationModel as any,
-      {} as any,
-      mockConfig.SERVICE_CACHE_TTL_DURATION
+      mockRCConfigurationUtility
     );
 
     const result = await getRCConfigurationHandler(
       contextMock as any,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     );
 
     expect(result.kind).toBe("IResponseErrorNotFound");
@@ -54,19 +54,17 @@ describe("GetRCConfigurationHandler", () => {
 
   it("should respond with the requested remote content configuration", async () => {
     const getRCConfigurationHandler = GetRCConfigurationHandler(
-      mockRCConfigurationModel as any,
-      {} as any,
-      mockConfig.SERVICE_CACHE_TTL_DURATION
+      mockRCConfigurationUtility
     );
 
     const result = await getRCConfigurationHandler(
       contextMock as any,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     );
 
     expect(result.kind).toBe("IResponseSuccessJson");
     if (result.kind === "IResponseSuccessJson") {
-      expect(result.value).toEqual(aRemoteContentConfigurationWithBothEnv);
+      expect(result.value).toEqual(aRCConfigurationWithBothEnv);
     }
   });
 });

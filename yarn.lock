@@ -966,7 +966,7 @@
   resolved "https://registry.yarnpkg.com/@pagopa/express-azure-functions/-/express-azure-functions-2.1.1.tgz#ac6aa6d8c8d82b64e0db19ccadd2e89cc35ea725"
   integrity sha512-x2kBGS6JKYqVp7PS9QiBc2AWIOPBObHwlaheJmxZJacnxmLdXHobomTzN2UJMxu55fxMd7xIxqM8VGMQxSzqiw==
 
-"@pagopa/io-functions-commons@28.18.3":
+"@pagopa/io-functions-commons@^28.18.3":
   version "28.18.3"
   resolved "https://registry.yarnpkg.com/@pagopa/io-functions-commons/-/io-functions-commons-28.18.3.tgz#31cfe1e2bbf2ab31347ef0219c7aa12f0f4ed417"
   integrity sha512-WGS66dVYIT8O4VhpPre/5n6fPpTDq7Qq9sTbsj6NCc9MlAgLPXm7/rfE0f2zdfm0yzdyLltLD8X7+FPaNfPJ1g==

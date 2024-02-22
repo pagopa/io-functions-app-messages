@@ -16,9 +16,6 @@ import { RetrievedMessageView } from "@pagopa/io-functions-commons/dist/src/mode
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { TagEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryBase";
 import { TagEnum as TagEnumPayment } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageCategoryPayment";
-import { RedisClient } from "redis";
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { RemoteContentConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import * as AI from "../../utils/AsyncIterableTask";
 
 import { MessageViewExtendedQueryModel } from "../../model/message_view_query";
@@ -26,7 +23,7 @@ import {
   ThirdPartyDataWithCategoryFetcher,
   computeFlagFromHasPrecondition
 } from "../../utils/messages";
-import { getOrCacheRemoteServiceConfig } from "../../utils/remoteContentConfig";
+import RCConfigurationUtility from "../../utils/remoteContentConfig";
 import { HasPreconditionEnum } from "../../generated/definitions/HasPrecondition";
 import { EnrichedMessageWithContent, InternalMessageCategory } from "./models";
 import { IGetMessagesFunction, IPageResult } from "./getMessages.selector";
@@ -62,10 +59,7 @@ export const toEnrichedMessageWithContent = (
 export const getHasPreconditionFlagForMessagesFromView = (
   retrievedMessagesFromView: ReadonlyArray<RetrievedMessageView>,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher,
-  redisClient: RedisClient,
-  remoteContentConfigurationModel: RemoteContentConfigurationModel,
-  remoteContentConfigurationTtl: NonNegativeInteger
-  // eslint-disable-next-line max-params
+  rcConfigurationUtility: RCConfigurationUtility
 ): TE.TaskEither<Error, ReadonlyArray<EnrichedMessageWithContent>> =>
   pipe(
     retrievedMessagesFromView,
@@ -82,11 +76,9 @@ export const getHasPreconditionFlagForMessagesFromView = (
             O.fold(
               () =>
                 pipe(
-                  getOrCacheRemoteServiceConfig(
-                    redisClient,
-                    remoteContentConfigurationModel,
-                    remoteContentConfigurationTtl,
-                    message.senderServiceId
+                  rcConfigurationUtility.getOrCacheRCConfigurationWithFallback(
+                    message.senderServiceId,
+                    thirdParty.has ? thirdParty.configuration_id : undefined
                   ),
                   TE.map(serviceConfig => serviceConfig.hasPrecondition)
                 ),
@@ -117,9 +109,7 @@ export const getHasPreconditionFlagForMessagesFromView = (
 
 export const getMessagesFromView = (
   messageViewModel: MessageViewExtendedQueryModel,
-  remoteContentConfigurationModel: RemoteContentConfigurationModel,
-  redisClient: RedisClient,
-  remoteContentConfigurationTtl: NonNegativeInteger,
+  rcConfigurationUtility: RCConfigurationUtility,
   categoryFetcher: ThirdPartyDataWithCategoryFetcher
 ): IGetMessagesFunction => ({
   context,
@@ -160,9 +150,7 @@ export const getMessagesFromView = (
             getHasPreconditionFlagForMessagesFromView(
               pageResult.items as ReadonlyArray<RetrievedMessageView>,
               categoryFetcher,
-              redisClient,
-              remoteContentConfigurationModel,
-              remoteContentConfigurationTtl
+              rcConfigurationUtility
             ),
             TE.map(items => ({
               ...pageResult,

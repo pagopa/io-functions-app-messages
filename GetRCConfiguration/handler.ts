@@ -20,12 +20,9 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/utils/request_middleware";
 
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
-import { RedisClient } from "redis";
-import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { RCConfigurationModel } from "@pagopa/io-functions-commons/dist/src/models/rc_configuration";
 import { retrievedRCConfigurationToPublic } from "@pagopa/io-functions-commons/dist/src/utils/rc_configuration";
 import { Context } from "@azure/functions";
-import { getOrCacheMaybeRCConfiguration } from "../utils/remoteContentConfig";
+import RCConfigurationUtility from "../utils/remoteContentConfig";
 import { RCConfigurationPublic } from "../generated/definitions/RCConfigurationPublic";
 
 type IGetRCConfigurationHandlerResponse =
@@ -49,20 +46,13 @@ type IGetRCConfigurationHandler = (
  * Handles requests for getting a single remote content configuration for the requested id.
  */
 export const GetRCConfigurationHandler = (
-  rCConfigurationModel: RCConfigurationModel,
-  redisClient: RedisClient,
-  rCConfigurationCacheTtl: NonNegativeInteger
+  rcConfigurationUtility: RCConfigurationUtility
 ): IGetRCConfigurationHandler => async (
   _,
   configurationId
 ): Promise<IGetRCConfigurationHandlerResponse> =>
   pipe(
-    getOrCacheMaybeRCConfiguration(
-      redisClient,
-      rCConfigurationModel,
-      rCConfigurationCacheTtl,
-      configurationId
-    ),
+    rcConfigurationUtility.getOrCacheMaybeRCConfigurationById(configurationId),
     TE.mapLeft(e => ResponseErrorInternal(`${e.name}: ${e.message}`)),
     TE.chainW(
       TE.fromOption(() =>
@@ -81,15 +71,9 @@ export const GetRCConfigurationHandler = (
  * Wraps a GetRCConfiguration handler inside an Express request handler.
  */
 export const GetRCConfiguration = (
-  rCConfigurationModel: RCConfigurationModel,
-  redisClient: RedisClient,
-  serviceCacheTtl: NonNegativeInteger
+  rcConfigurationUtility: RCConfigurationUtility
 ): express.RequestHandler => {
-  const handler = GetRCConfigurationHandler(
-    rCConfigurationModel,
-    redisClient,
-    serviceCacheTtl
-  );
+  const handler = GetRCConfigurationHandler(rcConfigurationUtility);
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
     RequiredParamMiddleware("id", Ulid)

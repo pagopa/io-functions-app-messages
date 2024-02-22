@@ -5,7 +5,7 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as RA from "fp-ts/ReadonlyArray";
 import * as t from "io-ts";
 
-import { FiscalCode, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { FiscalCode, NonEmptyString, Ulid } from "@pagopa/ts-commons/lib/strings";
 import {
   MessageModel,
   NewMessageWithoutContent,
@@ -54,12 +54,13 @@ import { PaymentDataWithRequiredPayee } from "@pagopa/io-functions-commons/dist/
 import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
 import { IConfig } from "../../utils/config";
 import {
-  aRetrievedRemoteContentConfiguration,
+  aRetrievedRCConfiguration,
   mockFind,
-  mockRemoteContentConfigurationModel,
-  mockRemoteContentConfigurationTtl
+  mockRCConfigurationModel,
+  mockRCConfigurationTtl
 } from "../../__mocks__/remote-content";
 import { HasPreconditionEnum } from "../../generated/definitions/HasPrecondition";
+import RCConfigurationUtility from "../../utils/remoteContentConfig";
 
 const aFiscalCode = "FRLFRC74E04B157I" as FiscalCode;
 const aMessageId = "A_MESSAGE_ID" as NonEmptyString;
@@ -281,6 +282,16 @@ const dummyThirdPartyDataWithCategoryFetcher = jest
 
 const mockConfig = { SERVICE_CACHE_TTL_DURATION: 3600 } as IConfig;
 
+const mockRCConfigurationUtility = new RCConfigurationUtility(
+  redisClientMock,
+  mockRCConfigurationModel,
+  mockRCConfigurationTtl,
+  ({ get: () => "01HMRBX079WA5SGYBQP1A7FSKH" } as unknown) as ReadonlyMap<
+    string,
+    Ulid
+  >
+);
+
 // utility function to avoid code duplication in this file
 const getCreateGetMessagesFunctionSelection = (
   messageStatusModel: MessageStatusExtendedQueryModel,
@@ -298,16 +309,12 @@ const getCreateGetMessagesFunctionSelection = (
       messageModelMock,
       messageStatusModel,
       blobServiceMock,
-      mockRemoteContentConfigurationModel,
-      redisClientMock,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher!
     ],
     [
       messageViewModelMock,
-      mockRemoteContentConfigurationModel,
-      redisClientMock,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher!
     ]
   );
@@ -875,7 +882,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
     });
 
     getTaskMock.mockReturnValueOnce(
-      TE.of(O.some(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+      TE.of(O.some(JSON.stringify(aRetrievedRCConfiguration)))
     );
 
     const messageIterator = getMockIterator([aMessageList[0]]);
@@ -1269,17 +1276,12 @@ describe("GetMessagesHandler |> Message View", () => {
       {} as MessageModel,
       {} as MessageStatusExtendedQueryModel,
       {} as BlobService,
-      mockRemoteContentConfigurationModel,
-      redisClientMock,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher
     ],
     [
       messageViewModelMock,
-
-      mockRemoteContentConfigurationModel,
-      redisClientMock,
-      mockRemoteContentConfigurationTtl,
+      mockRCConfigurationUtility,
       dummyThirdPartyDataWithCategoryFetcher
     ]
   );
@@ -1365,7 +1367,7 @@ describe("GetMessagesHandler |> Message View", () => {
     expect(aPnMessageList.length).toBe(5);
 
     getTaskMock.mockReturnValueOnce(
-      TE.of(O.some(JSON.stringify(aRetrievedRemoteContentConfiguration)))
+      TE.of(O.some(JSON.stringify(aRetrievedRCConfiguration)))
     );
 
     let iteratorCalls = 0;

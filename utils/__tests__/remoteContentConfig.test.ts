@@ -2,34 +2,44 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import {
-  aRetrievedRemoteContentConfigurationWithBothEnv,
+  aRetrievedRCConfigurationWithBothEnv,
   findLastVersionByModelIdMock,
   mockConfig,
-  mockRCConfigurationModel,
+  mockRCConfigurationModel
 } from "../../__mocks__/remote-content";
 import * as redis from "../redis_storage";
-import { getOrCacheMaybeRCConfiguration, getOrCacheRemoteServiceConfig } from "../remoteContentConfig";
+import RCConfigurationUtility from "../remoteContentConfig";
+import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 const getTaskMock = jest
   .fn()
   .mockImplementation(() =>
-    TE.of(O.some(JSON.stringify(aRetrievedRemoteContentConfigurationWithBothEnv)))
+    TE.of(
+      O.some(JSON.stringify(aRetrievedRCConfigurationWithBothEnv))
+    )
   );
 jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
 
 const aRedisClient = {} as any;
 
-describe("getOrCacheRCConfiguration", () => {
+const mockRCConfigurationUtility = new RCConfigurationUtility(
+  aRedisClient,
+  mockRCConfigurationModel,
+  mockConfig.SERVICE_CACHE_TTL_DURATION,
+  ({ aServiceId: "01HMRBX079WA5SGYBQP1A7FSKH" } as unknown) as ReadonlyMap<
+    string,
+    Ulid
+  >
+);
+
+describe("getOrCacheMaybeRCConfigurationById", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv without calling the model.find if the getTask works fine", async () => {
-    const r = await getOrCacheMaybeRCConfiguration(
-      aRedisClient,
-      mockRCConfigurationModel as any,
-      mockConfig.SERVICE_CACHE_TTL_DURATION,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+  it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv without calling the model.findLastVersionByModelIdMock if the getTask works fine", async () => {
+    const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();
@@ -37,13 +47,11 @@ describe("getOrCacheRCConfiguration", () => {
     expect(findLastVersionByModelIdMock).not.toHaveBeenCalled();
   });
 
-  it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.find if the getTask return an error", async () => {
+  it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.findLastVersionByModelIdMock if the getTask return an error", async () => {
     getTaskMock.mockReturnValueOnce(TE.left(new Error("Error")));
-    const r = await getOrCacheMaybeRCConfiguration(
-      aRedisClient,
-      mockRCConfigurationModel as any,
-      mockConfig.SERVICE_CACHE_TTL_DURATION,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+
+    const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();
@@ -51,13 +59,11 @@ describe("getOrCacheRCConfiguration", () => {
     expect(findLastVersionByModelIdMock).toHaveBeenCalled();
   });
 
-  it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.find if the getTask return is empty", async () => {
+  it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.findLastVersionByModelIdMock if the getTask return is empty", async () => {
     getTaskMock.mockReturnValueOnce(TE.of(O.none));
-    const r = await getOrCacheMaybeRCConfiguration(
-      aRedisClient,
-      mockRCConfigurationModel as any,
-      mockConfig.SERVICE_CACHE_TTL_DURATION,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+
+    const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();
@@ -65,14 +71,12 @@ describe("getOrCacheRCConfiguration", () => {
     expect(findLastVersionByModelIdMock).toHaveBeenCalled();
   });
 
-  it("should return an error calling the model.find if the getTask and the model.find return is empty", async () => {
+  it("should return an error calling the model.find if the getTask and the model.findLastVersionByModelIdMock return is empty", async () => {
     getTaskMock.mockReturnValueOnce(TE.of(O.none));
     findLastVersionByModelIdMock.mockReturnValueOnce(TE.of(O.none));
-    const r = await getOrCacheMaybeRCConfiguration(
-      aRedisClient,
-      mockRCConfigurationModel as any,
-      mockConfig.SERVICE_CACHE_TTL_DURATION,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+
+    const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();
@@ -80,16 +84,14 @@ describe("getOrCacheRCConfiguration", () => {
     expect(findLastVersionByModelIdMock).toHaveBeenCalled();
   });
 
-  it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.find if the getTask works fine but the JSON parse fails", async () => {
+  it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.findLastVersionByModelIdMock if the getTask works fine but the JSON parse fails", async () => {
     getTaskMock.mockReturnValueOnce(
       //without the JSON.stringify we expect that the pasre will fail
-      TE.of(O.some(aRetrievedRemoteContentConfigurationWithBothEnv))
+      TE.of(O.some(aRetrievedRCConfigurationWithBothEnv))
     );
-    const r = await getOrCacheMaybeRCConfiguration(
-      aRedisClient,
-      mockRCConfigurationModel as any,
-      mockConfig.SERVICE_CACHE_TTL_DURATION,
-      aRetrievedRemoteContentConfigurationWithBothEnv.configurationId
+
+    const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
+      aRetrievedRCConfigurationWithBothEnv.configurationId
     )();
 
     expect(E.isRight(r)).toBeTruthy();

@@ -14,6 +14,7 @@ import {
 import { remoteContentCosmosdbInstance } from "../utils/cosmosdb";
 import { getConfigOrThrow } from "../utils/config";
 import { REDIS_CLIENT } from "../utils/redis";
+import RCConfigurationUtility from "../utils/remoteContentConfig";
 import { GetRCConfiguration } from "./handler";
 
 // Setup Express
@@ -22,17 +23,20 @@ secureExpressApp(app);
 
 const config = getConfigOrThrow();
 
-const rCConfigurationModel = new RCConfigurationModel(
+const rcConfigurationModel = new RCConfigurationModel(
   remoteContentCosmosdbInstance.container(RC_CONFIGURATION_COLLECTION_NAME)
+);
+
+const rcConfigurationUtility = new RCConfigurationUtility(
+  REDIS_CLIENT,
+  rcConfigurationModel,
+  config.SERVICE_CACHE_TTL_DURATION,
+  config.SERVICE_TO_RC_CONFIGURATION_MAP
 );
 
 app.get(
   "/api/v1/remote-contents/configurations/:id",
-  GetRCConfiguration(
-    rCConfigurationModel,
-    REDIS_CLIENT,
-    config.SERVICE_CACHE_TTL_DURATION
-  )
+  GetRCConfiguration(rcConfigurationUtility)
 );
 
 const azureFunctionHandler = createAzureFunctionHandler(app);

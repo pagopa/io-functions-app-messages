@@ -36,64 +36,13 @@ export default class RCConfigurationUtility {
         _ => TE.left(new Error(`ConfigurationId is not valid`)),
         configId =>
           pipe(
-            getTask(
-              this.redisClient,
-              `${RC_CONFIGURATION_REDIS_PREFIX}-${configId}`
-            ),
+            this.getOrCacheMaybeRCConfigurationById(configId),
             TE.chain(
               TE.fromOption(
-                () => new Error("Cannot Get RCConfiguration from Redis")
-              )
-            ),
-            TE.chainEitherK(
-              flow(
-                parse,
-                E.mapLeft(
-                  () =>
-                    new Error("Cannot parse RCConfiguration Json from Redis")
-                ),
-                E.chain(
-                  flow(
-                    RetrievedRCConfiguration.decode,
-                    E.mapLeft(
-                      () =>
-                        new Error(
-                          "Cannot decode RCConfiguration Json from Redis"
-                        )
-                    )
+                () =>
+                  new Error(
+                    `EMPTY_RC_CONFIGURATION, ConfigurationId=${configId}`
                   )
-                )
-              )
-            ),
-            TE.orElse(() =>
-              pipe(
-                this.rcConfigurationModel.findLastVersionByModelId([configId]),
-                TE.mapLeft(
-                  e =>
-                    new Error(
-                      `${e.kind}, RCConfiguration ConfigurationId=${configId}`
-                    )
-                ),
-                TE.chain(
-                  TE.fromOption(
-                    () =>
-                      new Error(
-                        `EMPTY_RC_CONFIGURATION, ConfigurationId=${configId}`
-                      )
-                  )
-                ),
-                TE.chain(rcConfiguration =>
-                  pipe(
-                    setWithExpirationTask(
-                      this.redisClient,
-                      `${RC_CONFIGURATION_REDIS_PREFIX}-${configId}`,
-                      JSON.stringify(rcConfiguration),
-                      this.rcConfigurationCacheTtl
-                    ),
-                    TE.map(() => rcConfiguration),
-                    TE.orElse(() => TE.of(rcConfiguration))
-                  )
-                )
               )
             )
           )

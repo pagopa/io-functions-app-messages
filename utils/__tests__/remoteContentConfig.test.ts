@@ -8,17 +8,20 @@ import {
   mockRCConfigurationModel
 } from "../../__mocks__/remote-content";
 import * as redis from "../redis_storage";
-import RCConfigurationUtility from "../remoteContentConfig";
+import RCConfigurationUtility, {
+  RC_CONFIGURATION_REDIS_PREFIX
+} from "../remoteContentConfig";
 import { Ulid } from "@pagopa/ts-commons/lib/strings";
 
 const getTaskMock = jest
   .fn()
   .mockImplementation(() =>
-    TE.of(
-      O.some(JSON.stringify(aRetrievedRCConfigurationWithBothEnv))
-    )
+    TE.of(O.some(JSON.stringify(aRetrievedRCConfigurationWithBothEnv)))
   );
 jest.spyOn(redis, "getTask").mockImplementation(getTaskMock);
+
+const setTaskMock = jest.fn().mockImplementation(() => TE.of(true));
+jest.spyOn(redis, "setWithExpirationTask").mockImplementation(setTaskMock);
 
 const aRedisClient = {} as any;
 
@@ -44,6 +47,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
 
     expect(E.isRight(r)).toBeTruthy();
     expect(getTaskMock).toHaveBeenCalledTimes(1);
+    expect(setTaskMock).not.toHaveBeenCalled();
     expect(findLastVersionByModelIdMock).not.toHaveBeenCalled();
   });
 
@@ -56,6 +60,12 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
 
     expect(E.isRight(r)).toBeTruthy();
     expect(getTaskMock).toHaveBeenCalledTimes(1);
+    expect(setTaskMock).toHaveBeenCalledWith(
+      aRedisClient,
+      `${RC_CONFIGURATION_REDIS_PREFIX}-${aRetrievedRCConfigurationWithBothEnv.configurationId}`,
+      JSON.stringify(aRetrievedRCConfigurationWithBothEnv),
+      mockConfig.SERVICE_CACHE_TTL_DURATION
+    );
     expect(findLastVersionByModelIdMock).toHaveBeenCalled();
   });
 
@@ -68,6 +78,12 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
 
     expect(E.isRight(r)).toBeTruthy();
     expect(getTaskMock).toHaveBeenCalledTimes(1);
+    expect(setTaskMock).toHaveBeenCalledWith(
+      aRedisClient,
+      `${RC_CONFIGURATION_REDIS_PREFIX}-${aRetrievedRCConfigurationWithBothEnv.configurationId}`,
+      JSON.stringify(aRetrievedRCConfigurationWithBothEnv),
+      mockConfig.SERVICE_CACHE_TTL_DURATION
+    );
     expect(findLastVersionByModelIdMock).toHaveBeenCalled();
   });
 
@@ -81,6 +97,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
 
     expect(E.isRight(r)).toBeTruthy();
     expect(getTaskMock).toHaveBeenCalledTimes(1);
+    expect(setTaskMock).not.toHaveBeenCalled();
     expect(findLastVersionByModelIdMock).toHaveBeenCalled();
   });
 
@@ -95,6 +112,12 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
     )();
 
     expect(E.isRight(r)).toBeTruthy();
+    expect(setTaskMock).toHaveBeenCalledWith(
+      aRedisClient,
+      `${RC_CONFIGURATION_REDIS_PREFIX}-${aRetrievedRCConfigurationWithBothEnv.configurationId}`,
+      JSON.stringify(aRetrievedRCConfigurationWithBothEnv),
+      mockConfig.SERVICE_CACHE_TTL_DURATION
+    );
     expect(getTaskMock).toHaveBeenCalledTimes(1);
     // the mockFind is called because the parse failed after the getTask,
     // so the value provided by the redis cache is not valid and we call the model

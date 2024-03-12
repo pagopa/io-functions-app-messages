@@ -15,7 +15,7 @@ import {
 import { getTask, setWithExpirationTask } from "./redis_storage";
 import { UlidMapFromString } from "./config";
 
-const RC_CONFIGURATION_REDIS_PREFIX = "RC-CONFIGURATION";
+export const RC_CONFIGURATION_REDIS_PREFIX = "RC-CONFIGURATION";
 
 export default class RCConfigurationUtility {
   constructor(
@@ -103,16 +103,24 @@ export default class RCConfigurationUtility {
             TE.mapLeft(
               e => new Error(`${e.kind}, RCConfiguration Id=${configurationId}`)
             ),
-            TE.chain(rCConfiguration =>
+            TE.chainFirst(maybeRCConfiguration =>
               pipe(
-                setWithExpirationTask(
-                  this.redisClient,
-                  `${RC_CONFIGURATION_REDIS_PREFIX}-${configurationId}`,
-                  JSON.stringify(rCConfiguration),
-                  this.rcConfigurationCacheTtl
+                maybeRCConfiguration,
+                TE.fromOption(
+                  () =>
+                    new Error(
+                      `Cannot find any configuration with id: ${configurationId}`
+                    )
                 ),
-                TE.map(() => rCConfiguration),
-                TE.orElse(() => TE.of(rCConfiguration))
+                TE.chain(rCConfiguration =>
+                  setWithExpirationTask(
+                    this.redisClient,
+                    `${RC_CONFIGURATION_REDIS_PREFIX}-${configurationId}`,
+                    JSON.stringify(rCConfiguration),
+                    this.rcConfigurationCacheTtl
+                  )
+                ),
+                TE.orElseW(() => TE.of(maybeRCConfiguration))
               )
             )
           ),

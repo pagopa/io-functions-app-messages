@@ -3,7 +3,7 @@ import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import {
   aRetrievedRCConfigurationWithBothEnv,
-  findLastVersionByModelIdMock,
+  findByConfigurationIdMock,
   mockConfig,
   mockRCConfigurationModel
 } from "../../__mocks__/remote-content";
@@ -48,7 +48,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
     expect(E.isRight(r)).toBeTruthy();
     expect(getTaskMock).toHaveBeenCalledTimes(1);
     expect(setTaskMock).not.toHaveBeenCalled();
-    expect(findLastVersionByModelIdMock).not.toHaveBeenCalled();
+    expect(findByConfigurationIdMock).not.toHaveBeenCalled();
   });
 
   it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.findLastVersionByModelIdMock if the getTask return an error", async () => {
@@ -66,7 +66,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
       JSON.stringify(aRetrievedRCConfigurationWithBothEnv),
       mockConfig.SERVICE_CACHE_TTL_DURATION
     );
-    expect(findLastVersionByModelIdMock).toHaveBeenCalled();
+    expect(findByConfigurationIdMock).toHaveBeenCalled();
   });
 
   it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.findLastVersionByModelIdMock if the getTask return is empty", async () => {
@@ -84,12 +84,12 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
       JSON.stringify(aRetrievedRCConfigurationWithBothEnv),
       mockConfig.SERVICE_CACHE_TTL_DURATION
     );
-    expect(findLastVersionByModelIdMock).toHaveBeenCalled();
+    expect(findByConfigurationIdMock).toHaveBeenCalled();
   });
 
   it("should return an error calling the model.find if the getTask and the model.findLastVersionByModelIdMock return is empty", async () => {
     getTaskMock.mockReturnValueOnce(TE.of(O.none));
-    findLastVersionByModelIdMock.mockReturnValueOnce(TE.of(O.none));
+    findByConfigurationIdMock.mockReturnValueOnce(TE.of(O.none));
 
     const r = await mockRCConfigurationUtility.getOrCacheMaybeRCConfigurationById(
       aRetrievedRCConfigurationWithBothEnv.configurationId
@@ -98,7 +98,7 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
     expect(E.isRight(r)).toBeTruthy();
     expect(getTaskMock).toHaveBeenCalledTimes(1);
     expect(setTaskMock).not.toHaveBeenCalled();
-    expect(findLastVersionByModelIdMock).toHaveBeenCalled();
+    expect(findByConfigurationIdMock).toHaveBeenCalled();
   });
 
   it("should return a valid aRetrievedRemoteContentConfigurationWithBothEnv calling the model.findLastVersionByModelIdMock if the getTask works fine but the JSON parse fails", async () => {
@@ -121,6 +121,6 @@ describe("getOrCacheMaybeRCConfigurationById", () => {
     expect(getTaskMock).toHaveBeenCalledTimes(1);
     // the mockFind is called because the parse failed after the getTask,
     // so the value provided by the redis cache is not valid and we call the model
-    expect(findLastVersionByModelIdMock).toHaveBeenCalled();
+    expect(findByConfigurationIdMock).toHaveBeenCalled();
   });
 });

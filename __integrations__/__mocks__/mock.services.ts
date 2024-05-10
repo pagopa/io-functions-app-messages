@@ -1,7 +1,6 @@
 import { ServiceScopeEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceScope";
 import { StandardServiceCategoryEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/StandardServiceCategory";
 import { HasPreconditionEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/HasPrecondition";
-import { RemoteContentConfiguration } from "@pagopa/io-functions-commons/dist/src/models/remote_content_configuration";
 import { ServiceMetadata } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { toAuthorizedRecipients } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { NewService } from "@pagopa/io-functions-commons/dist/src/models/service";
@@ -53,6 +52,7 @@ export const aRCConfiguration: RCConfiguration = {
   hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [],
   isLollipopEnabled: false,
+  id: "01HJ0VS18VBAQKCQ337YDV27B5" as NonEmptyString,
   configurationId: "01HJ0VS18VBAQKCQ337YDV27B5" as Ulid,
   userId: "aUserId" as NonEmptyString,
   prodEnvironment: {

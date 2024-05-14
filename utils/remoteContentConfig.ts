@@ -97,9 +97,7 @@ export default class RCConfigurationUtility {
       TE.fold(
         () =>
           pipe(
-            this.rcConfigurationModel.findLastVersionByModelId([
-              configurationId
-            ]),
+            this.rcConfigurationModel.findByConfigurationId(configurationId),
             TE.mapLeft(
               e => new Error(`${e.kind}, RCConfiguration Id=${configurationId}`)
             ),

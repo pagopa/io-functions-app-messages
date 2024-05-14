@@ -28,20 +28,19 @@ export const aRetrievedRCConfiguration: RetrievedRCConfiguration = {
   hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [aFiscalCode],
   isLollipopEnabled: true,
-  id: "id" as NonEmptyString,
+  id: "01HMRBX079WA5SGYBQP1A7FSKH" as NonEmptyString,
   name: "name" as NonEmptyString,
   description: "description" as NonEmptyString,
   prodEnvironment: {
     baseUrl: "aValidUrl" as NonEmptyString,
     detailsAuthentication: aDetailAuthentication
   },
-  version: 0 as NonNegativeInteger,
   ...aCosmosResourceMetadata
 };
 
 export const mockConfig = { SERVICE_CACHE_TTL_DURATION: 3600 } as IConfig;
 
-export const findLastVersionByModelIdMock = jest
+export const findByConfigurationIdMock = jest
   .fn()
   .mockImplementation(() =>
     TE.of(O.some(aRetrievedRCConfigurationWithBothEnv))
@@ -53,7 +52,7 @@ export const mockFind = jest.fn(() =>
 
 export const mockRCConfigurationModel = ({
   find: mockFind,
-  findLastVersionByModelId: findLastVersionByModelIdMock
+  findByConfigurationId: findByConfigurationIdMock
 } as unknown) as RCConfigurationModel;
 
 const aRCEnvironmentConfiguration = {
@@ -99,6 +98,7 @@ const aRCConfigurationEnvironmentModel = {
 
 const aRCConfiguration: RCConfiguration = {
   userId: "aUserId" as NonEmptyString,
+  id: "01HMRBX079WA5SGYBQP1A7FSKH" as NonEmptyString,
   configurationId: "01HMRBX079WA5SGYBQP1A7FSKH" as Ulid,
   name: "aName" as NonEmptyString,
   description: "a simple description" as NonEmptyString,
@@ -114,10 +114,7 @@ const aRCConfiguration: RCConfiguration = {
 
 export const aRetrievedRCConfigurationWithBothEnv: RetrievedRCConfiguration = {
   ...aRCConfiguration,
-  id: `${aRCConfiguration.configurationId}-${"0".repeat(
-    16
-  )}` as NonEmptyString,
-  version: 0 as NonNegativeInteger,
+  id: `${aRCConfiguration.configurationId}` as NonEmptyString,
   _etag: "_etag",
   _rid: "_rid",
   _self: "_self",

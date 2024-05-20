@@ -52,7 +52,6 @@ export const aRCConfiguration: RCConfiguration = {
   hasPrecondition: HasPreconditionEnum.ALWAYS,
   disableLollipopFor: [],
   isLollipopEnabled: false,
-  id: "01HJ0VS18VBAQKCQ337YDV27B5" as NonEmptyString,
   configurationId: "01HJ0VS18VBAQKCQ337YDV27B5" as Ulid,
   userId: "aUserId" as NonEmptyString,
   prodEnvironment: {

@@ -256,6 +256,7 @@ TE.TaskEither<Error, ReadonlyArray<EnrichedMessage>> =>
             message: {
               ...m,
               organization_name: service.organizationName,
+              organization_fiscal_code: service.organizationFiscalCode,
               service_name: service.serviceName
             },
             service

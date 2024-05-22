@@ -622,10 +622,19 @@ definitions:
           - organization_name
           - message_title
       - $ref: '#/definitions/MessageStatusAttributes'
+  EnrichedMessageWithOrganizationFiscalCode:
+    allOf:
+      - $ref: '#/definitions/EnrichedMessage'
+      - type: object
+        properties:
+          organization_fiscal_code:
+            $ref: '#/definitions/OrganizationFiscalCode'
+        required:
+          - organization_fiscal_code
   PublicMessage:
     x-one-of: true
     allOf:
-      - $ref: '#/definitions/EnrichedMessage'
+      - $ref: '#/definitions/EnrichedMessageWithOrganizationFiscalCode'
       - $ref: '#/definitions/CreatedMessageWithoutContent'
   PublicMessagesCollection:
     description: A collection of messages

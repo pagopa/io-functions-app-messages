@@ -185,10 +185,10 @@ const getContentFromBlobMock = jest.fn().mockImplementation(() =>
 );
 
 const getMessageModelMock = messageIterator =>
-  (({
-    getContentFromBlob: getContentFromBlobMock,
-    findMessages: jest.fn(() => TE.of(messageIterator))
-  } as unknown) as MessageModel);
+(({
+  getContentFromBlob: getContentFromBlobMock,
+  findMessages: jest.fn(() => TE.of(messageIterator))
+} as unknown) as MessageModel);
 
 const errorMessageModelMock = ({
   getContentFromBlob: jest.fn(() => TE.left("Error blob")),
@@ -691,6 +691,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       has_precondition: false,
       has_remote_content: false,
       organization_name: aRetrievedService.organizationName,
+      organization_fiscal_code: aRetrievedService.organizationFiscalCode,
       service_name: aRetrievedService.serviceName
     };
 
@@ -781,6 +782,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       has_precondition: true,
       has_remote_content: true,
       organization_name: aRetrievedService.organizationName,
+      organization_fiscal_code: aRetrievedService.organizationFiscalCode,
       service_name: aRetrievedService.serviceName
     };
 
@@ -855,6 +857,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       is_archived: false,
       is_read: false,
       organization_name: aRetrievedService.organizationName,
+      organization_fiscal_code: aRetrievedService.organizationFiscalCode,
       service_name: aRetrievedService.serviceName
     };
 
@@ -938,6 +941,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       is_archived: false,
       is_read: false,
       organization_name: aRetrievedService.organizationName,
+      organization_fiscal_code: aRetrievedService.organizationFiscalCode,
       service_name: aRetrievedService.serviceName
     };
 
@@ -1008,6 +1012,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       is_archived: false,
       is_read: false,
       organization_name: aRetrievedService.organizationName,
+      organization_fiscal_code: aRetrievedService.organizationFiscalCode,
       service_name: aRetrievedService.serviceName
     };
 
@@ -1122,6 +1127,7 @@ describe("GetMessagesHandler |> Fallback |> Enrichment", () => {
       is_archived: true,
       is_read: false,
       organization_name: aRetrievedService.organizationName,
+      organization_fiscal_code: aRetrievedService.organizationFiscalCode,
       service_name: aRetrievedService.serviceName
     };
 
@@ -1330,6 +1336,7 @@ describe("GetMessagesHandler |> Message View", () => {
         tag: "PAYMENT"
       },
       organization_name: aRetrievedService.organizationName,
+      organization_fiscal_code: aRetrievedService.organizationFiscalCode,
       has_remote_content: false,
       has_precondition: false,
       service_name: aRetrievedService.serviceName
@@ -1519,6 +1526,7 @@ describe("GetMessagesHandler |> Message View", () => {
       has_remote_content: false,
       has_precondition: false,
       organization_name: aRetrievedService.organizationName,
+      organization_fiscal_code: aRetrievedService.organizationFiscalCode,
       service_name: aRetrievedService.serviceName
     };
 
@@ -1624,7 +1632,7 @@ describe("GetMessagesHandler |> Message View", () => {
         buildIterator(
           RetrievedMessageView,
           aSimpleList,
-          _ => {},
+          _ => { },
           Error("IterationError")
         )
       );

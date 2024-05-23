@@ -1,4 +1,4 @@
-import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
+import { EnrichedMessageWithOrganizationFiscalCode } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessageWithOrganizationFiscalCode";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 
@@ -129,7 +129,7 @@ export const messageStatusList = pipe(
 
 export const mockEnrichMessage = (
   message: NewMessageWithContent
-): EnrichedMessage => {
+): EnrichedMessageWithOrganizationFiscalCode => {
   const service = serviceList.find(
     s => s.serviceId === message.senderServiceId
   );
@@ -141,6 +141,7 @@ export const mockEnrichMessage = (
     message_title: message.content.subject,
     service_name: service!.serviceName,
     organization_name: service!.organizationName,
+    organization_fiscal_code: service!.organizationFiscalCode,
     category: { tag: TagEnumBase.GENERIC },
     is_archived: false,
     is_read: false

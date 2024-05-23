@@ -807,10 +807,10 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.24.1.tgz#d4bcebda1cb5146d47a2a53daaa7922f8e084dfb"
   integrity sha512-VkliWlS4/+GHLLW7J/rVBA00uXus1SWvwFvcUDxDwmFxYfg/2VI6ekwdXS28cjI8Qz2ky2BzG8OUHo+WeYIWqw==
 
-"@pagopa/io-functions-commons@^29.0.4":
-  version "29.0.4"
-  resolved "https://registry.yarnpkg.com/@pagopa/io-functions-commons/-/io-functions-commons-29.0.4.tgz#103cfb19bb6b3b350a1c6fafdaa1e5a1f70c5e79"
-  integrity sha512-R+Bi4botMxeSQ9G7gZSdC2e7bJoLb1dgEUU+RDn27+KbiiqwfjzNigulRz0arTrVqvpHdq0dtU27tpUAVNoeeA==
+"@pagopa/io-functions-commons@^29.1.0":
+  version "29.1.0"
+  resolved "https://registry.yarnpkg.com/@pagopa/io-functions-commons/-/io-functions-commons-29.1.0.tgz#7809bd4aada8c7187bf2b10e714bf094c96c6e54"
+  integrity sha512-n+YeM6sdQiixxgrM0f26rUca7EF/N5KTdCBOlGC01sSIORyBfp3FFrD+QvXaZyOVcfevxgacXJaICw914Yicdw==
   dependencies:
     "@azure/cosmos" "^4.0.0"
     "@azure/data-tables" "^13.2.2"

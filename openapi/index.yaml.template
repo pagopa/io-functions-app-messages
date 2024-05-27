@@ -316,8 +316,6 @@ definitions:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/NewProfile"
   EnrichedMessage:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/EnrichedMessage"
-  EnrichedMessageWithOrganizationFiscalCode:
-    $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/EnrichedMessageWithOrganizationFiscalCode"
   PublicMessage:
     $ref: "../node_modules/@pagopa/io-functions-commons/openapi/definitions.yaml#/PublicMessage"
   PublicMessagesCollection:

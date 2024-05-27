@@ -311,6 +311,7 @@ export function GetMessageHandler(
                 is_archived: messageStatus.isArchived,
                 is_read: messageStatus.isRead,
                 message_title: messageContent.subject,
+                organization_fiscal_code: service.organizationFiscalCode,
                 organization_name: service.organizationName,
                 service_name: service.serviceName
               })

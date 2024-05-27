@@ -152,6 +152,7 @@ const expectedGetMessageResponseWithPublicAttributes: InternalMessageResponseWit
     is_read: aMessageStatus.isRead,
     message_title: aMessage.content.subject,
     organization_name: aService.organizationName,
+    organization_fiscal_code: aService.organizationFiscalCode,
     service_name: aService.serviceName,
     category: {
       tag: TagEnum.GENERIC

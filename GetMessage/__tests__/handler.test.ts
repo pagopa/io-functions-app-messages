@@ -14,7 +14,6 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/models/message";
 
 import { CreatedMessageWithoutContent } from "@pagopa/io-functions-commons/dist/generated/definitions/CreatedMessageWithoutContent";
-import { ServiceId } from "@pagopa/io-functions-commons/dist/generated/definitions/ServiceId";
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 
 import * as TE from "fp-ts/lib/TaskEither";
@@ -97,6 +96,7 @@ const anEnrichedMessageResponse: EnrichedMessage = {
   ...aPublicExtendedMessage,
   service_name: aSenderService.serviceName,
   organization_name: aSenderService.organizationName,
+  organization_fiscal_code: aSenderService.organizationFiscalCode,
   message_title: aMessageContent.subject,
   is_archived: aMessageStatus.isArchived,
   is_read: aMessageStatus.isRead

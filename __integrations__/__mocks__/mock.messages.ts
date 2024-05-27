@@ -1,4 +1,3 @@
-import { EnrichedMessageWithOrganizationFiscalCode } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessageWithOrganizationFiscalCode";
 import { MessageContent } from "@pagopa/io-functions-commons/dist/generated/definitions/MessageContent";
 import { TimeToLiveSeconds } from "@pagopa/io-functions-commons/dist/generated/definitions/TimeToLiveSeconds";
 
@@ -21,6 +20,7 @@ import { FeatureLevelTypeEnum } from "@pagopa/io-functions-commons/dist/generate
 import { NotRejectedMessageStatusValueEnum } from "@pagopa/io-functions-commons/dist/generated/definitions/NotRejectedMessageStatusValue";
 import { ThirdPartyData } from "@pagopa/io-functions-commons/dist/generated/definitions/ThirdPartyData";
 import { Ulid } from "@pagopa/ts-commons/lib/strings";
+import { EnrichedMessage } from "@pagopa/io-functions-commons/dist/generated/definitions/EnrichedMessage";
 
 export const aFiscalCodeWithoutMessages = "FFLFRC74E04B157I" as FiscalCode;
 export const aFiscalCodeWithMessages = "FRLFRC74E04B157I" as FiscalCode;
@@ -129,7 +129,7 @@ export const messageStatusList = pipe(
 
 export const mockEnrichMessage = (
   message: NewMessageWithContent
-): EnrichedMessageWithOrganizationFiscalCode => {
+): EnrichedMessage => {
   const service = serviceList.find(
     s => s.serviceId === message.senderServiceId
   );

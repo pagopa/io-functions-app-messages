@@ -152,6 +152,14 @@ export const getMessagesFromView = (
               categoryFetcher,
               rcConfigurationUtility
             ),
+            TE.mapLeft(err => {
+              context.log.error(
+                `getMessagesFromView|Error retrieving precondition flag for page data|${JSON.stringify(
+                  err
+                )}`
+              );
+              return err;
+            }),
             TE.map(items => ({
               ...pageResult,
               items

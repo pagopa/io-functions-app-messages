@@ -17,4 +17,4 @@ jobs:
       app_name: 'io-p-app-messages-fn-2'
       use_staging_slot: true
       use_private_agent: false
-      healthcheck_path: 'api/v1/info'
+      health_check_path: 'api/v1/info'

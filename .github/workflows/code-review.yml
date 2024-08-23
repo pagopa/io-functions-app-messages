@@ -1,0 +1,93 @@
+name: Code Review
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment"
+        required: false
+        default: "prod-ci"
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - "*"
+      - "!infra/*"
+      - "!.github/*"
+  push:
+    branches:
+      - EC-402-devops-decommissioning
+
+jobs:
+  js_code_review:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Check-out code
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      # Corepack is an official tool by Node.js that manages package managers versions
+
+      # This is needed to avoid
+      # Error: Error when performing the request to https://registry.npmjs.org/yarn/latest; 
+      - name: Setup target Node.js to enable Corepack
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version-file: ".node-version"
+
+      - name: Setup yarn
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+        with:
+          node-version-file: ".node-version"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --immutable
+        working-directory: .
+
+      - name: Build
+        run: yarn build
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Generate models
+        run: yarn generate
+
+      - name: Unit tests exec
+        run: yarn test:coverage
+
+      # Codecov provides reports and metrics about test coverage data.
+      # To enable set CODECOV_TOKEN secret at repo level and make sure
+      # that your "code-review" script creates a "coverage/" folder in
+      # the root workspace.
+      - name: Upload coverage report to codecov.io
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        uses: codecov/codecov-action@84508663e988701840491b86de86b666e8a86bed # v4.3.0
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+
+      - name: Start test resources
+        run: |-
+          cd __integrations__
+          sed -i 's/FF_TYPE=.*/FF_TYPE=${{ env.FF_TYPE }}/g' environments/env.base
+          cp environments/env.base environments/.env
+          yarn install --frozen-lockfile
+          yarn start
+        env:
+          FF_TYPE: ${{ inputs.environment == 'prod-ci' && 'prod' || 'none' }}
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db #v4
+
+      - name: Execute tests
+        run: |-
+          cd __integrations__
+          yarn install --frozen-lockfile
+          sleep 30s
+          docker exec integrations___testagent_1 yarn test
+          #           ^^^ FIXME: reference container using a less arbitrary name  

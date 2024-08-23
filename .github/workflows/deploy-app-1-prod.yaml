@@ -1,0 +1,20 @@
+name: Deploy App 1 - PROD
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - EC-402-devops-decommissioning
+    
+jobs:
+  deploy_on_prod:
+    uses: ./.github/workflows/deploy-pipelines.yaml
+    name: Deploy on PROD App 1
+    secrets: inherit
+    with:
+      environment: 'prod'
+      resource_group_name: 'io-p-app-messages-rg-1'
+      app_name: 'io-p-app-messages-fn-1'
+      use_staging_slot: true
+      use_private_agent: false
+      healthcheck_path: 'api/v1/info'

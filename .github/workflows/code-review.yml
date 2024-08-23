@@ -8,9 +8,6 @@ on:
       - "*"
       - "!infra/*"
       - "!.github/*"
-  push:
-    branches:
-      - EC-402-devops-decommissioning
 
 jobs:
   js_code_review:
@@ -75,7 +72,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install docker-compose -y
-          
+
       - name: Start test resources
         run: |-
           cd __integrations__

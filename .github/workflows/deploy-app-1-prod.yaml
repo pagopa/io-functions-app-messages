@@ -2,9 +2,6 @@ name: Deploy App 1 - PROD
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - EC-402-devops-decommissioning
     
 jobs:
   deploy_on_prod:

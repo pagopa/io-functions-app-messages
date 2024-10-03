@@ -27,11 +27,11 @@ parameters:
     type: object
     default:
       app1:
-        appname: io-p-app-messages-fn-1
-        rg: io-p-app-messages-rg-1
+        appname: io-p-weu-com-citizen-func-01
+        rg: io-p-weu-com-rg-01
       app2:
-        appname: io-p-app-messages-fn-2
-        rg: io-p-app-messages-rg-2
+        appname: io-p-weu-com-citizen-func-02
+        rg: io-p-weu-com-rg-01
 
 # Only manual activations are intended
 trigger: none
